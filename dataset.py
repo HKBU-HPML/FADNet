@@ -87,16 +87,15 @@ class RandomRescale(object):
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
 
-        decision = np.random.randint(2)
-        
         # for test
+        # decision = np.random.randint(2)
         decision = 0
 
         # print(np.mean(image_left), np.mean(image_right), np.mean(gt_disp))
     
         # just normalize the pixel value
-        image_left = image_left / 255.0
-        image_right = image_right / 255.0
+        image_left = image_left / 255.0 - 0.5
+        image_right = image_right / 255.0 - 0.5
 
         if decision == 0:
 
@@ -141,7 +140,7 @@ class RandomRescale(object):
         image_left = image_left.astype(np.float32)
         image_right = image_right.astype(np.float32)
         gt_disp = gt_disp.astype(np.float32)
-        
+
         
         # print(np.mean(image_left), np.mean(image_right), np.mean(gt_disp))
 
@@ -198,7 +197,7 @@ class ToTensor(object):
 
         new_sample = {'img_left': torch.from_numpy(image_left), \
                       'img_right': torch.from_numpy(image_right), \
-                      'gt_disp': torch.from_numpy(gt_disp) \
+                      'gt_disp': torch.from_numpy(gt_disp.copy()) \
                       }
         return new_sample
 

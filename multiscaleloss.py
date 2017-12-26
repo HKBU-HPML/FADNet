@@ -15,7 +15,7 @@ class MultiScaleLoss(nn.Module):
         super(MultiScaleLoss, self).__init__()
         self.downscale = downscale
         self.weights = torch.Tensor(scales).fill_(1) if weights is None else torch.Tensor(weights)
-        assert(len(weights) == scales)
+        assert(len(self.weights) == scales)
 
         if type(loss) is str:
 
@@ -30,6 +30,7 @@ class MultiScaleLoss(nn.Module):
         else:
             self.loss = loss
         self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        # self.multiScales = [nn.functional.adaptive_avg_pool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
 
     def forward(self, input, target):
         if type(input) is tuple:
@@ -37,7 +38,7 @@ class MultiScaleLoss(nn.Module):
             for i, input_ in enumerate(input):
                 target_ = self.multiScales[i](target)
                 EPE_ = EPE(input_, target_)
-                out += self.weights[i]*self.loss(EPE_, EPE_.detach()*0)
+                out += self.weights[i]*self.loss(EPE_, EPE_.detach() * 0)
         else:
             out = self.loss(input, self.multiScales[0](target))
         return out
