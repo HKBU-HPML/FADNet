@@ -61,7 +61,7 @@ if torch.cuda.is_available() and not opt.cuda:
 scale = RandomRescale((1024, 1024))
 crop = RandomCrop((384, 768))
 tt = ToTensor()
-composed = transforms.Compose([scale, crop, ToTensor()])
+composed = transforms.Compose([scale, crop, tt])
 
 train_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TRAIN.list', root_dir = 'data', transform=composed)
 test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_dir = 'data', transform=composed)
@@ -74,7 +74,7 @@ test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_d
 #          )
 
 
-train_loader = DataLoader(train_dataset, batch_size = 16, \
+train_loader = DataLoader(train_dataset, batch_size = 8, \
                         shuffle = True, num_workers = 4, \
                         pin_memory = True)
 
@@ -83,16 +83,16 @@ print(net)
 net = net.cuda()
 
 # net.load_state_dict(torch.load('./dispC_epoch_23.pth'))
-net = torch.nn.DataParallel(net).cuda()
+# net = torch.nn.DataParallel(net).cuda()
 
-loss_weights = (0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2)
-criterion = multiscaleloss(7, 1, loss_weights, loss='MSE', sparse=False).cuda()
-high_res_EPE = multiscaleloss(scales=1, downscale=4, weights=(1), loss='L1', sparse=False).cuda()
+loss_weights = (0.005, 0.02, 0.02, 0.02, 0.02, 0.32, 0.32)
+criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
+high_res_EPE = multiscaleloss(scales=1, downscale=4, weights=(1), loss='L1', sparse=False)
 
 print('=> setting {} solver'.format('adam'))
 init_lr = 2e-4
-param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
-                    {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
+param_groups = [{'params': net.bias_parameters(), 'weight_decay': 0},
+                    {'params': net.weight_parameters(), 'weight_decay': 4e-4}]
 
 optimizer = torch.optim.SGD(param_groups, init_lr,
                                     momentum=0.9)
