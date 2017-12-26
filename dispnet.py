@@ -9,12 +9,12 @@ def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
         return nn.Sequential(
                 nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size - 1)//2, bias=True),
                 nn.BatchNorm2d(out_planes),
-                nn.LeakyReLU(0.1, inplace=False)
+                nn.ReLU()
         )
     else:
         return nn.Sequential(
                 nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size - 1)//2, bias=True),
-                nn.LeakyReLU(0.1, inplace=True)
+                nn.ReLU()
         )
 
 def predict_flow(in_planes):
@@ -23,7 +23,7 @@ def predict_flow(in_planes):
 def deconv(in_planes, out_planes):
     return nn.Sequential(
             nn.ConvTranspose2d(in_planes, out_planes, kernel_size=4, stride=2, padding=1, bias=True),
-            nn.LeakyReLU(0.1, inplace=True)
+            nn.ReLU()
     )
 
 class DispNet(nn.Module):
@@ -151,11 +151,17 @@ class DispNet(nn.Module):
         iconv0 = self.iconv0(concat0)
         pr0 = self.pred_flow0(iconv0)
 
-	img_right_rec = warp(img_left, pr0)
+	# img_right_rec = warp(img_left, pr0)
 
         if self.training:
             # print("finish forwarding.")
-            return img_right_rec, pr1, pr2, pr3, pr4, pr5, pr6
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6
         else:
             return pr0
+
+    def weight_parameters(self):
+	return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+	return [param for name, param in self.named_parameters() if 'bias' in name]
 

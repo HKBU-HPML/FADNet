@@ -6,7 +6,8 @@ from MAPELoss import *
 def EPE(input_flow, target_flow):
     # print(input_flow.size(), target_flow.size())
     # print(target_flow - input_flow)
-    return torch.norm(target_flow - input_flow, 2, 1)
+    EPE_map = torch.norm(target_flow - input_flow, 2, 1)
+    return EPE_map.mean()
 
 class MultiScaleLoss(nn.Module):
 
