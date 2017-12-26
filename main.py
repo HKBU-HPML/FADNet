@@ -74,7 +74,7 @@ test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_d
 #          )
 
 
-train_loader = DataLoader(train_dataset, batch_size = 8, \
+train_loader = DataLoader(train_dataset, batch_size = 16, \
                         shuffle = True, num_workers = 4, \
                         pin_memory = True)
 
@@ -83,17 +83,20 @@ print(net)
 net = net.cuda()
 
 # net.load_state_dict(torch.load('./dispC_epoch_23.pth'))
-# net = torch.nn.DataParallel(net).cuda()
+net = torch.nn.DataParallel(net).cuda()
 
-loss_weights = (0.7, 0.3, 0.2, 0.2, 0.2, 0.2, 0.2)
+loss_weights = (0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2)
 criterion = multiscaleloss(7, 1, loss_weights, loss='MSE', sparse=False).cuda()
 high_res_EPE = multiscaleloss(scales=1, downscale=4, weights=(1), loss='L1', sparse=False).cuda()
 
 print('=> setting {} solver'.format('adam'))
-init_lr = 1e-5
-optimizer = torch.optim.Adam(net.parameters(), init_lr, \
-                        betas = (0.5, 0.999), \
-                        weight_decay = 4e-4)
+init_lr = 2e-4
+param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
+                    {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
+
+optimizer = torch.optim.SGD(param_groups, init_lr,
+                                    momentum=0.9)
+
 
 with open(os.path.join('logs', 'train.log'), 'w') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
@@ -117,7 +120,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch % 5 == 0:
+    if epoch % 3 == 0:
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] / 2
 
@@ -176,7 +179,7 @@ def train(train_loader, model, criterion, EPE, optimizer, epoch):
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
-        print(loss.grad)
+        # print(loss.grad)
         optimizer.step()
 
         # measure elapsed time
