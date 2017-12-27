@@ -12,7 +12,7 @@ from torch.autograd import Variable
 
 from dataset import *
 from dispnet import *
-from multiscaleloss import multiscaleloss
+from multiscaleloss import *
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import csv
@@ -58,13 +58,23 @@ if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You should run with --cuda since you have a CUDA device.")
 
 # data transformation
-scale = RandomRescale((1024, 1024))
-crop = RandomCrop((384, 768))
-tt = ToTensor()
-composed = transforms.Compose([scale, crop, tt])
+# scale = RandomRescale((1024, 1024))
+# crop = RandomCrop((384, 768))
+# tt = ToTensor()
+# composed = transforms.Compose([scale, crop, tt])
 
-train_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TRAIN.list', root_dir = 'data', transform=composed)
-test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_dir = 'data', transform=composed)
+
+input_transform = transforms.Compose([
+        transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
+        # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
+        ])
+
+target_transform = transforms.Compose([
+        transforms.Normalize(mean=[0],std=[32.0])
+        ])
+
+train_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TRAIN.list', root_dir = 'data', transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_dir = 'data', transform=[input_transform, target_transform])
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -74,28 +84,36 @@ test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_d
 #          )
 
 
-train_loader = DataLoader(train_dataset, batch_size = 8, \
-                        shuffle = True, num_workers = 4, \
+train_loader = DataLoader(train_dataset, batch_size = 16, \
+                        shuffle = True, num_workers = 8, \
                         pin_memory = True)
 
 net = DispNet(opt.ngpu, False)
 print(net)
-net = net.cuda()
 
-# net.load_state_dict(torch.load('./dispC_epoch_23.pth'))
-# net = torch.nn.DataParallel(net).cuda()
+start_epoch = 0
+# model_data = torch.load('./dispC_epoch_4.pth')
+# print(model_data.keys())
+# if 'state_dict' in model_data.keys():
+#     net.load_state_dict(model_data['state_dict'])
+# else:
+#     net.load_state_dict(model_data)
+
+net = torch.nn.DataParallel(net, device_ids=[0, 1, 2, 3]).cuda()
 
 loss_weights = (0.005, 0.02, 0.02, 0.02, 0.02, 0.32, 0.32)
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
-high_res_EPE = multiscaleloss(scales=1, downscale=4, weights=(1), loss='L1', sparse=False)
+high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
 print('=> setting {} solver'.format('adam'))
-init_lr = 2e-4
-param_groups = [{'params': net.bias_parameters(), 'weight_decay': 0},
-                    {'params': net.weight_parameters(), 'weight_decay': 4e-4}]
+init_lr = 1e-4
+param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
+                    {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
 
-optimizer = torch.optim.SGD(param_groups, init_lr,
-                                    momentum=0.9)
+# optimizer = torch.optim.SGD(param_groups, init_lr,
+#                                     momentum=0.9)
+optimizer = torch.optim.Adam(param_groups, init_lr,
+                                    betas=(0.9, 0.999))
 
 
 with open(os.path.join('logs', 'train.log'), 'w') as csvfile:
@@ -120,11 +138,11 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch % 3 == 0:
+    if epoch % 10 == 0:
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] / 2
 
-def train(train_loader, model, criterion, EPE, optimizer, epoch):
+def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -170,11 +188,16 @@ def train(train_loader, model, criterion, EPE, optimizer, epoch):
         #     pfm_arr = target_out[0].transpose(1, 2, 0)
         #     save_pfm('gt.pfm', pfm_arr)
 
+        # loss = multiscaleEPE(output, target_var, loss_weights)
         loss = criterion(output, target_var)
-        flow2_EPE = F.l1_loss(output[0], target_var)
+        # flow2_EPE = realEPE(output[0], target_var)
+        flow2_EPE = high_res_EPE(output[0], target_var)
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
         flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+
+        if np.isnan(flow2_EPE.data[0]):
+            sys.exit(-1)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -186,25 +209,26 @@ def train(train_loader, model, criterion, EPE, optimizer, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        print('Epoch: [{0}][{1}/{2}]\t'
+        if i_batch % 1 == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
               'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
               'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})'.format(
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
               data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
+   
 
     return losses.avg, flow2_EPEs.avg
     # return losses.avg
 
 
 
-for epoch in range(30):
+for epoch in range(start_epoch, 30):
     adjust_learning_rate(optimizer, epoch)
 
     # train for one epoch
-    train_loss, train_EPE = train(train_loader, net, criterion, high_res_EPE, optimizer, epoch)
-
+    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     # # evaluate on validation set
     # EPE = validate(test_loader, net, criterion, high_res_EPE)
     # if best_EPE < 0:
@@ -224,5 +248,5 @@ for epoch in range(30):
     #     writer = csv.writer(csvfile, delimiter='\t')
     #     writer.writerrow([train_loss, train_EPE, EPE])
 
-    torch.save(net.state_dict(), '%s/dispC_epoch_%d.pth' % (opt.outf, epoch))
+    torch.save(net.module.state_dict(), '%s/dispC_epoch_%d.pth' % (opt.outf, epoch))
 
