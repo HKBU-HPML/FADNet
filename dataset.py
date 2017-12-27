@@ -168,7 +168,7 @@ class RandomCrop(object):
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
 
-        h, w = image_left.shape[:2]
+        h, w = image_left.shape[1:3]
         new_h, new_w = self.output_size
 
         top = np.random.randint(0, h - new_h)
@@ -176,9 +176,9 @@ class RandomCrop(object):
         # top = 0
         # left = 0
 
-        image_left = image_left[top: top + new_h, left: left + new_w]
-        image_right = image_right[top: top + new_h, left: left + new_w]
-        gt_disp = gt_disp[top: top + new_h, left: left + new_w]
+        image_left = image_left[:, top: top + new_h, left: left + new_w]
+        image_right = image_right[:, top: top + new_h, left: left + new_w]
+        gt_disp = gt_disp[:, top: top + new_h, left: left + new_w]
         
         new_sample = {'img_left': image_left, \
                       'img_right': image_right, \
@@ -188,18 +188,25 @@ class RandomCrop(object):
 
 class ToTensor(object):
 
-    def __call__(self, sample):
-        image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
+    def __call__(self, array):
+        # image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
 
-        image_left = image_left.transpose((2, 0, 1))
-        image_right = image_right.transpose((2, 0, 1))
-        gt_disp = gt_disp[np.newaxis, :]
+        # image_left = image_left.transpose((2, 0, 1))
+        # image_right = image_right.transpose((2, 0, 1))
+        # gt_disp = gt_disp[np.newaxis, :]
 
-        new_sample = {'img_left': torch.from_numpy(image_left), \
-                      'img_right': torch.from_numpy(image_right), \
-                      'gt_disp': torch.from_numpy(gt_disp.copy()) \
-                      }
-        return new_sample
+        # new_sample = {'img_left': torch.from_numpy(image_left), \
+        #               'img_right': torch.from_numpy(image_right), \
+        #               'gt_disp': torch.from_numpy(gt_disp.copy()) \
+        #               }
+        # return new_sample
+        if len(array.shape) == 3 and array.shape[2] == 3:
+            array = np.transpose(array, [2, 0, 1])
+        if len(array.shape) == 2:
+            array = array[np.newaxis, :]
+
+        tensor = torch.from_numpy(array.copy())
+        return tensor.float()
 
 class DispDataset(Dataset):
 
@@ -237,8 +244,14 @@ class DispDataset(Dataset):
                   'gt_disp' : gt_disp   \
                  }
 
+        tt = ToTensor()
         if self.transform:
-            sample = self.transform(sample)
+            sample['img_left'] = self.transform[0](tt(sample['img_left']))
+            sample['img_right'] = self.transform[0](tt(sample['img_right']))
+            sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
+
+        crop = RandomCrop((384, 768))
+        sample = crop(sample)
 
         return sample
 

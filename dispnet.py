@@ -3,18 +3,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from skimage.transform import *
+from torch.nn.init import kaiming_normal
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
     if batchNorm:
         return nn.Sequential(
-                nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size - 1)//2, bias=True),
+                nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size - 1)//2, bias=False),
                 nn.BatchNorm2d(out_planes),
-                nn.ReLU()
+                nn.LeakyReLU(0.1, inplace=True)
         )
     else:
         return nn.Sequential(
                 nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size - 1)//2, bias=True),
-                nn.ReLU()
+                nn.LeakyReLU(0.1, inplace=True)
         )
 
 def predict_flow(in_planes):
@@ -22,8 +23,8 @@ def predict_flow(in_planes):
 
 def deconv(in_planes, out_planes):
     return nn.Sequential(
-            nn.ConvTranspose2d(in_planes, out_planes, kernel_size=4, stride=2, padding=1, bias=True),
-            nn.ReLU()
+            nn.ConvTranspose2d(in_planes, out_planes, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.LeakyReLU(0.1, inplace=True)
     )
 
 class DispNet(nn.Module):
@@ -83,9 +84,10 @@ class DispNet(nn.Module):
         # weight initialization
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, 0.02 / n)
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # m.weight.data.normal_(0, 0.02 / n)
                 # m.weight.data.normal_(0, 0.02)
+                kaiming_normal(m.weight.data)
                 if m.bias is not None:
                     m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
