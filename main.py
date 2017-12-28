@@ -91,13 +91,13 @@ train_loader = DataLoader(train_dataset, batch_size = 16, \
 net = DispNet(opt.ngpu, False)
 print(net)
 
-start_epoch = 0
-# model_data = torch.load('./dispC_epoch_4.pth')
-# print(model_data.keys())
-# if 'state_dict' in model_data.keys():
-#     net.load_state_dict(model_data['state_dict'])
-# else:
-#     net.load_state_dict(model_data)
+start_epoch = 30
+model_data = torch.load('./dispC_epoch_29.pth')
+print(model_data.keys())
+if 'state_dict' in model_data.keys():
+    net.load_state_dict(model_data['state_dict'])
+else:
+    net.load_state_dict(model_data)
 
 net = torch.nn.DataParallel(net, device_ids=[0, 1, 2, 3]).cuda()
 
@@ -106,7 +106,7 @@ criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
 print('=> setting {} solver'.format('adam'))
-init_lr = 1e-4
+init_lr = 1e-5
 param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
                     {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
 
@@ -224,7 +224,7 @@ def train(train_loader, model, optimizer, epoch):
 
 
 
-for epoch in range(start_epoch, 30):
+for epoch in range(start_epoch, 100):
     adjust_learning_rate(optimizer, epoch)
 
     # train for one epoch
