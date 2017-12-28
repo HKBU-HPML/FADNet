@@ -1,8 +1,8 @@
 #!/bin/bash
-cd ./networks/correlation_package
+cd ./layers_package/correlation_package
 ./make.sh
-cd ../resample2d_package 
-./make.sh
-cd ../channelnorm_package 
-./make.sh
-cd ..
+# cd ../resample2d_package 
+# ./make.sh
+# cd ../channelnorm_package 
+# ./make.sh
+# cd ..

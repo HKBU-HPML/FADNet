@@ -25,12 +25,15 @@ int Correlation_forward_cuda(THCudaTensor *input1, THCudaTensor *input2, THCudaT
   int kernel_radius = (kernel_size - 1) / 2;
   int border_radius = kernel_radius + max_displacement;
 
-  int paddedInputHeight = inputHeight + 2 * pad_size;
+  // int paddedInputHeight = inputHeight + 2 * pad_size;
+  int paddedInputHeight = inputHeight + 2 * kernel_radius;  // for 1D, only need to pad kernel radius
   int paddedInputWidth = inputWidth + 2 * pad_size;
 
-  int nOutputChannels = ((max_displacement/stride2)*2 + 1) * ((max_displacement/stride2)*2 + 1);
+  // int nOutputChannels = ((max_displacement/stride2)*2 + 1) * ((max_displacement/stride2)*2 + 1);
+  int nOutputChannels = (max_displacement/stride2)*2 + 1;   // 1D corr-layer only has D channels
 
-  int outputHeight = ceil((float)(paddedInputHeight - 2 * border_radius) / (float)stride1);
+  // int outputHeight = ceil((float)(paddedInputHeight - 2 * border_radius) / (float)stride1);
+  int outputHeight = ceil((float)(paddedInputHeight - 2 * kernel_radius) / (float)stride1);
   int outputwidth = ceil((float)(paddedInputWidth - 2 * border_radius) / (float)stride1);
 
   THCudaTensor_resize4d(state, rInput1, batchSize, paddedInputHeight, paddedInputWidth, nInputChannels);
@@ -104,7 +107,9 @@ int Correlation_backward_cuda(THCudaTensor *input1, THCudaTensor *input2, THCuda
 
   int batchSize = input1->size[0];
   int nInputChannels = input1->size[1];
-  int paddedInputHeight = input1->size[2]+ 2 * pad_size;
+  int kernel_radius = (kernel_size - 1) / 2;
+  // int paddedInputHeight = input1->size[2]+ 2 * pad_size;
+  int paddedInputHeight = input1->size[2]+ 2 * kernel_radius;  // for 1D, only need to pad kernel radius
   int paddedInputWidth = input1->size[3]+ 2 * pad_size;
 
   int height = input1->size[2];
