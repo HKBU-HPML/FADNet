@@ -9,6 +9,8 @@
 
 __global__ void channels_first(float* input, float* rinput, int channels, int height, int width, int pad_size)
 {
+    // this kernel is used to padding the input
+
     // n (batch size), c (num of channels), y (height), x (width)
     int n = blockIdx.x;
     int y = blockIdx.y;
@@ -21,13 +23,15 @@ __global__ void channels_first(float* input, float* rinput, int channels, int he
     int dimyx = height * width;
 
     int p_dimx = (width + 2 * pad_size);
-    int p_dimy = (height + 2 * pad_size);
+    int p_dimy = height; // no need for 1D
+    // int p_dimy = (height + 2 * pad_size); 
     int p_dimyxc = channels * p_dimy * p_dimx;
     int p_dimxc = p_dimx * channels;
 
     for (int c = ch_off; c < channels; c += THREADS_PER_BLOCK) {
       value = input[n * dimcyx + c * dimyx + y * width + x];
-      rinput[n * p_dimyxc + (y + pad_size) * p_dimxc + (x + pad_size) * channels + c] = value;
+      // rinput[n * p_dimyxc + (y + pad_size) * p_dimxc + (x + pad_size) * channels + c] = value;
+      rinput[n * p_dimyxc + y * p_dimxc + (x + pad_size) * channels + c] = value; // erase (y + pad_size), no need for 1D
     }
 }
 
@@ -43,14 +47,16 @@ __global__ void Correlation_forward( float *output, int nOutputChannels, int out
     // n (batch size), c (num of channels), y (height), x (width)
     
     int pInputWidth = inputWidth + 2 * pad_size;
-    int pInputHeight = inputHeight + 2 * pad_size;
+    // int pInputHeight = inputHeight + 2 * pad_size;
+    int pInputHeight = inputHeight; // no need for 1D
 
     int kernel_rad = (kernel_size - 1) / 2;
     int displacement_rad = max_displacement / stride2;
-    int displacement_size = 2 * displacement_rad + 1;
+    // int displacement_size = 2 * displacement_rad + 1;
 
     int n  = blockIdx.x;
-    int y1 = blockIdx.y * stride1 + max_displacement;
+    // int y1 = blockIdx.y * stride1 + max_displacement;
+    int y1 = blockIdx.y * stride1; // no need for 1D
     int x1 = blockIdx.z * stride1 + max_displacement;
     int c = threadIdx.x;
 
@@ -71,36 +77,37 @@ __global__ void Correlation_forward( float *output, int nOutputChannels, int out
     // instead i've used device memory for both 
 
     // element-wise product along channel axis
-    for (int tj = -displacement_rad; tj <= displacement_rad; ++tj ) {
-      for (int ti = -displacement_rad; ti <= displacement_rad; ++ti ) {
-        prod_sum[c] = 0;
-        int x2 = x1 + ti*stride2;
-        int y2 = y1 + tj*stride2;
+    // for (int tj = -displacement_rad; tj <= displacement_rad; ++tj )   // no need for 1D
+    for (int ti = -displacement_rad; ti <= displacement_rad; ++ti ) {
+      prod_sum[c] = 0;
+      int x2 = x1 + ti*stride2;
+      // int y2 = y1 + tj*stride2;
+      int y2 = y1; // no need to move y for 1D
 
-        for (int j = -kernel_rad; j <= kernel_rad; ++j) {
-          for (int i = -kernel_rad; i <= kernel_rad; ++i) {
-            for (int ch = c; ch < pdimc; ch += THREADS_PER_BLOCK) {
-              int indx1 = n * pdimyxc + (y1+j) * pdimxc + (x1 + i) * pdimc + ch;
-              int indx2 = n * pdimyxc + (y2+j) * pdimxc + (x2 + i) * pdimc + ch;
+      for (int j = -kernel_rad; j <= kernel_rad; ++j) {
+        for (int i = -kernel_rad; i <= kernel_rad; ++i) {
+          for (int ch = c; ch < pdimc; ch += THREADS_PER_BLOCK) {
+            int indx1 = n * pdimyxc + (y1+j) * pdimxc + (x1 + i) * pdimc + ch;
+            int indx2 = n * pdimyxc + (y2+j) * pdimxc + (x2 + i) * pdimc + ch;
 
-              prod_sum[c] += rInput1[indx1] * rInput2[indx2];
-            }
+            prod_sum[c] += rInput1[indx1] * rInput2[indx2];
           }
         }
-
-        // accumulate 
-        __syncthreads();
-        if (c == 0) {
-          float reduce_sum = 0;
-          for (int index = 0; index < THREADS_PER_BLOCK; ++index) {
-            reduce_sum += prod_sum[index];
-          }
-          int tc = (tj + displacement_rad) * displacement_size + (ti + displacement_rad);
-          const int tindx = n * tdimcyx + tc * tdimyx + blockIdx.y * tdimx + blockIdx.z;
-          output[tindx] = reduce_sum / nelems;
-        }
-
       }
+
+      // accumulate 
+      __syncthreads();
+      if (c == 0) {
+        float reduce_sum = 0;
+        for (int index = 0; index < THREADS_PER_BLOCK; ++index) {
+          reduce_sum += prod_sum[index];
+        }
+        // int tc = (tj + displacement_rad) * displacement_size + (ti + displacement_rad);
+        int tc = ti + displacement_rad;  // just 1D channel D
+        const int tindx = n * tdimcyx + tc * tdimyx + blockIdx.y * tdimx + blockIdx.z;
+        output[tindx] = reduce_sum / nelems;
+      }
+
     }
 
 }
@@ -117,20 +124,23 @@ __global__ void Correlation_backward_input1(int item, float *gradInput1, int nIn
     // n (batch size), c (num of channels), y (height), x (width)
 
     int n = item; 
-    int y = blockIdx.x * stride1 + pad_size;
+    int kernel_rad = (kernel_size - 1) / 2;
+    // int y = blockIdx.x * stride1 + pad_size; 
+    int y = blockIdx.x * stride1 + kernel_rad; 
     int x = blockIdx.y * stride1 + pad_size;
     int c = blockIdx.z;
     int tch_off = threadIdx.x;
 
-    int kernel_rad = (kernel_size - 1) / 2;
     int displacement_rad = max_displacement / stride2;
     int displacement_size = 2 * displacement_rad + 1;
 
     int xmin = (x - kernel_rad - max_displacement) / stride1;
-    int ymin = (y - kernel_rad - max_displacement) / stride1;
+    // int ymin = (y - kernel_rad - max_displacement) / stride1;
+    int ymin = (y - kernel_rad) / stride1;
 
     int xmax = (x + kernel_rad - max_displacement) / stride1;
-    int ymax = (y + kernel_rad - max_displacement) / stride1;
+    // int ymax = (y + kernel_rad - max_displacement) / stride1;
+    int ymax = (y + kernel_rad) / stride1;
 
     if (xmax < 0 || ymax < 0 || xmin >= outputWidth || ymin >= outputHeight) {
         // assumes gradInput1 is pre-allocated and zero filled
@@ -149,7 +159,8 @@ __global__ void Correlation_backward_input1(int item, float *gradInput1, int nIn
     ymax = min(outputHeight-1,ymax);
 
     int pInputWidth = inputWidth + 2 * pad_size;
-    int pInputHeight = inputHeight + 2 * pad_size;
+    // int pInputHeight = inputHeight + 2 * pad_size;
+    int pInputHeight = inputHeight + 2 * kernel_rad;
 
     int pdimyxc = pInputHeight * pInputWidth * nInputChannels;
     int pdimxc = pInputWidth * nInputChannels;
