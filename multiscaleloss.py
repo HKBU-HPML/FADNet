@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import math
-from MAPELoss import *
 import numpy as np
 
 def EPE(input_flow, target_flow):
