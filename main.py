@@ -91,13 +91,13 @@ train_loader = DataLoader(train_dataset, batch_size = 16, \
 net = DispNet(opt.ngpu, False)
 print(net)
 
-start_epoch = 30
-model_data = torch.load('./dispC_epoch_29.pth')
-print(model_data.keys())
-if 'state_dict' in model_data.keys():
-    net.load_state_dict(model_data['state_dict'])
-else:
-    net.load_state_dict(model_data)
+start_epoch = 0
+#model_data = torch.load('./dispC_epoch_29.pth')
+#print(model_data.keys())
+#if 'state_dict' in model_data.keys():
+#    net.load_state_dict(model_data['state_dict'])
+#else:
+#    net.load_state_dict(model_data)
 
 net = torch.nn.DataParallel(net, device_ids=[0, 1, 2, 3]).cuda()
 
