@@ -35,6 +35,7 @@ parser.add_argument('--startEpoch', type=int, help='the epoch number to start tr
 parser.add_argument('--endEpoch', type=int, help='the epoch number to end training', default='50')
 parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
 parser.add_argument('--showFreq', type=int, help='display frequency', default='1')
+parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
 
 opt = parser.parse_args()
 print(opt)
@@ -70,7 +71,7 @@ input_transform = transforms.Compose([
         ])
 
 target_transform = transforms.Compose([
-        transforms.Normalize(mean=[0],std=[32.0])
+        transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
 
 train_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TRAIN.list', root_dir = 'data', transform=[input_transform, target_transform])
@@ -204,10 +205,9 @@ def train(train_loader, model, optimizer, epoch):
         #     pfm_arr = target_out[0].transpose(1, 2, 0)
         #     save_pfm('gt.pfm', pfm_arr)
 
-        # loss = multiscaleEPE(output, target_var, loss_weights)
+	# compute loss
         loss = criterion(output, target_var)
-        # flow2_EPE = realEPE(output[0], target_var)
-        flow2_EPE = high_res_EPE(output[0], target_var)
+        flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
         flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
