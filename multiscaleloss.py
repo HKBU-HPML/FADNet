@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import math
-#from MAPELoss import *
 import numpy as np
 
 def EPE(input_flow, target_flow):
@@ -11,7 +10,7 @@ def EPE(input_flow, target_flow):
     EPE_map = torch.abs(target_flow - input_flow + 1e-16)# / #, 2, 1)
     # print(target_flow.sum())
     # print(input_flow.sum())
-    return EPE_map.sum()
+    return EPE_map.mean()
 
 class MultiScaleLoss(nn.Module):
 

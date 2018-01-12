@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from skimage.transform import *
 from torch.nn.init import kaiming_normal
+from layers_package.layers import ResBlock
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
     if batchNorm:
@@ -37,15 +38,25 @@ class DispNet(nn.Module):
 
         # shrink and extract features
         self.conv1   = conv(self.batchNorm, 6, 64, 7, 2)
-        self.conv2   = conv(self.batchNorm, 64, 128, 5, 2)
-        self.conv3   = conv(self.batchNorm, 128, 256, 5, 2)
-        self.conv3_1 = conv(self.batchNorm, 256, 256)
-        self.conv4   = conv(self.batchNorm, 256, 512, stride=2)
-        self.conv4_1 = conv(self.batchNorm, 512, 512)
-        self.conv5   = conv(self.batchNorm, 512, 512, stride=2)
-        self.conv5_1 = conv(self.batchNorm, 512, 512)
-        self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
-        self.conv6_1 = conv(self.batchNorm, 1024, 1024)
+        self.conv2   = ResBlock(64, 128, 2)
+        self.conv3   = ResBlock(128, 256, 2)
+        self.conv3_1 = ResBlock(256, 256)
+        self.conv4   = ResBlock(256, 512, stride=2)
+        self.conv4_1 = ResBlock(512, 512)
+        self.conv5   = ResBlock(512, 512, stride=2)
+        self.conv5_1 = ResBlock(512, 512)
+        self.conv6   = ResBlock(512, 1024, stride=2)
+        self.conv6_1 = ResBlock(1024, 1024)
+
+        #self.conv2   = conv(self.batchNorm, 64, 128, 5, 2)
+        #self.conv3   = conv(self.batchNorm, 128, 256, 5, 2)
+        #self.conv3_1 = conv(self.batchNorm, 256, 256)
+        #self.conv4   = conv(self.batchNorm, 256, 512, stride=2)
+        #self.conv4_1 = conv(self.batchNorm, 512, 512)
+        #self.conv5   = conv(self.batchNorm, 512, 512, stride=2)
+        #self.conv5_1 = conv(self.batchNorm, 512, 512)
+        #self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
+        #self.conv6_1 = conv(self.batchNorm, 1024, 1024)
 
         self.pred_flow6 = predict_flow(1024)
 

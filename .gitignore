@@ -1,3 +1,4 @@
 ## ginore this file ##
 *.pth
 *.log
+*.pyc
