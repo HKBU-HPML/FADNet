@@ -5,6 +5,10 @@ import torch.nn.functional as F
 from skimage.transform import *
 from torch.nn.init import kaiming_normal
 from layers_package.layers import ResBlock
+from layers_package.layers import ResBlock
+from layers_package.correlation_package.modules.correlation import Correlation
+from layers_package.submodules import *
+
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
     if batchNorm:
@@ -182,22 +186,22 @@ class DispNet(nn.Module):
 class DispNetC(nn.Module):
 
     def __init__(self, ngpu, batchNorm=True):
-        super(DispNet, self).__init__()
+        super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
 
         # shrink and extract features
-        self.conv1   = conv(self.batchNorm, 6, 64, 7, 2)
+        self.conv1   = conv(self.batchNorm, 3, 64, 7, 2)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
 
-	# start corr from conv3
+	# start corr from conv3, output channel is 32 + 21*21 = 473
 	self.conv_redir = ResBlock(256, 32, stride=1)
 	self.corr = Correlation(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
-        self.conv3_1 = ResBlock(256, 256)
+        self.conv3_1 = ResBlock(473, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
         self.conv4_1 = ResBlock(512, 512)
         self.conv5   = ResBlock(512, 512, stride=2)
