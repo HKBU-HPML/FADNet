@@ -96,7 +96,7 @@ test_loader = DataLoader(test_dataset, batch_size = 16, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNetC(ngpu, False)
+net = DispNet(ngpu, False)
 print(net)
 
 #start_epoch = 0
@@ -130,7 +130,7 @@ criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
 print('=> setting {} solver'.format('adam'))
-init_lr = 1e-5
+init_lr = 1e-4
 param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
                     {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
 
@@ -142,7 +142,7 @@ optimizer = torch.optim.Adam(param_groups, init_lr,
 
 with open(os.path.join('logs', opt.logFile), 'w') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
-    writer.writerow(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE'])
+    writer.writerow(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE', 'lr'])
 
 class AverageMeter(object):
 
@@ -241,8 +241,8 @@ def train(train_loader, model, optimizer, epoch):
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
               data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
  
-	# debug  	
-	# if i_batch >= 1:
+	# # debug  	
+	# if i_batch >= 3:
 	#     break
 
     return losses.avg, flow2_EPEs.avg
@@ -292,8 +292,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
             print('Test: [{0}/{1}]\t Time {2}\t EPE {3}'
                   .format(i, len(val_loader), batch_time.val, flow2_EPEs.val))
 
-	# debug
-	# if i >= 1:
+	# # debug
+	# if i >= 3:
 	#     break
 
     print(' * EPE {:.3f}'.format(flow2_EPEs.avg))
@@ -329,7 +329,7 @@ for epoch in range(start_epoch, end_epoch):
 
     with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
-        writer.writerow([epoch, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), train_loss, train_EPE, EPE])
+        writer.writerow([epoch, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), train_loss, train_EPE, EPE, init_lr / (2**(epoch // 10))])
 
     # torch.save(net.module.state_dict(), '%s/dispC_epoch_%d.pth' % (opt.outf, epoch))
 
