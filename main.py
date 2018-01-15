@@ -142,7 +142,7 @@ optimizer = torch.optim.Adam(param_groups, init_lr,
 
 with open(os.path.join('logs', opt.logFile), 'w') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
-    writer.writerow(['train_loss', 'train_EPE', 'EPE'])
+    writer.writerow(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE'])
 
 class AverageMeter(object):
 
@@ -329,7 +329,7 @@ for epoch in range(start_epoch, end_epoch):
 
     with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
-        writer.writerow([train_loss, train_EPE, EPE])
+        writer.writerow([epoch, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), train_loss, train_EPE, EPE])
 
     # torch.save(net.module.state_dict(), '%s/dispC_epoch_%d.pth' % (opt.outf, epoch))
 
