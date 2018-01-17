@@ -37,15 +37,15 @@ class ResBlock(nn.Module):
 class DeconvResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 2):
         super(DeconvResBlock, self).__init__()
-        self.deconv1 = nn.ConvTranspose2d(n_in, n_out, kernel_size = 4, stride = stride, padding = 1)
+        self.deconv1 = nn.ConvTranspose2d(n_in, n_out, kernel_size = 4, stride = stride, padding = 1, bias=False)
         self.bn1 = nn.BatchNorm2d(n_out)
         self.relu = nn.ReLU(inplace = True)
-        self.deconv2 = nn.ConvTranspose2d(n_out, n_out, kernel_size = 3, padding = 1)
+        self.deconv2 = nn.ConvTranspose2d(n_out, n_out, kernel_size = 3, padding = 1, bias=False)
         self.bn2 = nn.BatchNorm2d(n_out)
 
         if stride != 1 or n_out != n_in:
             self.shortcut = nn.Sequential(
-                nn.ConvTranspose2d(n_in, n_out, kernel_size = 1, stride = stride),
+                nn.ConvTranspose2d(n_in, n_out, kernel_size = 4, stride = stride, padding = 1, bias=False),
                 nn.BatchNorm2d(n_out))
         else:
             self.shortcut = None
