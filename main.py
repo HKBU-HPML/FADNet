@@ -96,7 +96,7 @@ test_loader = DataLoader(test_dataset, batch_size = 16, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNet(ngpu, False)
+net = DispNetC(ngpu, False)
 print(net)
 
 #start_epoch = 0
