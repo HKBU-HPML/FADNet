@@ -84,11 +84,7 @@ test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_d
 
 
 train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
-<<<<<<< HEAD
-                        shuffle = True, num_workers = 8, \
-=======
                         shuffle = True, num_workers = opt.workers, \
->>>>>>> 86b7932d85ee6c648dd4518755b2dc0ea51776b6
                         pin_memory = True)
 
 test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
