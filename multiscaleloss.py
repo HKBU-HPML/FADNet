@@ -8,7 +8,8 @@ def EPE(input_flow, target_flow):
     # print(target_flow - input_flow)
     #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
     EPE_map = torch.abs(target_flow - input_flow + 1e-16)# / #, 2, 1)
-    # print(target_flow.sum())
+    #hist = np.histogram(EPE_map.data.cpu().numpy(), bins=10)
+    #print(hist)
     # print(input_flow.sum())
     return EPE_map.mean()
 
