@@ -19,10 +19,8 @@ import csv
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
-parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
-parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
+parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables, cuda')
@@ -86,17 +84,21 @@ test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_d
 
 
 train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
+<<<<<<< HEAD
                         shuffle = True, num_workers = 8, \
+=======
+                        shuffle = True, num_workers = opt.workers, \
+>>>>>>> 86b7932d85ee6c648dd4518755b2dc0ea51776b6
                         pin_memory = True)
 
-test_loader = DataLoader(test_dataset, batch_size = 16, \
-                        shuffle = False, num_workers = 8, \
+test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
+                        shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNet(ngpu, False)
+net = DispNetC(ngpu, False)
 print(net)
 
 #start_epoch = 0
@@ -130,7 +132,7 @@ criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
 print('=> setting {} solver'.format('adam'))
-init_lr = 1e-5
+init_lr = opt.lr
 param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
                     {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
 
@@ -139,10 +141,16 @@ param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
 optimizer = torch.optim.Adam(param_groups, init_lr,
                                     betas=(0.9, 0.999))
 
-
+# write opt and network
 with open(os.path.join('logs', opt.logFile), 'w') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
-    writer.writerow(['train_loss', 'train_EPE', 'EPE'])
+    writer.writerow([str(opt)])
+    writer.writerow([str(net)])
+
+# write table header
+with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
+    writer = csv.writer(csvfile, delimiter='\t')
+    writer.writerow(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE', 'lr'])
 
 class AverageMeter(object):
 
@@ -241,8 +249,8 @@ def train(train_loader, model, optimizer, epoch):
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
               data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
  
-	# debug  	
-	# if i_batch >= 1:
+	# # debug  	
+	# if i_batch >= 3:
 	#     break
 
     return losses.avg, flow2_EPEs.avg
@@ -272,7 +280,7 @@ def validate(val_loader, model, criterion, high_res_EPE):
         output = model(input_var)
         loss = criterion(output, target_var)
         ## flow2_EPE = realEPE(output[0], target_var)
-        flow2_EPE = high_res_EPE(output, target_var)
+        flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
         flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
@@ -292,8 +300,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
             print('Test: [{0}/{1}]\t Time {2}\t EPE {3}'
                   .format(i, len(val_loader), batch_time.val, flow2_EPEs.val))
 
-	# debug
-	# if i >= 1:
+	# # debug
+	# if i >= 3:
 	#     break
 
     print(' * EPE {:.3f}'.format(flow2_EPEs.avg))
@@ -329,7 +337,7 @@ for epoch in range(start_epoch, end_epoch):
 
     with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
-        writer.writerow([train_loss, train_EPE, EPE])
+        writer.writerow([epoch, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), train_loss, train_EPE, EPE, init_lr / (2**(epoch // 10))])
 
     # torch.save(net.module.state_dict(), '%s/dispC_epoch_%d.pth' % (opt.outf, epoch))
 
