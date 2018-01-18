@@ -85,7 +85,7 @@ test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_d
 #          )
 
 
-train_loader = DataLoader(train_dataset, batch_size = 16, \
+train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
                         shuffle = True, num_workers = 8, \
                         pin_memory = True)
 
@@ -164,7 +164,7 @@ class AverageMeter(object):
 def adjust_learning_rate(optimizer, epoch):
     if epoch != 0 and epoch % 10 == 0:
         for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] / 2
+            param_group['lr'] = param_group['lr'] / 10
 
 def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
