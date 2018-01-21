@@ -24,7 +24,8 @@ def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
         )
 
 def predict_flow(in_planes):
-    return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
+    # return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
+    return ResBlock(in_planes,1,stride=1)
 
 def deconv(in_planes, out_planes):
     return nn.Sequential(
@@ -225,32 +226,38 @@ class DispNetC(nn.Module):
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
         self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv5 = nn.ConvTranspose2d(1025, 512, 3, 1, 1)
+        # self.iconv5 = nn.ConvTranspose2d(1025, 512, 3, 1, 1)
+        self.iconv5 = ResBlock(1025, 512, 1)
         self.pred_flow5 = predict_flow(512)
 
         self.upconv4 = deconv(512, 256)
         self.upflow5to4 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv4 = nn.ConvTranspose2d(769, 256, 3, 1, 1)
+        # self.iconv4 = nn.ConvTranspose2d(769, 256, 3, 1, 1)
+        self.iconv4 = ResBlock(769, 256, 1)
         self.pred_flow4 = predict_flow(256)
 
         self.upconv3 = deconv(256, 128)
         self.upflow4to3 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
+        # self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
+        self.iconv3 = ResBlock(385, 128, 1)
         self.pred_flow3 = predict_flow(128)
 
         self.upconv2 = deconv(128, 64)
         self.upflow3to2 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
+        # self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
+        self.iconv2 = ResBlock(193, 64, 1)
         self.pred_flow2 = predict_flow(64)
 
         self.upconv1 = deconv(64, 32)
         self.upflow2to1 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
+        # self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
+        self.iconv1 = ResBlock(97, 32, 1)
         self.pred_flow1 = predict_flow(32)
 
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
+        # self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
+        self.iconv0 = ResBlock(20, 16, 1)
         self.pred_flow0 = predict_flow(16)
 
 

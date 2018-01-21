@@ -311,6 +311,11 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
+if opt.model != '':
+    EPE = validate(test_loader, net, criterion, high_res_EPE)
+    if best_EPE < 0:
+        best_EPE = EPE
+
 for epoch in range(start_epoch, end_epoch):
     adjust_learning_rate(optimizer, epoch)
 
