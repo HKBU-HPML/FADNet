@@ -86,70 +86,47 @@ class RandomRescale(object):
 
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
+        #h, w = image_left.shape[:2]
+        #if isinstance(self.output_size, int):
+        #    if h > w:
+        #        new_h, new_w = self.output_size * h / w, self.output_size
+        #    else:
+        #        new_h, new_w = self.output_size, self.output_size * w / h
+        #else:
+        #    new_h, new_w = self.output_size
 
-        # for test
-        # decision = np.random.randint(2)
-        decision = 0
+        #new_h, new_w = int(new_h), int(new_w)
 
-        # print(np.mean(image_left), np.mean(image_right), np.mean(gt_disp))
-    
-        # just normalize the pixel value
-        image_left = image_left / 255.0 - 0.5
-        image_right = image_right / 255.0 - 0.5
+        image_left = transform.resize(image_left, self.output_size, preserve_range=True)
+        image_right = transform.resize(image_right, self.output_size, preserve_range=True)
 
-        if decision == 0:
+        gt_disp = gt_disp.astype(int)
+        gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
+        # the same as the original paper
+        #gt_disp = gt_disp * (new_w * 1.0 / w)
+        #gt_disp = gt_disp / 32.0
 
-            # prepoccessing for disparity map with the width
-            # gt_disp = gt_disp.astype('float64')
-
-            # the same as the original paper
-            gt_disp = gt_disp / 32.0
-
-            # # try to normalize with the image width
-            # gt_disp = gt_disp * 2.0 / gt_disp.shape[1]
-
-        else:
-
-            h, w = image_left.shape[:2]
-
-            if isinstance(self.output_size, int):
-                if h > w:
-                    new_h, new_w = self.output_size * h / w, self.output_size
-                else:
-                    new_h, new_w = self.output_size, self.output_size * w / h
-            else:
-                new_h, new_w = self.output_size
-
-            new_h, new_w = int(new_h), int(new_w)
-
-
-            image_left = transform.resize(image_left, (new_h, new_w), preserve_range=True)
-            image_right = transform.resize(image_right, (new_h, new_w), preserve_range=True)
-
-            gt_disp = gt_disp.astype(int)
-            gt_disp = transform.resize(gt_disp, (new_h, new_w), preserve_range=True)
-
-            # the same as the original paper
-            gt_disp = gt_disp * (new_w * 1.0 / w)
-            gt_disp = gt_disp / 32.0
-
-            # # try to normalize with image width
-            # gt_disp = gt_disp * 2.0 / w
+        # # try to normalize with image width
+        # gt_disp = gt_disp * 2.0 / w
 
         # change image pixel value type ot float32
         image_left = image_left.astype(np.float32)
         image_right = image_right.astype(np.float32)
         gt_disp = gt_disp.astype(np.float32)
-
-        
-        # print(np.mean(image_left), np.mean(image_right), np.mean(gt_disp))
-
-        new_sample = {'img_left': image_left, \
-                      'img_right': image_right, \
-                      'gt_disp': gt_disp \
-                     }
-
+        new_sample = sample
+        new_sample.update({'img_left': image_left, 
+                      'img_right': image_right, 
+                      'gt_disp': gt_disp})
         return new_sample
+
+    @staticmethod
+    def scale_back(disp, orignal_size=(1, 540, 960)):
+        print('current shape:', disp.shape)
+        trans_disp = transform.resize(disp, orignal_size, preserve_range=True)
+        print('trans shape:', trans_disp.shape)
+        return trans_disp.astype(np.float32)
+
+
 
 class RandomCrop(object):
     """
@@ -179,10 +156,10 @@ class RandomCrop(object):
         image_left = image_left[:, top: top + new_h, left: left + new_w]
         image_right = image_right[:, top: top + new_h, left: left + new_w]
         gt_disp = gt_disp[:, top: top + new_h, left: left + new_w]
-        
-        new_sample = {'img_left': image_left, \
-                      'img_right': image_right, \
-                      'gt_disp': gt_disp}
+        new_sample = sample
+        new_sample.update({'img_left': image_left, 
+                      'img_right': image_right, 
+                      'gt_disp': gt_disp})
 
         return new_sample
 
@@ -210,7 +187,7 @@ class ToTensor(object):
 
 class DispDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, transform = None):
+    def __init__(self, txt_file, root_dir, transform = None, phase='train' ):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -221,6 +198,7 @@ class DispDataset(Dataset):
         f.close()
         self.root_dir = root_dir
         self.transform = transform
+        self.phase = phase
 
     def __len__(self):
         return len(self.imgPairs)
@@ -237,12 +215,17 @@ class DispDataset(Dataset):
 
         gt_disp = gt_disp[::-1, :]
 
-        sample = {'img_left': img_left, \
-                  'img_right': img_right, \
-                  # 'pm_disp' : pm_disp,  \
-                  # 'pm_cost' : pm_cost,  \
-                  'gt_disp' : gt_disp   \
+        sample = {'img_left': img_left, 
+                  'img_right': img_right, 
+                  # 'pm_disp' : pm_disp,  
+                  # 'pm_cost' : pm_cost,  
+                  'gt_disp' : gt_disp,   
+                  'img_names' : img_names
                  }
+
+        if self.phase == 'test':
+            scale = RandomRescale((384, 768))
+            sample = scale(sample)
 
         tt = ToTensor()
         if self.transform:
@@ -250,12 +233,8 @@ class DispDataset(Dataset):
             sample['img_right'] = self.transform[0](tt(sample['img_right']))
             sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
 
-        crop = RandomCrop((384, 768))
-        sample = crop(sample)
-
+        if self.phase != 'test':
+            crop = RandomCrop((384, 768))
+            sample = crop(sample)
         return sample
-
-
-
-
 

@@ -1,9 +1,9 @@
 import torch
 from torch.autograd import Function
-from .._ext import correlation
+from .._ext import correlation1d
 
 
-class CorrelationFunction(Function):
+class CorrelationFunction1D(Function):
 
     def __init__(self, pad_size=3, kernel_size=3, max_displacement=20, stride1=1, stride2=2, corr_multiply=1):
         super(CorrelationFunction, self).__init__()

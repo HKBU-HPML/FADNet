@@ -22,7 +22,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
 parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
-parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
+parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
+parser.add_argument('--beta', type=float, default=0.999, help='beta parameter for adam. default=0.999')
 parser.add_argument('--cuda', action='store_true', help='enables, cuda')
 parser.add_argument('--devices', type=str, help='indicates CUDA devices, e.g. 0,1,2', default='0')
 # parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
@@ -56,18 +57,13 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You should run with --cuda since you have a CUDA device.")
 
-# data transformation
-# scale = RandomRescale((1024, 1024))
-# crop = RandomCrop((384, 768))
-# tt = ToTensor()
-# composed = transforms.Compose([scale, crop, tt])
-
-
+# input transform, normalize with 255
 input_transform = transforms.Compose([
         transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
         # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
         ])
 
+# disparity transform, divided by flowDiv, 1.0 with batchNorm seems to yield good results
 target_transform = transforms.Compose([
         transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
@@ -94,7 +90,7 @@ test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNetC(ngpu, False)
+net = DispNetCSRes(ngpu, False)
 print(net)
 
 #start_epoch = 0
@@ -123,7 +119,7 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.02, 0.02, 0.02, 0.02, 0.32, 0.32)
+loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
@@ -135,7 +131,7 @@ param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
 # optimizer = torch.optim.SGD(param_groups, init_lr,
 #                                     momentum=0.9)
 optimizer = torch.optim.Adam(param_groups, init_lr,
-                                    betas=(0.9, 0.999))
+                                    betas=(opt.momentum, opt.beta))
 
 # write opt and network
 with open(os.path.join('logs', opt.logFile), 'w') as csvfile:
@@ -168,7 +164,7 @@ class AverageMeter(object):
 def adjust_learning_rate(optimizer, epoch):
     if epoch != 0 and epoch % 10 == 0:
         for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] / 2
+            param_group['lr'] = param_group['lr'] / 10
 
 def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
@@ -187,6 +183,7 @@ def train(train_loader, model, optimizer, epoch):
         #                sample_batched['img_right'].size(), \
         #                sample_batched['gt_disp'].size())
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        # print(input.size())
         target = sample_batched['gt_disp']
 
         data_time.update(time.time() - end)
@@ -196,29 +193,17 @@ def train(train_loader, model, optimizer, epoch):
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
-        # compute output
-        output = model(input_var)
-        
-        # debug
-        # print(output[0])
-        # print(target_var)
-        
-        # np_out = output[0].data.cpu().numpy()
-        # # print(np_out.shape)
-        # test_value = np_out[[0], [0], [0], [0]]
-        # # print(test_value[0])
-        # if np.isnan(test_value[0]):
-        #     sys.exit(-1)
-        # else:
-        #     pfm_arr = np_out[0].transpose(1, 2, 0)
-        #     save_pfm('test.pfm', pfm_arr)
-        #     target_out = target_var.data.cpu().numpy()
-        #     pfm_arr = target_out[0].transpose(1, 2, 0)
-        #     save_pfm('gt.pfm', pfm_arr)
+        # compute output and loss
+        # output = model(input_var)
+        # loss = criterion(output, target_var)
+        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiva
 
-	# compute loss
-        loss = criterion(output, target_var)
-        flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
+        output_net1, output_net2 = model(input_var)
+        loss_net1 = criterion(output_net1, target_var)
+        loss_net2 = criterion(output_net2, target_var)
+        loss = loss_net1 + loss_net2
+        flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
+        
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
         flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
@@ -273,10 +258,17 @@ def validate(val_loader, model, criterion, high_res_EPE):
         target_var = torch.autograd.Variable(target, volatile=True)
 
 	# compute output
-        output = model(input_var)
-        loss = criterion(output, target_var)
-        ## flow2_EPE = realEPE(output[0], target_var)
-        flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
+        # output = model(input_var)
+        # loss = criterion(output, target_var)
+        # flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
+
+        output_net1, output_net2 = model(input_var)
+        loss_net1 = criterion(output_net1, target_var)
+        loss_net2 = criterion(output_net2, target_var)
+        loss = loss_net1 + loss_net2
+        flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
+
+
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
         flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
