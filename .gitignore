@@ -2,3 +2,5 @@
 *.pth
 *.log
 *.pyc
+*.swp
+*.pfm
