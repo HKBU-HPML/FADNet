@@ -68,7 +68,7 @@ def detect(model, result_path, file_list, filepath):
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
             img = output[j].data.cpu().numpy()
-            img = RandomRescale.scale_back(img)
+            img = RandomRescale.scale_back(img, orignal_size=(1, 540, 960))
             img = np.flip(img[0], axis=0)
             print('Name: {}'.format(save_name))
             save_pfm('{}/{}'.format(result_path, save_name), img)

@@ -35,6 +35,8 @@ parser.add_argument('--endEpoch', type=int, help='the epoch number to end traini
 parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
 parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
 parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
+parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
+parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')
 
 opt = parser.parse_args()
 print(opt)
@@ -68,8 +70,8 @@ target_transform = transforms.Compose([
         transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
 
-train_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TRAIN.list', root_dir = 'data', transform=[input_transform, target_transform])
-test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_dir = 'data', transform=[input_transform, target_transform])
+train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = 'data', transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = opt.vallist, root_dir = 'data', transform=[input_transform, target_transform])
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -90,7 +92,8 @@ test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNetCSRes(ngpu, False)
+#net = DispNetCSRes(ngpu, False)
+net = DispNetC(ngpu, True)
 print(net)
 
 #start_epoch = 0
@@ -164,7 +167,7 @@ class AverageMeter(object):
 def adjust_learning_rate(optimizer, epoch):
     if epoch != 0 and epoch % 10 == 0:
         for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] / 10
+            param_group['lr'] = param_group['lr'] / 2
 
 def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
@@ -194,15 +197,15 @@ def train(train_loader, model, optimizer, epoch):
         target_var = torch.autograd.Variable(target)
 
         # compute output and loss
-        # output = model(input_var)
-        # loss = criterion(output, target_var)
-        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiva
+        output = model(input_var)
+        loss = criterion(output, target_var)
+        flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
-        output_net1, output_net2 = model(input_var)
-        loss_net1 = criterion(output_net1, target_var)
-        loss_net2 = criterion(output_net2, target_var)
-        loss = loss_net1 + loss_net2
-        flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
+        #output_net1, output_net2 = model(input_var)
+        #loss_net1 = criterion(output_net1, target_var)
+        #loss_net2 = criterion(output_net2, target_var)
+        #loss = loss_net1 + loss_net2
+        #flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
         
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
@@ -258,15 +261,15 @@ def validate(val_loader, model, criterion, high_res_EPE):
         target_var = torch.autograd.Variable(target, volatile=True)
 
 	# compute output
-        # output = model(input_var)
-        # loss = criterion(output, target_var)
-        # flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
+        output = model(input_var)
+        loss = criterion(output, target_var)
+        flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
 
-        output_net1, output_net2 = model(input_var)
-        loss_net1 = criterion(output_net1, target_var)
-        loss_net2 = criterion(output_net2, target_var)
-        loss = loss_net1 + loss_net2
-        flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
+        #output_net1, output_net2 = model(input_var)
+        #loss_net1 = criterion(output_net1, target_var)
+        #loss_net2 = criterion(output_net2, target_var)
+        #loss = loss_net1 + loss_net2
+        #flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
 
 
         # record loss and EPE
