@@ -233,9 +233,9 @@ def train(train_loader, model, optimizer, epoch):
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
               data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
  
-	# # debug  	
-	# if i_batch >= 3:
-	#     break
+	# debug  	
+	#if i_batch >= 3:
+	#    break
 
     return losses.avg, flow2_EPEs.avg
     # return losses.avg
@@ -262,8 +262,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
 
 	# compute output
         output = model(input_var)
-        loss = criterion(output, target_var)
-        flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
+        loss = criterion(output[0], target_var)
+        flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
         #output_net1, output_net2 = model(input_var)
         #loss_net1 = criterion(output_net1, target_var)
@@ -291,9 +291,9 @@ def validate(val_loader, model, criterion, high_res_EPE):
             print('Test: [{0}/{1}]\t Time {2}\t EPE {3}'
                   .format(i, len(val_loader), batch_time.val, flow2_EPEs.val))
 
-	# # debug
-	# if i >= 3:
-	#     break
+	# debug
+	#if i >= 3:
+	#    break
 
     print(' * EPE {:.3f}'.format(flow2_EPEs.avg))
 
