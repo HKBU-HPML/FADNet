@@ -3,6 +3,7 @@ import argparse
 import os, shutil, sys
 import numpy as np
 import time, datetime
+import matplotlib.pyplot as plt
 import random
 import torch
 import torch.nn.functional as F
@@ -162,9 +163,11 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch != 0 and epoch % 10 == 0:
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] / 10
+    cur_lr = init_lr / (2**(epoch // 10))
+    # if epoch != 0 and epoch % 10 == 0:
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = cur_lr
+    return cur_lr
 
 def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
@@ -202,7 +205,7 @@ def train(train_loader, model, optimizer, epoch):
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
-        flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
+        flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
         
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
@@ -262,7 +265,30 @@ def validate(val_loader, model, criterion, high_res_EPE):
         # loss = criterion(output, target_var)
         # flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
 
-        output_net1, output_net2 = model(input_var)
+        output_net1, output_net2, imgL, imgR, warped_imgL = model([input_var, target_var])
+        for j in range(opt.batchSize):
+            imgL_npy = imgL[j].data.cpu().numpy().transpose(1, 2, 0)
+            ax = plt.subplot(1, 3, 1)
+            # plt.tight_layout()
+            ax.set_title('original left')
+            ax.axis('off')
+            plt.imshow(imgL_npy)
+
+            imgR_npy = imgR[j].data.cpu().numpy().transpose(1, 2, 0)
+            ax = plt.subplot(1, 3, 2)
+            # plt.tight_layout()
+            ax.set_title('original right')
+            ax.axis('off')
+            plt.imshow(imgR_npy)
+
+            warped_npy = warped_imgL[j].data.cpu().numpy().transpose(1, 2, 0)
+            ax = plt.subplot(1, 3, 3)
+            # plt.tight_layout()
+            ax.set_title('warped left')
+            ax.axis('off')
+            plt.imshow(warped_npy)
+
+            plt.show()
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
@@ -309,7 +335,7 @@ if opt.model != '':
         best_EPE = EPE
 
 for epoch in range(start_epoch, end_epoch):
-    adjust_learning_rate(optimizer, epoch)
+    cur_lr = adjust_learning_rate(optimizer, epoch)
 
     # train for one epoch
     train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
@@ -330,7 +356,7 @@ for epoch in range(start_epoch, end_epoch):
 
     with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
-        writer.writerow([epoch, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), train_loss, train_EPE, EPE, init_lr / (2**(epoch // 10))])
+        writer.writerow([epoch, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), train_loss, train_EPE, EPE, cur_lr])
 
     # torch.save(net.module.state_dict(), '%s/dispC_epoch_%d.pth' % (opt.outf, epoch))
 
