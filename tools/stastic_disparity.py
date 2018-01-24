@@ -52,7 +52,7 @@ def statistic(file_list):
     csv_file.close()
 
 def statistic_with_file(fn):
-    result_file = open(CLEANRESULTLIST, 'w')
+    result_file = open(CLEANRESULTLIST, 'a')
     with open(fn, 'r') as f:
         total_array = []
         fns = []
@@ -68,9 +68,9 @@ def statistic_with_file(fn):
                 name_items = grt.split('/')
                 left = 'FlyingThings3D_release/frames_cleanpass/%s/%s/%s/left/%s.png' % (name_items[-5], name_items[-4], name_items[-3], name_items[-1].split('.')[0])
                 right = 'FlyingThings3D_release/frames_cleanpass/%s/%s/%s/right/%s.png' % (name_items[-5], name_items[-4], name_items[-3], name_items[-1].split('.')[0])
-                result_file.write("%s %s %s\n" % (left, right, fns[i]))
+                #result_file.write("%s %s %s\n" % (left, right, fns[i]))
 
-        #plot_hist(total_array[:, 0])
+        plot_hist(total_array[:, 0])
         #plot_hist(total_array[:, 1])
         #plot_hist(total_array[:, 2])
     result_file.close()
