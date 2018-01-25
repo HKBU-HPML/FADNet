@@ -319,45 +319,54 @@ class DispNetC(nn.Module):
         conv6a = self.conv6(conv5b)
         conv6b = self.conv6_1(conv6a)
 
-        pr6 = self.pred_flow6(F.dropout2d(conv6b))
 
         upconv5 = self.upconv5(conv6b)
         upflow6 = self.upflow6to5(pr6)
         concat5 = torch.cat((upconv5, upflow6, conv5b), 1)
         iconv5 = self.iconv5(concat5)
-        pr5 = self.pred_flow5(F.dropout2d(iconv5))
 
         upconv4 = self.upconv4(iconv5)
         upflow5 = self.upflow5to4(pr5)
         concat4 = torch.cat((upconv4, upflow5, conv4b), 1)
         iconv4 = self.iconv4(concat4)
-        pr4 = self.pred_flow4(F.dropout2d(iconv4))
         
         upconv3 = self.upconv3(iconv4)
         upflow4 = self.upflow4to3(pr4)
         concat3 = torch.cat((upconv3, upflow4, conv3b), 1)
         iconv3 = self.iconv3(concat3)
-        pr3 = self.pred_flow3(F.dropout2d(iconv3))
 
         upconv2 = self.upconv2(iconv3)
         upflow3 = self.upflow3to2(pr3)
         concat2 = torch.cat((upconv2, upflow3, conv2_l), 1)
         iconv2 = self.iconv2(concat2)
-        pr2 = self.pred_flow2(F.dropout2d(iconv2))
 
         upconv1 = self.upconv1(iconv2)
         upflow2 = self.upflow2to1(pr2)
         concat1 = torch.cat((upconv1, upflow2, conv1_l), 1)
         iconv1 = self.iconv1(concat1)
-        pr1 = self.pred_flow1(F.dropout2d(iconv1))
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
         concat0 = torch.cat((upconv0, upflow1, img_left), 1)
         iconv0 = self.iconv0(concat0)
-        pr0 = self.pred_flow0(F.dropout2d(iconv0))
 
-	# img_right_rec = warp(img_left, pr0)
+        # predict flow
+        pr6 = self.pred_flow6(conv6b)
+        pr5 = self.pred_flow5(iconv5)
+        pr4 = self.pred_flow4(iconv4)
+        pr3 = self.pred_flow3(iconv3)
+        pr2 = self.pred_flow2(iconv2)
+        pr1 = self.pred_flow1(iconv1)
+        pr0 = self.pred_flow0(iconv0)
+
+        # predict flow from dropout output
+        # pr6 = self.pred_flow6(F.dropout2d(conv6b))
+        # pr5 = self.pred_flow5(F.dropout2d(iconv5))
+        # pr4 = self.pred_flow4(F.dropout2d(iconv4))
+        # pr3 = self.pred_flow3(F.dropout2d(iconv3))
+        # pr2 = self.pred_flow2(F.dropout2d(iconv2))
+        # pr1 = self.pred_flow1(F.dropout2d(iconv1))
+        # pr0 = self.pred_flow0(F.dropout2d(iconv0))
 
         # if self.training:
         #     # print("finish forwarding.")
@@ -471,56 +480,68 @@ class DispNetRes(nn.Module):
         conv6a = self.conv6(conv5b)
         conv6b = self.conv6_1(conv6a)
 
-        pr6_res = self.pred_res6(F.dropout2d(conv6b))
-        pr6 = pr6_res + base_flow[6]
 
         upconv5 = self.upconv5(conv6b)
         upflow6 = self.upflow6to5(pr6)
         concat5 = torch.cat((upconv5, upflow6, conv5b), 1)
         iconv5 = self.iconv5(concat5)
 
-        pr5_res = self.pred_res5(F.dropout2d(iconv5))
-        pr5 = pr5_res + base_flow[5]
 
         upconv4 = self.upconv4(iconv5)
         upflow5 = self.upflow5to4(pr5)
         concat4 = torch.cat((upconv4, upflow5, conv4b), 1)
         iconv4 = self.iconv4(concat4)
 
-        pr4_res = self.pred_res4(F.dropout2d(iconv4))
-        pr4 = pr4_res + base_flow[4]
         
         upconv3 = self.upconv3(iconv4)
         upflow4 = self.upflow4to3(pr4)
         concat3 = torch.cat((upconv3, upflow4, conv3b), 1)
         iconv3 = self.iconv3(concat3)
 
-        pr3_res = self.pred_res3(F.dropout2d(iconv3))
-        pr3 = pr3_res + base_flow[3]
 
         upconv2 = self.upconv2(iconv3)
         upflow3 = self.upflow3to2(pr3)
         concat2 = torch.cat((upconv2, upflow3, conv2), 1)
         iconv2 = self.iconv2(concat2)
 
-        pr2_res = self.pred_res2(F.dropout2d(iconv2))
-        pr2 = pr2_res + base_flow[2]
 
         upconv1 = self.upconv1(iconv2)
         upflow2 = self.upflow2to1(pr2)
         concat1 = torch.cat((upconv1, upflow2, conv1), 1)
         iconv1 = self.iconv1(concat1)
 
-        pr1_res = self.pred_res1(F.dropout2d(iconv1))
-        pr1 = pr1_res + base_flow[1]
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
         concat0 = torch.cat((upconv0, upflow1, input[:, :3, :, :]), 1)
         iconv0 = self.iconv0(concat0)
-        pr0_res = self.pred_res0(F.dropout2d(iconv0))
-        pr0 = pr0_res + base_flow[0]
 
+        # predict flow residual
+        pr6_res = self.pred_res6(conv6b)
+        pr5_res = self.pred_res5(iconv5)
+        pr4_res = self.pred_res4(iconv4)
+        pr3_res = self.pred_res3(iconv3)
+        pr2_res = self.pred_res2(iconv2)
+        pr1_res = self.pred_res1(iconv1)
+        pr0_res = self.pred_res0(iconv0)
+
+        # # predict flow residual with dropout output
+        # pr6_res = self.pred_res6(F.dropout2d(conv6b))
+        # pr5_res = self.pred_res5(F.dropout2d(iconv5))
+        # pr4_res = self.pred_res4(F.dropout2d(iconv4))
+        # pr3_res = self.pred_res3(F.dropout2d(iconv3))
+        # pr2_res = self.pred_res2(F.dropout2d(iconv2))
+        # pr1_res = self.pred_res1(F.dropout2d(iconv1))
+        # pr0_res = self.pred_res0(F.dropout2d(iconv0))
+
+        # predict flow
+        pr6 = pr6_res + base_flow[6]
+        pr5 = pr5_res + base_flow[5]
+        pr4 = pr4_res + base_flow[4]
+        pr3 = pr3_res + base_flow[3]
+        pr2 = pr2_res + base_flow[2]
+        pr1 = pr1_res + base_flow[1]
+        pr0 = pr0_res + base_flow[0]
         # if self.training:
         #     # print("finish forwarding.")
         #     return pr0, pr1, pr2, pr3, pr4, pr5, pr6
