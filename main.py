@@ -36,6 +36,8 @@ parser.add_argument('--endEpoch', type=int, help='the epoch number to end traini
 parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
 parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
 parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
+parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
+parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')
 
 opt = parser.parse_args()
 print(opt)
@@ -69,8 +71,8 @@ target_transform = transforms.Compose([
         transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
 
-train_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TRAIN.list', root_dir = 'data', transform=[input_transform, target_transform])
-test_dataset = DispDataset(txt_file = 'FlyingThings3D_release_TEST.list', root_dir = 'data', transform=[input_transform, target_transform])
+train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = 'data', transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = opt.vallist, root_dir = 'data', transform=[input_transform, target_transform])
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -92,6 +94,7 @@ test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
 net = DispNetCSRes(ngpu, False)
+# net = DispNetC(ngpu, True)
 print(net)
 
 #start_epoch = 0
@@ -206,6 +209,15 @@ def train(train_loader, model, optimizer, epoch):
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
         flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
+        # output = model(input_var)
+        # loss = criterion(output, target_var)
+        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
+
+        #output_net1, output_net2 = model(input_var)
+        #loss_net1 = criterion(output_net1, target_var)
+        #loss_net2 = criterion(output_net2, target_var)
+        #loss = loss_net1 + loss_net2
+        #flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
         
         # record loss and EPE
         losses.update(loss.data[0], target.size(0))
@@ -233,9 +245,9 @@ def train(train_loader, model, optimizer, epoch):
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
               data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
  
-	# # debug  	
-	# if i_batch >= 3:
-	#     break
+	# debug  	
+	#if i_batch >= 3:
+	#    break
 
     return losses.avg, flow2_EPEs.avg
     # return losses.avg
@@ -262,37 +274,43 @@ def validate(val_loader, model, criterion, high_res_EPE):
 
 	# compute output
         # output = model(input_var)
-        # loss = criterion(output, target_var)
-        # flow2_EPE = high_res_EPE(output, target_var) * opt.flowDiv
+        # loss = criterion(output[0], target_var)
+        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
-        output_net1, output_net2, imgL, imgR, warped_imgL = model([input_var, target_var])
-        for j in range(opt.batchSize):
-            imgL_npy = imgL[j].data.cpu().numpy().transpose(1, 2, 0)
-            ax = plt.subplot(1, 3, 1)
-            # plt.tight_layout()
-            ax.set_title('original left')
-            ax.axis('off')
-            plt.imshow(imgL_npy)
+        output_net1, output_net2 = model(input_var)
+        # output_net1, output_net2, imgL, imgR, warped_imgL = model([input_var, target_var])
+        # for j in range(opt.batchSize):
+        #     imgL_npy = imgL[j].data.cpu().numpy().transpose(1, 2, 0)
+        #     ax = plt.subplot(1, 3, 1)
+        #     # plt.tight_layout()
+        #     ax.set_title('original left')
+        #     ax.axis('off')
+        #     plt.imshow(imgL_npy)
 
-            imgR_npy = imgR[j].data.cpu().numpy().transpose(1, 2, 0)
-            ax = plt.subplot(1, 3, 2)
-            # plt.tight_layout()
-            ax.set_title('original right')
-            ax.axis('off')
-            plt.imshow(imgR_npy)
+        #     imgR_npy = imgR[j].data.cpu().numpy().transpose(1, 2, 0)
+        #     ax = plt.subplot(1, 3, 2)
+        #     # plt.tight_layout()
+        #     ax.set_title('original right')
+        #     ax.axis('off')
+        #     plt.imshow(imgR_npy)
 
-            warped_npy = warped_imgL[j].data.cpu().numpy().transpose(1, 2, 0)
-            ax = plt.subplot(1, 3, 3)
-            # plt.tight_layout()
-            ax.set_title('warped left')
-            ax.axis('off')
-            plt.imshow(warped_npy)
+        #     warped_npy = warped_imgL[j].data.cpu().numpy().transpose(1, 2, 0)
+        #     ax = plt.subplot(1, 3, 3)
+        #     # plt.tight_layout()
+        #     ax.set_title('warped left')
+        #     ax.axis('off')
+        #     plt.imshow(warped_npy)
 
-            plt.show()
+        #     plt.show()
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
         flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
+        #output_net1, output_net2 = model(input_var)
+        #loss_net1 = criterion(output_net1, target_var)
+        #loss_net2 = criterion(output_net2, target_var)
+        #loss = loss_net1 + loss_net2
+        #flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
 
 
         # record loss and EPE
@@ -314,9 +332,9 @@ def validate(val_loader, model, criterion, high_res_EPE):
             print('Test: [{0}/{1}]\t Time {2}\t EPE {3}'
                   .format(i, len(val_loader), batch_time.val, flow2_EPEs.val))
 
-	# # debug
-	# if i >= 3:
-	#     break
+	# debug
+	#if i >= 3:
+	#    break
 
     print(' * EPE {:.3f}'.format(flow2_EPEs.avg))
 
