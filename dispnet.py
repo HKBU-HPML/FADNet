@@ -563,11 +563,11 @@ class DispNetCSRes(nn.Module):
         #             init.uniform(m.bias)
         #         init.xavier_uniform(m.weight)
 
-    def forward(self, inputs_target):
+    def forward(self, inputs):
 
         # split left image and right image
-        inputs = inputs_target[0]
-        target = inputs_target[1]
+        # inputs = inputs_target[0]
+        # target = inputs_target[1]
         imgs = torch.chunk(inputs, 2, dim = 1)
         img_left = imgs[0]
         img_right = imgs[1]
@@ -578,9 +578,9 @@ class DispNetCSRes(nn.Module):
 
         # warp img1 to img0; magnitude of diff between img0 and warped_img1,
         dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
-        dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
-        # dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
-        resampled_img1 = self.resample1(inputs[:, 3:, :, :], -dispnetc_final_flow_2d) - inputs[:, 3:, :, :]
+        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
+        dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
+        resampled_img1 = self.resample1(inputs[:, 3:, :, :], -dispnetc_final_flow_2d)
         diff_img0 = inputs[:, :3, :, :] - resampled_img1
         norm_diff_img0 = self.channelnorm(diff_img0)
 
@@ -594,7 +594,7 @@ class DispNetCSRes(nn.Module):
         if self.training:
             return dispnetc_flows, dispnetres_flows
         else:
-            return dispnetc_final_flow, dispnetres_final_flow, inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
+            return dispnetc_final_flow, dispnetres_final_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
 
 
     def weight_parameters(self):
