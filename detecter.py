@@ -7,7 +7,7 @@ import torch
 import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
 import numpy as np
-from dispnet import DispNetC, DispNet
+from dispnet import DispNetC, DispNet, DispNetCSRes
 from multiscaleloss import multiscaleloss
 from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
@@ -29,7 +29,8 @@ def detect(model, result_path, file_list, filepath):
 
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
-    net = DispNetC(ngpu, False)
+    #net = DispNetC(ngpu, True)
+    net = DispNetCSRes(ngpu, True)
 
     model_data = torch.load(model)
     if 'state_dict' in model_data.keys():
@@ -58,7 +59,7 @@ def detect(model, result_path, file_list, filepath):
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
-        output = net(input_var)
+        output = net(input_var)[0]
 
         for j in range(num_of_samples):
             flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
