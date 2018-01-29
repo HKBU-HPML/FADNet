@@ -7,7 +7,7 @@ import torch
 import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
 import numpy as np
-from dispnet import DispNetC, DispNet
+from dispnet import *
 from multiscaleloss import multiscaleloss
 from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
@@ -29,9 +29,10 @@ def detect(model, result_path, file_list, filepath):
 
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
-    net = DispNetC(ngpu, False)
+    net = DispNetCSRes(ngpu, False)
 
     model_data = torch.load(model)
+    print(model_data.keys())
     if 'state_dict' in model_data.keys():
         net.load_state_dict(model_data['state_dict'])
     else:

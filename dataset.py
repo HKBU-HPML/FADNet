@@ -103,7 +103,7 @@ class RandomRescale(object):
         gt_disp = gt_disp.astype(int)
         gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
         # the same as the original paper
-        #gt_disp = gt_disp * (new_w * 1.0 / w)
+        gt_disp = gt_disp * (new_w * 1.0 / w)
         #gt_disp = gt_disp / 32.0
 
         # # try to normalize with image width
@@ -122,7 +122,10 @@ class RandomRescale(object):
     @staticmethod
     def scale_back(disp, orignal_size=(1, 540, 960)):
         print('current shape:', disp.shape)
+        o_w = original_size[2]
+        s_w = disp.shape[2]
         trans_disp = transform.resize(disp, orignal_size, preserve_range=True)
+        trans_disp = trans_disp * (o_w * 1.0 / s_w)
         print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
 
