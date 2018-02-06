@@ -7,7 +7,8 @@ import torch
 import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
 import numpy as np
-from dispnet import DispNetC, DispNet, DispNetCSRes
+#from dispnet import DispNetC, DispNet, DispNetCSRes
+from dispnet import *
 from multiscaleloss import multiscaleloss
 from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
@@ -30,9 +31,10 @@ def detect(model, result_path, file_list, filepath):
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
     #net = DispNetC(ngpu, True)
-    net = DispNetCSRes(ngpu, True)
+    net = DispNetCSRes(ngpu, False)
 
     model_data = torch.load(model)
+    print(model_data.keys())
     if 'state_dict' in model_data.keys():
         net.load_state_dict(model_data['state_dict'])
     else:
@@ -40,7 +42,7 @@ def detect(model, result_path, file_list, filepath):
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
-    batch_size = 4
+    batch_size = 1
     
     test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, transform=[input_transform, target_transform], phase='test')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
@@ -69,9 +71,10 @@ def detect(model, result_path, file_list, filepath):
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
             img = output[j].data.cpu().numpy()
-            img = RandomRescale.scale_back(img, orignal_size=(1, 540, 960))
+            #img = RandomRescale.scale_back(img, orignal_size=(1, 540, 960))
             img = np.flip(img[0], axis=0)
             print('Name: {}'.format(save_name))
+            print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)
 
     print('Evaluation time used: {}'.format(time.time()-s))

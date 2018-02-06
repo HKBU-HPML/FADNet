@@ -193,7 +193,7 @@ class DispNet(nn.Module):
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=True):
+    def __init__(self, ngpu, batchNorm=False):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
