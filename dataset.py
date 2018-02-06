@@ -223,10 +223,10 @@ class DispDataset(Dataset):
                   'img_names' : img_names
                  }
 
-        if self.phase == 'test':
-            #scale = RandomRescale((384, 768))
-            scale = RandomRescale((512, 1024))
-            sample = scale(sample)
+        #if self.phase == 'test':
+        #    scale = RandomRescale((384, 768))
+        #    scale = RandomRescale((512, 1024))
+        #    sample = scale(sample)
 
         tt = ToTensor()
         if self.transform:
@@ -234,7 +234,7 @@ class DispDataset(Dataset):
             sample['img_right'] = self.transform[0](tt(sample['img_right']))
             sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
 
-        if self.phase != 'test':
+        if True or self.phase != 'test':
             crop = RandomCrop((384, 768))
             sample = crop(sample)
         return sample
