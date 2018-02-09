@@ -39,8 +39,7 @@ def detect(model, result_path, file_list, filepath):
         net.load_state_dict(model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
-    # net = torch.nn.DataParallel(net, device_ids=devices).cuda()
-    net = net.cuda()
+    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
     batch_size = opt.batchSize
@@ -65,22 +64,21 @@ def detect(model, result_path, file_list, filepath):
         output = net(input_var)[0]
 
         for j in range(num_of_samples):
-            # scale back depth
-            np_depth = output[j].data.cpu().numpy()
-            np_depth = RandomRescale.scale_back(np_depth, orignal_size=(1, 540, 960))
-            cuda_depth = np_depth.cuda()
-            cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
+            # # scale back depth
+            # np_depth = output[j].data.cpu().numpy()
+            # np_depth = RandomRescale.scale_back(np_depth, orignal_size=(1, 540, 960))
+            # cuda_depth = np_depth.cuda()
+            # cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
-            # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
-            flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
+            flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
             #print('Shape: {}'.format(output[j].size()))
             print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
 
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
-            #img = output[j].data.cpu().numpy()
-            #img = RandomRescale.scale_back(img, orignal_size=(1, 540, 960))
-            img = np.flip(np_depth, axis=0)
+            img = output[j].data.cpu().numpy()
+            img = RandomRescale.scale_back(img, orignal_size=(1, 540, 960))
+            img = np.flip(img, axis=0)
             print('Name: {}'.format(save_name))
             print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)
