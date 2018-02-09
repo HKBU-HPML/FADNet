@@ -42,7 +42,7 @@ def detect(model, result_path, file_list, filepath):
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
-    batch_size = 1
+    batch_size = opt.batchSize
     
     test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, transform=[input_transform, target_transform], phase='test')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
@@ -88,5 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
     parser.add_argument('--rp', type=str, help='result path', default='./result')
+    parser.add_argument('--batchSize', type=int, help='mini batch size', default='8')
+
     opt = parser.parse_args()
     detect(opt.model, opt.rp, opt.filelist, opt.filepath)
