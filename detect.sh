@@ -7,7 +7,7 @@
 
 # python detecter.py --model ./cleandata-dispCSRes-model_best.pth --rp ./detect_result_l2norm --filepath /home/datasets/imagenet
 
-python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./data/cc-detect_result_l2norm --filepath data --devices 1 --batchSize 1
+python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet --devices 1 --batchSize 1
 
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet
 
