@@ -5,4 +5,4 @@
 # detect with dispCSRes
 #python detecter.py --model ./cleandata-models-dispCSRes/model_best.pth --rp ./detect_result_crop --filepath /home/datasets/imagenet
 
-python detecter.py --model ./cleandata-dispCSRes-model_best.pth --rp ./detect_result_l2norm --filepath /home/datasets/imagenet
+python detecter.py --model ./cc-cleandata-dispCSRes-model_best.pth --rp ./cc_detect_result --filepath /home/datasets/imagenet
