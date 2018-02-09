@@ -92,9 +92,9 @@ class RandomRescale(object):
         image_left = transform.resize(image_left, self.output_size, preserve_range=True)
         image_right = transform.resize(image_right, self.output_size, preserve_range=True)
 
-        gt_disp = gt_disp.astype(int)
-        gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
-        gt_disp = gt_disp * (out_w * 1.0 / w)
+        # gt_disp = gt_disp.astype(int)
+        # gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
+        # gt_disp = gt_disp * (out_w * 1.0 / w)
 
         # change image pixel value type ot float32
         image_left = image_left.astype(np.float32)
@@ -107,11 +107,11 @@ class RandomRescale(object):
         return new_sample
 
     @staticmethod
-    def scale_back(disp, orignal_size=(1, 540, 960)):
+    def scale_back(disp, original_size=(1, 540, 960)):
         print('current shape:', disp.shape)
         o_w = original_size[2]
         s_w = disp.shape[2]
-        trans_disp = transform.resize(disp, orignal_size, preserve_range=True)
+        trans_disp = transform.resize(disp, original_size, preserve_range=True)
         trans_disp = trans_disp * (o_w * 1.0 / s_w)
         print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
@@ -214,7 +214,7 @@ class DispDataset(Dataset):
 
         if self.phase == 'test':
         #    scale = RandomRescale((384, 768))
-            scale = RandomRescale((768, 1024))
+            scale = RandomRescale((512, 1024))
             sample = scale(sample)
 
         tt = ToTensor()
