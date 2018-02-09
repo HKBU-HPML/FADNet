@@ -86,8 +86,9 @@ class RandomRescale(object):
 
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
-        #h, w = image_left.shape[:2]
+        h, w = image_left.shape[:2]
         #if isinstance(self.output_size, int):
+        out_h, out_w = self.output_size
         #    if h > w:
         #        new_h, new_w = self.output_size * h / w, self.output_size
         #    else:
@@ -103,7 +104,8 @@ class RandomRescale(object):
         gt_disp = gt_disp.astype(int)
         gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
         # the same as the original paper
-        gt_disp = gt_disp * (new_w * 1.0 / w)
+        #gt_disp = gt_disp * (new_w * 1.0 / w)
+        gt_disp = gt_disp * (out_w * 1.0 / w)
         #gt_disp = gt_disp / 32.0
 
         # # try to normalize with image width
@@ -120,11 +122,11 @@ class RandomRescale(object):
         return new_sample
 
     @staticmethod
-    def scale_back(disp, orignal_size=(1, 540, 960)):
+    def scale_back(disp, original_size=(1, 540, 960)):
         print('current shape:', disp.shape)
         o_w = original_size[2]
         s_w = disp.shape[2]
-        trans_disp = transform.resize(disp, orignal_size, preserve_range=True)
+        trans_disp = transform.resize(disp, original_size, preserve_range=True)
         trans_disp = trans_disp * (o_w * 1.0 / s_w)
         print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
@@ -226,10 +228,11 @@ class DispDataset(Dataset):
                   'img_names' : img_names
                  }
 
-        #if self.phase == 'test':
-        #    scale = RandomRescale((384, 768))
-        #    scale = RandomRescale((512, 1024))
-        #    sample = scale(sample)
+        if self.phase == 'test':
+            #scale = RandomRescale((384, 768))
+            #scale = RandomRescale((512, 1024))
+            scale = RandomRescale((768, 1024+512))
+            sample = scale(sample)
 
         tt = ToTensor()
         if self.transform:
@@ -237,7 +240,7 @@ class DispDataset(Dataset):
             sample['img_right'] = self.transform[0](tt(sample['img_right']))
             sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
 
-        if True or self.phase != 'test':
+        if self.phase != 'test':
             crop = RandomCrop((384, 768))
             sample = crop(sample)
         return sample
