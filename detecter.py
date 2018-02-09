@@ -86,12 +86,12 @@ def detect(model, result_path, file_list, filepath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, help='model to load', default='best.pth')
-    parser.add_argument('--filelist', type=str, help='file list', default='CC_FlyingThings3D_release_TEST.list')
+    parser.add_argument('--filelist', type=str, help='file list', default='GPUHOME_CC_FlyingThings3D_release_TEST.list')
     parser.add_argument('--filepath', type=str, help='file path', default='./data')
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
     parser.add_argument('--rp', type=str, help='result path', default='./result')
-    parser.add_argument('--batchSize', type=int, help='mini batch size', default='1')
+    parser.add_argument('--batchSize', type=int, help='mini batch size', default=1)
 
     opt = parser.parse_args()
     detect(opt.model, opt.rp, opt.filelist, opt.filepath)
