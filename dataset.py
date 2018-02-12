@@ -132,7 +132,6 @@ class RandomRescale(object):
         return trans_disp.astype(np.float32)
 
 
-
 class RandomCrop(object):
     """
     Crop the image randomly
