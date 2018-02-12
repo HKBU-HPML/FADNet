@@ -5,14 +5,14 @@ import time
 
 import torch
 import torch.backends.cudnn as cudnn
-cudnn.benchmark = True
 import numpy as np
-#from dispnet import DispNetC, DispNet, DispNetCSRes
 from dispnet import *
 from multiscaleloss import multiscaleloss
 from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
 from torchvision import transforms
+
+cudnn.benchmark = True
 
 input_transform = transforms.Compose([
         transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
@@ -42,7 +42,7 @@ def detect(model, result_path, file_list, filepath):
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
-    batch_size = 1
+    batch_size = int(opt.batchSize)
     
     test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, transform=[input_transform, target_transform], phase='test')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
@@ -64,6 +64,12 @@ def detect(model, result_path, file_list, filepath):
         output = net(input_var)[0]
 
         for j in range(num_of_samples):
+            # # scale back depth
+            # np_depth = output[j].data.cpu().numpy()
+            # np_depth = RandomRescale.scale_back(np_depth, orignal_size=(1, 540, 960))
+            # cuda_depth = np_depth.cuda()
+            # cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
+
             flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
             #print('Shape: {}'.format(output[j].size()))
             print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
@@ -88,5 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
     parser.add_argument('--rp', type=str, help='result path', default='./result')
+    parser.add_argument('--batchSize', type=str, help='mini batch size', default='1')
+
     opt = parser.parse_args()
     detect(opt.model, opt.rp, opt.filelist, opt.filepath)

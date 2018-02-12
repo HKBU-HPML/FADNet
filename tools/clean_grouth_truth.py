@@ -13,8 +13,13 @@ from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie1976
 
 
+<<<<<<< Updated upstream
+DATAPATH = './data'
+OUTPUTPATH = './data'
+=======
 DATAPATH = '/home/datasets/imagenet'
-OUTPUTPATH = '/home/datasets/imagenet/clean_dispnet'
+OUTPUTPATH = '/home/datasets/imagenet'
+>>>>>>> Stashed changes
 #FILELIST = 'FlyingThings3D_release_TRAIN.list'
 
 def deltaE(rgb_a, rgb_b):
@@ -38,6 +43,7 @@ def remove(left, right, left_disp):
             if j-depth<0:
                 left_disp[i,j] = 0
                 continue
+            print("{} {} {}".format(i, j, j - depth))
             left_rgb = left[i, j-depth]
             right_rgb = right[i,j]
             #print('[{}-{}]'.format(left_rgb, right_rgb))
@@ -56,9 +62,15 @@ def remove_gt(left, right, left_disp):
     for i in range(height):
         for j in range(width):
             depth = int(left_disp[i,j])
-            if j-depth<0 or depth >= width:
+<<<<<<< Updated upstream
+            #if j-depth<0 or depth >= width or depth<0:
+            if j-depth<0 or depth >= width or depth<0:
+=======
+            if j-depth<0 or depth >= width or depth < 0:
+>>>>>>> Stashed changes
                 new_disp[i,j] = 0
                 continue
+            #print("{} {} {}".format(i, j, depth))
             left_rgb = left[i, j]
             right_rgb = right[i,j-depth]
             #print('[{}-{}]'.format(left_rgb, right_rgb))
@@ -77,7 +89,12 @@ def clean(img_pairs):
     for i, f in enumerate(img_pairs):
         names = f.split()
         name = names[2]
+<<<<<<< Updated upstream
         save_name = os.path.join(OUTPUTPATH, name)
+        save_name = save_name.replace('disparity', 'clean_disparity')
+=======
+        save_name = os.path.join(OUTPUTPATH, name).replace("disparity", "clean_disparity")
+>>>>>>> Stashed changes
         save_path = os.path.dirname(save_name)
         if os.path.isfile(save_name):
             continue
@@ -87,7 +104,7 @@ def clean(img_pairs):
         #    continue
         img_left = io.imread(img_left_name)
         img_right = io.imread(img_right_name)
-        #print('Name: ', name)
+        print('Name: ', name)
         gt_disp_name = os.path.join(DATAPATH, name)
         right_dt_name = gt_disp_name.replace('left', 'right')
         gt_disp, scale = load_pfm(gt_disp_name)
@@ -132,8 +149,12 @@ def run(filelist, nworkers):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+<<<<<<< Updated upstream
+    parser.add_argument('--filelist', type=str, help='file list', default='FlyingThings3D_release_TEST.list')
+=======
     parser.add_argument('--filelist', type=str, help='file list', default='FlyingThings3D_release_TRAIN.list')
-    parser.add_argument('--nworkers', type=int, help='number of processes', default=8)
+>>>>>>> Stashed changes
+    parser.add_argument('--nworkers', type=int, help='number of processes', default=20)
     opt = parser.parse_args()
     #clean(opt.filelist) 
     run(opt.filelist, opt.nworkers)
