@@ -21,4 +21,5 @@
 # python main.py --cuda --outf ./cleandata-models-dispCSRes-dropout --lr 0.0001 --logFile cleandata-train-dispCSRes-dropout.log --showFreq 1 --devices 0,1,2,3 --trainlist CLEAN_FlyingThings3D_release_TRAIN.list --vallist CLEAN_FlyingThings3D_release_TEST.list
 
 # test 5: dispnetC with shrink resnet + clean data + occulution
-python main.py --cuda --outf ./cc-models-dispC-resnet --lr 0.0001 --logFile cc-train-dispC-resnet.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list 
+# python main.py --cuda --outf ./cc-models-dispC-resnet-clean --lr 0.0001 --logFile cc-train-dispC-resnet-clean.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list 
+python main.py --cuda --outf ./cc-models-dispC-resnet --lr 0.0001 --logFile cc-train-dispC-resnet-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model ./cc-models-dispC-resnet/model_best.pth --startEpoch 44

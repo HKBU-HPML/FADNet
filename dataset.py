@@ -101,16 +101,6 @@ class RandomRescale(object):
         image_left = transform.resize(image_left, self.output_size, preserve_range=True)
         image_right = transform.resize(image_right, self.output_size, preserve_range=True)
 
-        gt_disp = gt_disp.astype(int)
-        gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
-        # the same as the original paper
-        #gt_disp = gt_disp * (new_w * 1.0 / w)
-        gt_disp = gt_disp * (out_w * 1.0 / w)
-        #gt_disp = gt_disp / 32.0
-
-        # # try to normalize with image width
-        # gt_disp = gt_disp * 2.0 / w
-
         # change image pixel value type ot float32
         image_left = image_left.astype(np.float32)
         image_right = image_right.astype(np.float32)
@@ -231,6 +221,8 @@ class DispDataset(Dataset):
             #scale = RandomRescale((384, 768))
             #scale = RandomRescale((512, 1024))
             scale = RandomRescale((768, 1024+512))
+        #    scale = RandomRescale((384, 768))
+            #scale = RandomRescale((512, 1024))
             sample = scale(sample)
 
         tt = ToTensor()
