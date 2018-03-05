@@ -57,12 +57,7 @@ def remove_gt(left, right, left_disp):
     for i in range(height):
         for j in range(width):
             depth = int(left_disp[i,j])
-<<<<<<< Updated upstream
-            #if j-depth<0 or depth >= width or depth<0:
-            if j-depth<0 or depth >= width or depth<0:
-=======
             if j-depth<0 or depth >= width or depth < 0:
->>>>>>> Stashed changes
                 new_disp[i,j] = 0
                 continue
             #print("{} {} {}".format(i, j, depth))
