@@ -93,7 +93,7 @@ test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNetCSRes(ngpu, False)
+net = DispNetCSRes(ngpu, False, True)
 # net = DispNetC(ngpu, True)
 print(net)
 
