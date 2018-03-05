@@ -1,16 +1,17 @@
 import os
 from subprocess import Popen
 
-ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
+#ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
+ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/clean_dispnet/FlyingThings3D_release/disparity/TEST'
 #PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_cd'
-PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_crop'
+PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/cc_detect_result'
 BIN = 'jview'
 #result_name = 'predict_A_0019_0015.pfm'
 #result_name = 'predict_A_0011_0007.pfm'
 #result_name = 'predict_A_0009_0014.pfm'
 #result_name = 'predict_A_0011_0012.pfm'
 #result_name = 'predict_A_0011_0015.pfm'
-result_name = 'predict_A_0074_0014.pfm'
+result_name = 'predict_A_0001_0015.pfm'
 
 
 def _get_view_cmd(filepath):
