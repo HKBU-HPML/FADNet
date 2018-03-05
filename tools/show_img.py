@@ -2,9 +2,15 @@ import os
 from subprocess import Popen
 
 ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
-PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result'
+#PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_cd'
+PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_crop'
 BIN = 'jview'
-result_name = 'predict_A_0014_0013.pfm'
+#result_name = 'predict_A_0019_0015.pfm'
+#result_name = 'predict_A_0011_0007.pfm'
+#result_name = 'predict_A_0009_0014.pfm'
+#result_name = 'predict_A_0011_0012.pfm'
+#result_name = 'predict_A_0011_0015.pfm'
+result_name = 'predict_A_0074_0014.pfm'
 
 
 def _get_view_cmd(filepath):
@@ -15,6 +21,9 @@ def _execute(cmd):
     p = Popen(cmd.split(' '))
     return p
     #os.system(cmd)
+
+def show_img(filepath):
+    return _execute(_get_view_cmd(filepath))
 
 def show_images(result_name):
     show_original_cmd = _get_view_cmd(os.path.join(PREDICT_DATAPATH, result_name))

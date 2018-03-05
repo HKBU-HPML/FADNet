@@ -193,7 +193,7 @@ class DispNet(nn.Module):
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=True):
+    def __init__(self, ngpu, batchNorm=False):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
@@ -386,11 +386,12 @@ class DispNetC(nn.Module):
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, ngpu, in_planes, batchNorm=True):
+    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False):
         super(DispNetRes, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
+        self.lastRelu = lastRelu 
         self.res_scale = 7  # number of residuals
 
         # improved with shrink res-block layers
@@ -450,6 +451,8 @@ class DispNetRes(nn.Module):
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res0 = predict_flow(16)
+
+        self.relu = nn.ReLU(inplace=False) 
 
         # weight initialization
         for m in self.modules():
@@ -541,9 +544,8 @@ class DispNetRes(nn.Module):
         # pr1_res = self.pred_res1(F.dropout2d(iconv1))
         # pr0_res = self.pred_res0(F.dropout2d(iconv0))
 
-        # if self.training:
-        #     # print("finish forwarding.")
-        #     return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        if self.lastRelu:
+             return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
         # else:
         #     return pr0
 
@@ -557,9 +559,10 @@ class DispNetRes(nn.Module):
 
 class DispNetCSRes(nn.Module):
 
-    def __init__(self, ngpus, batchNorm=True):
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False):
         super(DispNetCSRes, self).__init__()
         self.batchNorm = batchNorm
+        self.lastRelu = lastRelu
 
         # First Block (DispNetC)
         self.dispnetc = DispNetC(ngpus, self.batchNorm)
@@ -569,7 +572,8 @@ class DispNetCSRes(nn.Module):
         self.resample1 = Resample2d()
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
-        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm)
+        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm, lastRelu=self.lastRelu)
+        self.relu = nn.ReLU(inplace=False)
 
         # # parameter initialization
         # for m in self.modules():

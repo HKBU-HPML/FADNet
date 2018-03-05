@@ -86,28 +86,15 @@ class RandomRescale(object):
 
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
-        #h, w = image_left.shape[:2]
-        #if isinstance(self.output_size, int):
-        #    if h > w:
-        #        new_h, new_w = self.output_size * h / w, self.output_size
-        #    else:
-        #        new_h, new_w = self.output_size, self.output_size * w / h
-        #else:
-        #    new_h, new_w = self.output_size
-
-        #new_h, new_w = int(new_h), int(new_w)
+        h, w = image_left.shape[:2]
+	out_h, out_w = self.output_size
 
         image_left = transform.resize(image_left, self.output_size, preserve_range=True)
         image_right = transform.resize(image_right, self.output_size, preserve_range=True)
 
-        gt_disp = gt_disp.astype(int)
-        gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
-        # the same as the original paper
-        gt_disp = gt_disp * (new_w * 1.0 / w)
-        #gt_disp = gt_disp / 32.0
-
-        # # try to normalize with image width
-        # gt_disp = gt_disp * 2.0 / w
+        # gt_disp = gt_disp.astype(int)
+        # gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
+        # gt_disp = gt_disp * (out_w * 1.0 / w)
 
         # change image pixel value type ot float32
         image_left = image_left.astype(np.float32)
@@ -120,15 +107,14 @@ class RandomRescale(object):
         return new_sample
 
     @staticmethod
-    def scale_back(disp, orignal_size=(1, 540, 960)):
+    def scale_back(disp, original_size=(1, 540, 960)):
         print('current shape:', disp.shape)
         o_w = original_size[2]
         s_w = disp.shape[2]
-        trans_disp = transform.resize(disp, orignal_size, preserve_range=True)
+        trans_disp = transform.resize(disp, original_size, preserve_range=True)
         trans_disp = trans_disp * (o_w * 1.0 / s_w)
         print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
-
 
 
 class RandomCrop(object):
@@ -227,7 +213,7 @@ class DispDataset(Dataset):
                  }
 
         if self.phase == 'test':
-            #scale = RandomRescale((384, 768))
+        #    scale = RandomRescale((384, 768))
             scale = RandomRescale((512, 1024))
             sample = scale(sample)
 
