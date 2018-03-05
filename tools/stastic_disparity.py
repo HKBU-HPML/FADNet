@@ -6,7 +6,8 @@ from skimage import io
 from matplotlib import pyplot as plt
 from dataset import load_pfm
 
-DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
+#DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
+DATAPATH = '/home/datasets/imagenet'
 OUTPUTPATH = './tmp'
 #FILELIST = 'FlyingThings3D_release_TEST.list'
 FILELIST = 'FlyingThings3D_release_TRAIN.list'
@@ -119,15 +120,41 @@ def plot_hist_with_filename(fn):
     plt.show()
 
 def extract_exception_of_occulution():
-    occulution_list = ''
-    original_list = ''
+    occulution_list = 'CC_FlyingThings3D_release_TRAIN.list'
     img_pairs = []
     with open(occulution_list, "r") as f:
-        occu_img_pairs = f.readlines()
+        img_pairs = f.readlines()
     means = []
+    for f in img_pairs:
+        names = f.split()
+        name = names[2]
+        gt_disp_name = os.path.join(DATAPATH, 'clean_dispnet', name)
+        if not os.path.isfile(gt_disp_name):
+            print('Not found: ', gt_disp_name)
+            continue
+        gt_disp, scale = load_pfm(gt_disp_name)
+        print('Name: ', name, ', Mean: ', np.mean(gt_disp), ', std: ', np.std(gt_disp))
 
-
-    pass
+def parse_mean_log():
+    filename = './logs/meanstd.log'
+    f = open(filename, 'r')
+    means = []
+    fns = []
+    for line in f.readlines():
+        mean = line.split()[-4]
+        means.append(float(mean))
+        fns.append(line.split()[1])
+    means = np.array(means)
+    fns = np.array(fns)
+    k = 10
+    #sorted = np.argsort(means)[-k:]
+    sorted = np.argsort(means)[:k]
+    print(sorted)
+    print(means[sorted])
+    print(fns[sorted])
+    #plt.scatter(range(0, len(means)), means)
+    #plot_hist(np.array(means), plot=True)
+    #plt.show()
 
 
 if __name__ == '__main__':
@@ -136,4 +163,6 @@ if __name__ == '__main__':
     #fn='img00000.bmp'
     #fn='0006.png'
     #plot_hist_with_filename(fn)
-    statistic_mean_std(FILELIST)
+    #statistic_mean_std(FILELIST)
+    #extract_exception_of_occulution()
+    parse_mean_log()
