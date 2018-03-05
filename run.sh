@@ -31,4 +31,7 @@
 #python main.py --cuda --outf /data/cc-models-dispC-resnet-relu --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont.log --showFreq 1 --devices 0,1 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu/model_best.pth --startEpoch 12
 
 # Relu + finetune
-python main.py --cuda --outf /data/cc-models-dispC-resnet-relu-ft --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont-ft.log --showFreq 1 --devices 0,1 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu/model_best.pth --startEpoch 50 --endEpoch 100
+#python main.py --cuda --outf /data/cc-models-dispC-resnet-relu-ft --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont-ft.log --showFreq 1 --devices 0,1 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu/model_best.pth --startEpoch 50 --endEpoch 100
+
+# Relu + finetune + remove black
+python main.py --cuda --outf /data/cc-models-dispC-resnet-relu-ft-rb --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont-ft-rb.log --showFreq 1 --devices 0,1 --trainlist RB_FlyingThings3D_release_TRAIN.list --vallist RB_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu/model_best.pth --startEpoch 50 --endEpoch 100
