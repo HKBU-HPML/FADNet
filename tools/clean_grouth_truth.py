@@ -13,13 +13,8 @@ from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie1976
 
 
-<<<<<<< Updated upstream
-DATAPATH = './data'
-OUTPUTPATH = './data'
-=======
 DATAPATH = '/home/datasets/imagenet'
 OUTPUTPATH = '/home/datasets/imagenet'
->>>>>>> Stashed changes
 #FILELIST = 'FlyingThings3D_release_TRAIN.list'
 
 def deltaE(rgb_a, rgb_b):
@@ -62,12 +57,7 @@ def remove_gt(left, right, left_disp):
     for i in range(height):
         for j in range(width):
             depth = int(left_disp[i,j])
-<<<<<<< Updated upstream
-            #if j-depth<0 or depth >= width or depth<0:
-            if j-depth<0 or depth >= width or depth<0:
-=======
             if j-depth<0 or depth >= width or depth < 0:
->>>>>>> Stashed changes
                 new_disp[i,j] = 0
                 continue
             #print("{} {} {}".format(i, j, depth))
@@ -89,12 +79,8 @@ def clean(img_pairs):
     for i, f in enumerate(img_pairs):
         names = f.split()
         name = names[2]
-<<<<<<< Updated upstream
         save_name = os.path.join(OUTPUTPATH, name)
         save_name = save_name.replace('disparity', 'clean_disparity')
-=======
-        save_name = os.path.join(OUTPUTPATH, name).replace("disparity", "clean_disparity")
->>>>>>> Stashed changes
         save_path = os.path.dirname(save_name)
         if os.path.isfile(save_name):
             continue
@@ -149,11 +135,7 @@ def run(filelist, nworkers):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-<<<<<<< Updated upstream
     parser.add_argument('--filelist', type=str, help='file list', default='FlyingThings3D_release_TEST.list')
-=======
-    parser.add_argument('--filelist', type=str, help='file list', default='FlyingThings3D_release_TRAIN.list')
->>>>>>> Stashed changes
     parser.add_argument('--nworkers', type=int, help='number of processes', default=20)
     opt = parser.parse_args()
     #clean(opt.filelist) 

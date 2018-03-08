@@ -42,7 +42,12 @@ def detect(model, result_path, file_list, filepath):
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
+<<<<<<< HEAD
+    batch_size = int(opt.batchSize)
+    
+=======
     batch_size = opt.batchSize
+>>>>>>> 51886211043f867a82e704a1c68e1d8aa727be2f
     test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, transform=[input_transform, target_transform], phase='test')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
                         shuffle = False, num_workers = 1, \
@@ -75,7 +80,13 @@ def detect(model, result_path, file_list, filepath):
 
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
+<<<<<<< HEAD
+            img = output[j].data.cpu().numpy()
+            img = RandomRescale.scale_back(img, original_size=(1, 540, 960))
+            img = np.flip(img[0], axis=0)
+=======
             img = np.flip(np_depth[0], axis=0)
+>>>>>>> 51886211043f867a82e704a1c68e1d8aa727be2f
             print('Name: {}'.format(save_name))
             print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)
@@ -86,12 +97,12 @@ def detect(model, result_path, file_list, filepath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, help='model to load', default='best.pth')
-    parser.add_argument('--filelist', type=str, help='file list', default='CC_FlyingThings3D_release_TEST.list')
+    parser.add_argument('--filelist', type=str, help='file list', default='GPUHOME_CC_FlyingThings3D_release_TEST.list')
     parser.add_argument('--filepath', type=str, help='file path', default='./data')
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
     parser.add_argument('--rp', type=str, help='result path', default='./result')
-    parser.add_argument('--batchSize', type=int, help='mini batch size', default='1')
+    parser.add_argument('--batchSize', type=int, help='mini batch size', default=1)
 
     opt = parser.parse_args()
     detect(opt.model, opt.rp, opt.filelist, opt.filepath)
