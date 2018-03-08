@@ -21,7 +21,7 @@ import csv
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
-parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
 parser.add_argument('--beta', type=float, default=0.999, help='beta parameter for adam. default=0.999')
@@ -123,7 +123,8 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
