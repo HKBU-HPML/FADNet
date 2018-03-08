@@ -22,4 +22,10 @@
 
 # test 5: dispnetC with shrink resnet + clean data + occulution
 # python main.py --cuda --outf ./cc-models-dispC-resnet-clean --lr 0.0001 --logFile cc-train-dispC-resnet-clean.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list 
-python main.py --cuda --outf ./cc-models-dispC-resnet --lr 0.0001 --logFile cc-train-dispC-resnet-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model ./cc-models-dispC-resnet/model_best.pth --startEpoch 44
+# python main.py --cuda --outf ./cc-models-dispC-resnet --lr 0.0002 --logFile cc-train-dispC-resnet-sr.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model ./cc-models-dispC-resnet/model_best.pth --startEpoch 50 --endEpoch 80
+
+# test 6: dispnetC with shrink resnet + clean data + occulution + finetune on cleandata model
+# python main.py --cuda --outf ./cc-models-dispC-resnet-cleandata-finetune --lr 1e-5 --logFile cc-train-dispC-resnet-cleandata-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model ./cleandata-models-dispCSRes-exp/model_best.pth
+
+# test 7: dispnetC with shrink resnet + sgm mix finetune on cleandata model
+python main.py --cuda --outf ./cc-models-dispC-resnet-cleandata-mix-cont --lr 1e-5 --logFile cc-train-dispC-resnet-cleandata-mix-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist mix_sgm_release_TRAIN.list --vallist mix_sgm_release_TEST.list --model ./cc-models-dispC-resnet-cleandata-mix-cont/model_best.pth
