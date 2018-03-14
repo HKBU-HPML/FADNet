@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 from dataset import load_pfm
 
 #DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
-DATAPATH = '/home/datasets/imagenet'
+#DATAPATH = '/home/datasets/imagenet'
+DATAPATH = './data'
 OUTPUTPATH = './tmp'
 #FILELIST = 'FlyingThings3D_release_TEST.list'
 FILELIST = 'FlyingThings3D_release_TRAIN.list'
@@ -129,7 +130,8 @@ def extract_exception_of_occulution():
     for f in img_pairs:
         names = f.split()
         name = names[2]
-        gt_disp_name = os.path.join(DATAPATH, 'clean_dispnet', name)
+        #gt_disp_name = os.path.join(DATAPATH, 'clean_dispnet', name)
+        gt_disp_name = os.path.join(DATAPATH,  name)
         if not os.path.isfile(gt_disp_name):
             print('Not found: ', gt_disp_name)
             continue
