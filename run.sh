@@ -32,7 +32,7 @@
 # python main.py --cuda --outf ./cc-models-dispC-resnet-cleandata-finetune --lr 1e-5 --logFile cc-train-dispC-resnet-cleandata-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model ./cleandata-models-dispCSRes-exp/model_best.pth
 
 # test 7: dispnetC with shrink resnet + sgm mix finetune on cleandata model
-python main.py --cuda --outf ./cc-models-dispC-resnet-cleandata-mix-cont --lr 1e-5 --logFile cc-train-dispC-resnet-cleandata-mix-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist mix_sgm_release_TRAIN.list --vallist mix_sgm_release_TEST.list --model ./cc-models-dispC-resnet-cleandata-mix-cont/model_best.pth
+#python main.py --cuda --outf ./cc-models-dispC-resnet-cleandata-mix-cont --lr 1e-5 --logFile cc-train-dispC-resnet-cleandata-mix-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist mix_sgm_release_TRAIN.list --vallist mix_sgm_release_TEST.list --model ./cc-models-dispC-resnet-cleandata-mix-cont/model_best.pth
 
 # Relu
 #python main.py --cuda --outf /data/cc-models-dispC-resnet-relu --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont.log --showFreq 1 --devices 0,1 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu/model_best.pth --startEpoch 12
@@ -40,5 +40,8 @@ python main.py --cuda --outf ./cc-models-dispC-resnet-cleandata-mix-cont --lr 1e
 # Relu + finetune
 #python main.py --cuda --outf /data/cc-models-dispC-resnet-relu-ft --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont-ft.log --showFreq 1 --devices 0,1 --trainlist CC_FlyingThings3D_release_TRAIN.list --vallist CC_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu/model_best.pth --startEpoch 50 --endEpoch 100
 
-# Relu + finetune + remove black
-python main.py --cuda --outf /data/cc-models-dispC-resnet-relu-ft-rb --lr 0.0001 --logFile cc-train-dispC-resnet-relu-cont-ft-rb.log --showFreq 1 --devices 0,1 --trainlist RB_FlyingThings3D_release_TRAIN.list --vallist RB_FlyingThings3D_release_TEST.list --model  /data/cc-models-dispC-resnet-relu-ft-rb/model_best.pth --startEpoch 0 --endEpoch 100
+# cleandata-1.68-model + Relu + finetune + remove black
+# python main.py --cuda --outf ./cleandata-models-dispC-resnet-relu-ft-rb --lr 0.0001 --logFile cleandata-train-dispC-resnet-relu-cont-ft-rb.log --showFreq 1 --devices 0,1,2,3 --trainlist RB_FlyingThings3D_release_TRAIN.list --vallist RB_FlyingThings3D_release_TEST.list --model ./cleandata-models-dispC-resnet-relu-ft-rb/model_best.pth --startEpoch 35 --endEpoch 100
+
+# cleandata-1.68-model + Relu + finetune + remove black + real sgm
+python main.py --cuda --outf ./cleandata-models-dispC-resnet-relu-ft-rb-mix --lr 1e-5 --logFile cleandata-train-dispC-resnet-relu-cont-ft-rb-mix.log --showFreq 1 --devices 0,1,2,3 --trainlist mix_sgm_release_TRAIN.list --vallist mix_sgm_release_TEST.list --model ./cleandata-models-dispC-resnet-relu-ft-rb-mix/model_best.pth --startEpoch 0 --endEpoch 100
