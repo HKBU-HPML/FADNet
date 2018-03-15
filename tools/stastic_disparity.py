@@ -121,7 +121,8 @@ def plot_hist_with_filename(fn):
     plt.show()
 
 def extract_exception_of_occulution():
-    occulution_list = 'CC_FlyingThings3D_release_TRAIN.list'
+    #occulution_list = 'CC_FlyingThings3D_release_TRAIN.list'
+    occulution_list = 'CC_FlyingThings3D_release_TEST.list'
     img_pairs = []
     with open(occulution_list, "r") as f:
         img_pairs = f.readlines()
@@ -138,7 +139,7 @@ def extract_exception_of_occulution():
         print('Name: ', name, ', Mean: ', np.mean(gt_disp), ', std: ', np.std(gt_disp))
 
 def parse_mean_log():
-    filename = './logs/meanstd.log'
+    filename = './logs/meanstd_test.log'
     f = open(filename, 'r')
     means = []
     fns = []
