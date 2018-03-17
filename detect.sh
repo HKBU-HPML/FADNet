@@ -5,7 +5,8 @@
 # detect with dispCSRes
 # python detecter.py --model ./cleandata-models-dispCSRes/model_best.pth --rp ./detect_result_crop --filepath /home/datasets/imagenet
 
-# python detecter.py --model models/cleandata-dispCSRes-model_best.pth --rp ./detect_result_l2norm --filepath /home/datasets/imagenet
+# python detecter.py --model ./cc-cleandata-dispCSRes-model_best.pth --rp ./cc_detect_result --filepath /home/datasets/imagenet
+python detecter.py --model ./models/cleandata-dispCSRes-model_best.pth --rp ./flying_detect_cleandata --filepath /home/datasets/imagenet --filelist GTC_TEST.list
 
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet --devices 1,2 --batchSize 2 
 
@@ -15,7 +16,9 @@
 
 # real camera
 # python detecter.py --model ./cc-models-dispC-resnet-cleandata-mix-cont/model_best.pth --rp ./real_detect_result_s1.5 --filepath data/dispnet --filelist real_sgm_release.list
-python detecter.py --model ./cleandata-models-dispC-resnet-relu-ft-rb-mix/model_best.pth --rp ./real_detect_result_s1.5 --filepath data/dispnet --filelist real_sgm_release.list
+# python detecter.py --model ./cleandata-models-dispC-resnet-relu-ft-rb-mix/model_best.pth --rp ./real_detect_result_s1.5 --filepath data/dispnet --filelist real_sgm_release.list
+# detect with titanx
+# python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath data 
 
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet
 

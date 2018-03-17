@@ -87,14 +87,19 @@ class RandomRescale(object):
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
         h, w = image_left.shape[:2]
-	out_h, out_w = self.output_size
+        #if isinstance(self.output_size, int):
+        out_h, out_w = self.output_size
+        #    if h > w:
+        #        new_h, new_w = self.output_size * h / w, self.output_size
+        #    else:
+        #        new_h, new_w = self.output_size, self.output_size * w / h
+        #else:
+        #    new_h, new_w = self.output_size
+
+        #new_h, new_w = int(new_h), int(new_w)
 
         image_left = transform.resize(image_left, self.output_size, preserve_range=True)
         image_right = transform.resize(image_right, self.output_size, preserve_range=True)
-
-        # gt_disp = gt_disp.astype(int)
-        # gt_disp = transform.resize(gt_disp, self.output_size, preserve_range=True)
-        # gt_disp = gt_disp * (out_w * 1.0 / w)
 
         # change image pixel value type ot float32
         image_left = image_left.astype(np.float32)
@@ -213,11 +218,13 @@ class DispDataset(Dataset):
                  }
 
         if self.phase == 'test':
+            #scale = RandomRescale((384, 768))
+            #scale = RandomRescale((512, 1024))
+            scale = RandomRescale((768, 1280))
         #    scale = RandomRescale((384, 768))
         #    scale = RandomRescale((512 * 3, 896 * 3))
         #    scale = RandomRescale((768, 1024 + 512))
         #    scale = RandomRescale((1536, 1536))
-            scale = RandomRescale((1024, 1024))
             sample = scale(sample)
 
         tt = ToTensor()

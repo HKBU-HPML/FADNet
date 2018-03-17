@@ -93,7 +93,7 @@ test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNetCSRes(ngpu, False)
+net = DispNetCSRes(ngpu, False, True)
 # net = DispNetC(ngpu, True)
 print(net)
 
@@ -123,7 +123,8 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+loss_weights = (0.6, 0.2, 0.08, 0.04, 0.02, 0.01, 0.005)
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
@@ -166,7 +167,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    cur_lr = init_lr / (2**(epoch // 10))
+    cur_lr = init_lr / (2**(epoch // 5))
     # if epoch != 0 and epoch % 10 == 0:
     for param_group in optimizer.param_groups:
         param_group['lr'] = cur_lr

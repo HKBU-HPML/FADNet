@@ -3,16 +3,24 @@ from subprocess import Popen
 import re
 import numpy as np
 
+<<<<<<< HEAD
 ORIGINAL_DATAPATH = '/media/gpuhomedataset/clean_dispnet/FlyingThings3D_release/disparity/TEST'
 # ORIGINAL_DATAPATH = '/media/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
 #PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_cd'
 PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/pytorch-dispnet/flying_detect_result'
+=======
+#ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
+ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/clean_dispnet/FlyingThings3D_release/disparity/TEST'
+#PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_cd'
+PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/cc_detect_result'
+>>>>>>> be3261cdb08ca951d2667edfef40db21f77b9533
 BIN = 'jview'
 #result_name = 'predict_A_0019_0015.pfm'
 #result_name = 'predict_A_0011_0007.pfm'
 #result_name = 'predict_A_0009_0014.pfm'
 #result_name = 'predict_A_0011_0012.pfm'
 #result_name = 'predict_A_0011_0015.pfm'
+<<<<<<< HEAD
 result_name = 'predict_A_0040_0010.pfm'
 
 def load_pfm(filename):
@@ -49,6 +57,9 @@ def load_pfm(filename):
   shape = (height, width, 3) if color else (height, width)
   file.close()
   return np.reshape(data, shape), scale
+=======
+result_name = 'predict_A_0001_0015.pfm'
+>>>>>>> be3261cdb08ca951d2667edfef40db21f77b9533
 
 
 def _get_view_cmd(filepath):
