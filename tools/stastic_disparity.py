@@ -2,17 +2,20 @@ from __future__ import print_function
 import os
 import numpy as np
 import csv
+from skimage import io
 from matplotlib import pyplot as plt
 from dataset import load_pfm
 
-DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
+#DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
+#DATAPATH = '/home/datasets/imagenet'
+DATAPATH = './data'
 OUTPUTPATH = './tmp'
 #FILELIST = 'FlyingThings3D_release_TEST.list'
 FILELIST = 'FlyingThings3D_release_TRAIN.list'
 RESULTLIST = 'NEW_' + FILELIST
 CLEANRESULTLIST = 'CLEAN_' + FILELIST
 
-def plot_hist(d, save=False, filename=None, plot=True):
+def plot_hist(d, save=False, filename=None, plot=True, color='r'):
     flatten = d.ravel()
     mean = np.mean(flatten)
     max = np.max(flatten)
@@ -21,12 +24,13 @@ def plot_hist(d, save=False, filename=None, plot=True):
     #return n_neg, flatten.size # return #negative, total
     if plot:
         #count, bins, ignored = plt.hist(flatten, 50, normed=True)
-        count, bins, ignored = plt.hist(flatten, bins=np.arange(0,300))
+        count, bins, ignored = plt.hist(flatten, bins=np.arange(0,300), color=color)
         if save:
             plt.savefig(os.path.join(OUTPUTPATH, '%s.png'%filename), bbox_inches='tight')
         else:
-            plt.show()
-        plt.clf()
+            #plt.show()
+            pass
+        #plt.clf()
     return mean, std, max
 
 
@@ -76,6 +80,92 @@ def statistic_with_file(fn):
     result_file.close()
 
 
+def statistic_mean_std(filelist):
+    img_pairs = []
+    with open(filelist, "r") as f:
+        img_pairs = f.readlines()
+    means = []
+    for f in img_pairs:
+        names = f.split()
+        leftname = names[0]
+        rightname = names[1]
+        leftfn = os.path.join(DATAPATH, leftname)
+        rightfn = os.path.join(DATAPATH, rightname)
+        leftimgdata = io.imread(leftfn)
+        rightimgdata = io.imread(rightfn)
+        leftmean = np.mean(leftimgdata.ravel())
+        rightmean = np.mean(rightimgdata.ravel())
+        print('leftmean: ', leftmean)
+        print('rightmean: ', rightmean)
+        means.append((leftmean+rightmean)/2)
+    means = np.array(means)
+    print('total mean: ', np.mean(means))
+    print('total std: ', np.std(means))
+
+
+def plot_hist_with_filename(fn):
+    fnt='img00000.bmp'
+    leftfn = '/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/left/%s'%fnt
+    rightfn = '/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/right/%s'%fnt
+    realimgdata = io.imread(leftfn)
+    #leftfn = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/frames_cleanpass/TRAIN/A/0001/left/%s'%fn
+    #rightfn = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/frames_cleanpass/TRAIN/A/0001/right/%s'%fn
+    #realimgdata = io.imread(leftfn)
+
+    leftfn = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/frames_cleanpass/TRAIN/A/0000/left/%s'%fn
+    rightfn = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/frames_cleanpass/TRAIN/A/0000/right/%s'%fn
+    leftimgdata = io.imread(leftfn)
+    rightimgdata = io.imread(rightfn)
+    mean, std, max = plot_hist(leftimgdata, save=False, filename=None, plot=True, color='r')
+    mean, std, max = plot_hist(realimgdata, save=False, filename=None, plot=True, color='b')
+    plt.show()
+
+def extract_exception_of_occulution():
+    #occulution_list = 'CC_FlyingThings3D_release_TRAIN.list'
+    occulution_list = 'CC_FlyingThings3D_release_TEST.list'
+    img_pairs = []
+    with open(occulution_list, "r") as f:
+        img_pairs = f.readlines()
+    means = []
+    for f in img_pairs:
+        names = f.split()
+        name = names[2]
+        #gt_disp_name = os.path.join(DATAPATH, 'clean_dispnet', name)
+        gt_disp_name = os.path.join(DATAPATH,  name)
+        if not os.path.isfile(gt_disp_name):
+            print('Not found: ', gt_disp_name)
+            continue
+        gt_disp, scale = load_pfm(gt_disp_name)
+        print('Name: ', name, ', Mean: ', np.mean(gt_disp), ', std: ', np.std(gt_disp))
+
+def parse_mean_log():
+    filename = './logs/meanstd_test.log'
+    f = open(filename, 'r')
+    means = []
+    fns = []
+    for line in f.readlines():
+        mean = line.split()[-4]
+        means.append(float(mean))
+        fns.append(line.split()[1])
+    means = np.array(means)
+    fns = np.array(fns)
+    k = 10
+    #sorted = np.argsort(means)[-k:]
+    sorted = np.argsort(means)[:k]
+    print(sorted)
+    print(means[sorted])
+    print(fns[sorted])
+    #plt.scatter(range(0, len(means)), means)
+    #plot_hist(np.array(means), plot=True)
+    #plt.show()
+
+
 if __name__ == '__main__':
     #statistic(FILELIST)
-    statistic_with_file(RESULTLIST)
+    #statistic_with_file(RESULTLIST)
+    #fn='img00000.bmp'
+    #fn='0006.png'
+    #plot_hist_with_filename(fn)
+    #statistic_mean_std(FILELIST)
+    #extract_exception_of_occulution()
+    parse_mean_log()

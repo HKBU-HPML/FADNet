@@ -42,7 +42,7 @@ def detect(model, result_path, file_list, filepath):
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
-    batch_size = opt.batchSize
+    batch_size = int(opt.batchSize)
     test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, transform=[input_transform, target_transform], phase='test')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
                         shuffle = False, num_workers = 1, \
@@ -90,7 +90,7 @@ def detect(model, result_path, file_list, filepath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, help='model to load', default='best.pth')
-    parser.add_argument('--filelist', type=str, help='file list', default='AA_CC_FlyingThings3D_release_TEST.list')
+    parser.add_argument('--filelist', type=str, help='file list', default='FlyingThings3D_release_TEST.list')
     parser.add_argument('--filepath', type=str, help='file path', default='./data')
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
