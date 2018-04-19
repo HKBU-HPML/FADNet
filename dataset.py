@@ -205,9 +205,12 @@ class DispDataset(Dataset):
 
         img_left = io.imread(img_left_name)
         img_right = io.imread(img_right_name)
-        gt_disp, scale = load_pfm(gt_disp_name)
 
-        gt_disp = gt_disp[::-1, :]
+        gt_disp = None
+        scale = 1
+        if os.path.isfile(gt_disp_name):
+            gt_disp, scale = load_pfm(gt_disp_name)
+            gt_disp = gt_disp[::-1, :]
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
