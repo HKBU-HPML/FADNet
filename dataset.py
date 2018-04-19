@@ -223,9 +223,11 @@ class DispDataset(Dataset):
         if self.phase == 'test':
             #scale = RandomRescale((384, 768))
             #scale = RandomRescale((512, 1024))
-            scale = RandomRescale((768, 1024+512))
+            scale = RandomRescale((768, 1280))
         #    scale = RandomRescale((384, 768))
-            #scale = RandomRescale((512, 1024))
+        #    scale = RandomRescale((512 * 3, 896 * 3))
+        #    scale = RandomRescale((768, 1024 + 512))
+        #    scale = RandomRescale((1536, 1536))
             sample = scale(sample)
 
         tt = ToTensor()
