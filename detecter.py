@@ -12,10 +12,10 @@ from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-cudnn.benchmark = True
+# cudnn.benchmark = True
 
 input_transform = transforms.Compose([
-        transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
+        transforms.Normalize(mean=[-50,-50,-50], std=[255,255,255]),
         # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
         ])
 
@@ -42,12 +42,7 @@ def detect(model, result_path, file_list, filepath):
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
-<<<<<<< HEAD
     batch_size = int(opt.batchSize)
-    
-=======
-    batch_size = opt.batchSize
->>>>>>> 51886211043f867a82e704a1c68e1d8aa727be2f
     test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, transform=[input_transform, target_transform], phase='test')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
                         shuffle = False, num_workers = 1, \
@@ -60,6 +55,8 @@ def detect(model, result_path, file_list, filepath):
         print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
         target = sample_batched['gt_disp']
+        print('disp Shape: {}'.format(target.size()))
+	original_size = (1, target.size()[2], target.size()[3])
         target = target.cuda()
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -69,7 +66,8 @@ def detect(model, result_path, file_list, filepath):
         for j in range(num_of_samples):
             # scale back depth
             np_depth = output[j].data.cpu().numpy()
-            np_depth = RandomRescale.scale_back(np_depth, original_size=(1, 540, 960))
+            np_depth = RandomRescale.scale_back(np_depth, original_size)
+            #np_depth = RandomRescale.scale_back(np_depth, original_size=(1, 1024, 1024))
             cuda_depth = torch.from_numpy(np_depth).cuda()
             cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
@@ -80,13 +78,8 @@ def detect(model, result_path, file_list, filepath):
 
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
-<<<<<<< HEAD
-            img = output[j].data.cpu().numpy()
-            img = RandomRescale.scale_back(img, original_size=(1, 540, 960))
-            img = np.flip(img[0], axis=0)
-=======
+            # save_name = 'predict_{}.pfm'.format(name_items[-1].split('.')[0])
             img = np.flip(np_depth[0], axis=0)
->>>>>>> 51886211043f867a82e704a1c68e1d8aa727be2f
             print('Name: {}'.format(save_name))
             print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)
@@ -97,7 +90,7 @@ def detect(model, result_path, file_list, filepath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, help='model to load', default='best.pth')
-    parser.add_argument('--filelist', type=str, help='file list', default='GPUHOME_CC_FlyingThings3D_release_TEST.list')
+    parser.add_argument('--filelist', type=str, help='file list', default='FlyingThings3D_release_TEST.list')
     parser.add_argument('--filepath', type=str, help='file path', default='./data')
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
