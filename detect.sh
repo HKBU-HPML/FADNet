@@ -7,7 +7,9 @@
 
 # python detecter.py --model ./cc-cleandata-dispCSRes-model_best.pth --rp ./cc_detect_result --filepath /home/datasets/imagenet
 #python detecter.py --model ./models/cleandata-dispCSRes-model_best.pth --rp ./flying_detect_cleandata --filepath /home/datasets/imagenet --filelist FlyingThings3D_release_TEST.list
-python detecter.py --model ./cc-models-dispC-resnet-cleandata-mix/model_best.pth --rp ./flying_detect_occlusion --filepath /home/datasets/imagenet --filelist RB_FlyingThings3D_release_TEST.list
+#python detecter.py --model ./cc-models-dispC-resnet-cleandata-mix/model_best.pth --rp ./flying_detect_occlusion --filepath /home/datasets/imagenet --filelist RB_FlyingThings3D_release_TEST.list
+#python detecter.py --model ./cleandata-models-dispCSR/model_best.pth --rp ./flying_detect_cleandata --filepath /home/datasets/imagenet --filelist FlyingThings3D_release_TEST.list
+# python detecter.py --model ./cleandata-models-dispCSRes-exp/model_best.pth --rp ./real_detect_cleandata --filepath ./data --filelist real_release.list
 
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet --devices 1,2 --batchSize 2 
 
@@ -23,3 +25,5 @@ python detecter.py --model ./cc-models-dispC-resnet-cleandata-mix/model_best.pth
 
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet
 
+# girl data
+python detecter.py --model ./cleandata-models-dispCSR-girl/model_best.pth --rp ./girl_detect_cleandata --filepath /home/datasets/imagenet/dispnet/virtual --filelist girl_TRAIN.list
