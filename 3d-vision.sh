@@ -20,14 +20,15 @@
 
 # flyingthing3D
 f1=A
-f2=0015
-f3=0007
+f2=0054
+f3=0010
 left_rgb_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/FlyingThings3D_release/frames_cleanpass/
 #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/clean_dispnet/FlyingThings3D_release/clean_disparity/
 #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/FlyingThings3D_release/disparity/
 left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/flying_detect_cleandata
+#left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/flying_detect_result
 img=TEST/${f1}/${f2}/left/${f3}
-inv_baseline=0.01
+inv_baseline=0.0038
 focal=1050
 maxdisp=480
 mindisp=10
