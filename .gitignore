@@ -6,3 +6,5 @@
 *.pfm
 tmp
 ./data
+./models
+./detect_results

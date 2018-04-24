@@ -44,4 +44,9 @@
 # python main.py --cuda --outf ./cleandata-models-dispC-resnet-relu-ft-rb --lr 0.0001 --logFile cleandata-train-dispC-resnet-relu-cont-ft-rb.log --showFreq 1 --devices 0,1,2,3 --trainlist RB_FlyingThings3D_release_TRAIN.list --vallist RB_FlyingThings3D_release_TEST.list --model ./cleandata-models-dispC-resnet-relu-ft-rb/model_best.pth --startEpoch 35 --endEpoch 100
 
 # cleandata-1.68-model + Relu + finetune + remove black + real sgm
-python main.py --cuda --outf ./cleandata-models-dispC-resnet-relu-ft-rb-mix --lr 1e-5 --logFile cleandata-train-dispC-resnet-relu-cont-ft-rb-mix.log --showFreq 1 --devices 0,1,2,3 --trainlist mix_sgm_release_TRAIN.list --vallist mix_sgm_release_TEST.list --model ./cleandata-models-dispC-resnet-relu-ft-rb-mix/model_best.pth --startEpoch 0 --endEpoch 100
+# python main.py --cuda --outf ./cleandata-models-dispC-resnet-relu-ft-rb-mix --lr 1e-5 --logFile cleandata-train-dispC-resnet-relu-cont-ft-rb-mix.log --showFreq 1 --devices 0,1,2,3 --trainlist mix_sgm_release_TRAIN.list --vallist mix_sgm_release_TEST.list --model ./cleandata-models-dispC-resnet-relu-ft-rb-mix/model_best.pth --startEpoch 0 --endEpoch 100
+
+
+# cleandata-1.68-model + Relu + girl finetune
+#python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-5 --logFile cleandata-train-dispCSR-girl.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-exp/model_best.pth --startEpoch 0 --endEpoch 100
+python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-6 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60
