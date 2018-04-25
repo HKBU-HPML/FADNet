@@ -12,8 +12,11 @@
 
 #python main.py --cuda --outf ./models-dispCSRes --lr 0.0001 --logFile train-dispCSRes.log --showFreq 1 --devices 0,1,2,3
 
-# test 4: dispnetC with shrink resnet + clean data
-# python main.py --cuda --outf ./cleandata-models-dispCSRes --lr 0.0001 --logFile cleandata-train-dispCSRes.log --showFreq 1 --devices 0,1,2,3 --trainlist CLEAN_FlyingThings3D_release_TRAIN.list --vallist CLEAN_FlyingThings3D_release_TEST.list --model ./cleandata-models-dispCSRes/model_best.pth --startEpoch 5
+#test 4: dispnetC with shrink resnet + clean data
+#python main.py --cuda --outf ./no-occ-models-dispCSRes-finetune --lr 0.00001 --logFile no-occ-train-dispCSRes-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TRAIN.list --vallist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list --model ./cleandata-dispCSRes-model_best.pth --startEpoch 1
+
+#test 4-1: dispnetC with shrink resnet + clean data, finetune girl data
+python main.py --cuda --outf ./girl-models-dispCSRes-finetune --lr 0.001 --logFile girl-train-dispCSRes-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./cleandata-dispCSRes-model_best.pth --startEpoch 1 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8
 
 # test 5: dispnetC with shrink resnet + dropout + clean data
 #python main.py --cuda --outf ./cleandata-models-dispCSRes-dropout --lr 0.0001 --logFile cleandata-train-dispCSRes-dropout.log --showFreq 1 --devices 0,1 --trainlist CLEAN_FlyingThings3D_release_TRAIN.list --vallist CLEAN_FlyingThings3D_release_TEST.list
@@ -49,4 +52,4 @@
 
 # cleandata-1.68-model + Relu + girl finetune
 #python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-5 --logFile cleandata-train-dispCSR-girl.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-exp/model_best.pth --startEpoch 0 --endEpoch 100
-python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-6 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60
+#python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-6 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60

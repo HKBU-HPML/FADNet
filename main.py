@@ -37,6 +37,7 @@ parser.add_argument('--endEpoch', type=int, help='the epoch number to end traini
 parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
 parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
 parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
+parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data')
 parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
 parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')
 parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')
@@ -73,8 +74,8 @@ target_transform = transforms.Compose([
         transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
 
-train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = 'data', transform=[input_transform, target_transform])
-test_dataset = DispDataset(txt_file = opt.vallist, root_dir = 'data', transform=[input_transform, target_transform])
+train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform])
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -90,7 +91,7 @@ train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
 
 target_loader = None
 if opt.domain_transfer:
-    td_dataset = DispDataset(txt_file = opt.tdlist, root_dir = 'data', transform=[input_transform, target_transform])
+    td_dataset = DispDataset(txt_file = opt.tdlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
     td_loader  = DataLoader(td_dataset, batch_size = opt.batchSize/4, \
                         shuffle = True, num_workers = opt.workers, \
                         pin_memory = True)
@@ -133,8 +134,8 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
-loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
+loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+#loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
@@ -196,9 +197,6 @@ def train(train_loader, model, optimizer, epoch):
 
     for i_batch, sample_batched in enumerate(train_loader):
         
-        # print(i_batch, sample_batched['img_left'].size(), \
-        #                sample_batched['img_right'].size(), \
-        #                sample_batched['gt_disp'].size())
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
 
         target = sample_batched['gt_disp']
@@ -264,8 +262,8 @@ def train(train_loader, model, optimizer, epoch):
     return losses.avg, flow2_EPEs.avg
     # return losses.avg
 
-domain_criterion = nn.L2Loss();
 def train_with_domain_transfer(source_loader, target_loader, c_model, d_model, f_optimizer, c_optimizer, d_optimizer, epoch):
+    domain_criterion = nn.L2Loss();
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -369,30 +367,6 @@ def validate(val_loader, model, criterion, high_res_EPE):
         # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
         output_net1, output_net2 = model(input_var)
-        # output_net1, output_net2, imgL, imgR, warped_imgL = model([input_var, target_var])
-        # for j in range(opt.batchSize):
-        #     imgL_npy = imgL[j].data.cpu().numpy().transpose(1, 2, 0)
-        #     ax = plt.subplot(1, 3, 1)
-        #     # plt.tight_layout()
-        #     ax.set_title('original left')
-        #     ax.axis('off')
-        #     plt.imshow(imgL_npy)
-
-        #     imgR_npy = imgR[j].data.cpu().numpy().transpose(1, 2, 0)
-        #     ax = plt.subplot(1, 3, 2)
-        #     # plt.tight_layout()
-        #     ax.set_title('original right')
-        #     ax.axis('off')
-        #     plt.imshow(imgR_npy)
-
-        #     warped_npy = warped_imgL[j].data.cpu().numpy().transpose(1, 2, 0)
-        #     ax = plt.subplot(1, 3, 3)
-        #     # plt.tight_layout()
-        #     ax.set_title('warped left')
-        #     ax.axis('off')
-        #     plt.imshow(warped_npy)
-
-        #     plt.show()
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
@@ -438,10 +412,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
-if opt.model != '':
-    EPE = validate(test_loader, net, criterion, high_res_EPE)
-    if best_EPE < 0:
-        best_EPE = EPE
+#if opt.model != '':
+#    EPE = validate(test_loader, net, criterion, high_res_EPE)
+#    if best_EPE < 0:
+#        best_EPE = EPE
 
 for epoch in range(start_epoch, end_epoch):
     cur_lr = adjust_learning_rate(optimizer, epoch)
