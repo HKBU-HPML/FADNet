@@ -15,8 +15,8 @@ from torchvision import transforms
 cudnn.benchmark = True
 
 input_transform = transforms.Compose([
-        #transforms.Normalize(mean=[-50,-50,-50], std=[255,255,255]),
         transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
+        # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
         ])
 
 target_transform = transforms.Compose([
@@ -61,7 +61,7 @@ def detect(model, result_path, file_list, filepath):
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
-        output = net(input_var)[0]
+        output = net(input_var)[1]
 
         for j in range(num_of_samples):
             # scale back depth
