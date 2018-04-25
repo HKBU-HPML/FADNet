@@ -4,6 +4,8 @@
 *.pyc
 *.swp
 *.pfm
+*.exr
+*.obj
 tmp
 ./data
 ./models
