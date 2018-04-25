@@ -15,7 +15,7 @@ from torchvision import transforms
 # cudnn.benchmark = True
 
 input_transform = transforms.Compose([
-        transforms.Normalize(mean=[-50,-50,-50], std=[255,255,255]),
+        transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
         # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
         ])
 
