@@ -205,9 +205,12 @@ class DispDataset(Dataset):
 
         img_left = io.imread(img_left_name)
         img_right = io.imread(img_right_name)
-        gt_disp, scale = load_pfm(gt_disp_name)
 
-        gt_disp = gt_disp[::-1, :]
+        gt_disp = None
+        scale = 1
+        if os.path.isfile(gt_disp_name):
+            gt_disp, scale = load_pfm(gt_disp_name)
+            gt_disp = gt_disp[::-1, :]
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
@@ -222,19 +225,26 @@ class DispDataset(Dataset):
             scale = RandomRescale((1024, 1024))
         #    scale = RandomRescale((768, 1536))
         #    scale = RandomRescale((384, 768))
-        #    scale = RandomRescale((512 * 3, 896 * 3))
-        #    scale = RandomRescale((768, 1024 + 512))
-        #    scale = RandomRescale((1536, 1536))
+            #scale = RandomRescale((512 * 3, 896 * 3))
+            #scale = RandomRescale((768, 1024 + 512))
+            #scale = RandomRescale((1536, 1536))
             sample = scale(sample)
 
         tt = ToTensor()
         if self.transform:
+            if gt_disp is None or img_left is None or img_right is None:
+                print("sample data is none:", gt_disp_name)
+                print('left: ', img_left_name)
+                print('right: ', img_right_name)
+                print('gt_disp: ', gt_disp_name)
+                raise 
             sample['img_left'] = self.transform[0](tt(sample['img_left']))
             sample['img_right'] = self.transform[0](tt(sample['img_right']))
             sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
 
         if self.phase != 'test':
-            crop = RandomCrop((384, 768))
-            sample = crop(sample)
+            #crop = RandomCrop((384, 768))
+            #crop = RandomCrop((1024, 1024))
+            sample = sample #crop(sample)
         return sample
 
