@@ -134,8 +134,9 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
+loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
@@ -150,7 +151,7 @@ optimizer = torch.optim.Adam(param_groups, init_lr,
                                     betas=(opt.momentum, opt.beta))
 
 # write opt and network
-with open(os.path.join('logs', opt.logFile), 'w') as csvfile:
+with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
     writer.writerow([str(opt)])
     writer.writerow([str(net)])

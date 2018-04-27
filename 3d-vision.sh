@@ -41,7 +41,7 @@
 # meshlab test.obj
 
 # girl
-no=0135
+no=0226
 left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl
 #left_dis_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl
 left_dis_root=./girl_detect_cleandata
