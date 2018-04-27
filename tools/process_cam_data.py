@@ -74,15 +74,26 @@ def transform_exr_to_pfm(filename, path, outputpath):
         #scipy.misc.imsave(absdstfn, disp_arr)
 
 def validate_disparity(dispfile, leftfile, rightfile, path):
-    outputfilename = os.path.join(OUTPUTPATH, 'val.'+dispfile+'.pfm')
-    resfilename = os.path.join(OUTPUTPATH, 'res.'+dispfile+'.pfm')
-    depthfilename = os.path.join(OUTPUTPATH, 'depth.'+dispfile+'.pfm')
-    #dispfile = os.path.join(OUTPUTPATH, dispfile)
-    dispfile = os.path.join(path, dispfile)
-    leftfile = os.path.join(path, leftfile)
-    rightfile = os.path.join(path, rightfile)
-    left = load_exr(leftfile, False)
-    right = load_exr(rightfile, False)
+    if path:
+        outputfilename = os.path.join(OUTPUTPATH, 'val.'+dispfile+'.pfm')
+        resfilename = os.path.join(OUTPUTPATH, 'res.'+dispfile+'.pfm')
+        depthfilename = os.path.join(OUTPUTPATH, 'depth.'+dispfile+'.pfm')
+        dispfile = os.path.join(path, dispfile)
+        leftfile = os.path.join(path, leftfile)
+        rightfile = os.path.join(path, rightfile)
+    else:
+        outputfilename = os.path.join(OUTPUTPATH, 'val.'+os.path.basename(dispfile)+'.pfm')
+        resfilename = os.path.join(OUTPUTPATH, 'res.'+os.path.basename(dispfile)+'.pfm')
+        depthfilename = os.path.join(OUTPUTPATH, 'depth.'+os.path.basename(dispfile)+'.pfm')
+    if leftfile.find('.exr') > 0:
+        left = load_exr(leftfile, False)
+        right = load_exr(rightfile, False)
+    else:
+        left = cv2.imread(leftfile).astype(np.float32)
+        left = np.flip(left, 0)
+        right = cv2.imread(rightfile).astype(np.float32)
+        right = np.flip(right, 0)
+    print('dispfile: ', dispfile)
     depth_arr = load_exr(dispfile, True)
     disp = depth_to_disparity(FOCAL_LENGTH, BASELINE, depth_arr)
     #disp+=60
@@ -120,16 +131,46 @@ def process_exrs_to_pfms(filelist, path, outputpath):
             line = line.replace('R', 'L')
             transform_exr_to_pfm(line, path, outputpath)
 
+def generate_filelist(path):
+    for root, dirs, files in os.walk(path):
+        #root_path = root.split(os.sep)
+        #print('path: ', root)
+        for file in files:
+            if file.find('.png') > 0 or file.find('.exr') > 0:
+                fullpath = os.path.join(root, file)
+                if fullpath.find('.exr') > 0:
+                    dst_file = fullpath.replace('.exr', '.pfm')
+                    if os.path.exists(dst_file):
+                        continue
+                    depth_arr = load_exr(fullpath, True)
+                    disp_arr = depth_to_disparity(FOCAL_LENGTH, BASELINE, depth_arr)
+                    disp_arr = disp_arr[:,:,0]
+                    save_pfm(dst_file, disp_arr)
+                    print(dst_file)
+                else:
+                    pass
+                    #print(fullpath)
+
+
 
 if __name__ == '__main__':
-    path = '/media/sf_Shared_Data/dispnet/cam01/'
+    #path = '/media/sf_Shared_Data/dispnet/cam01/'
     #filename = 'girl_camera1_Lcamera1_L.Z.0166.exr'
     #transform_exr_to_pfm(filename, path, OUTPUTPATH)
     #filename = 'girl_camera1_Lcamera1_L.0166.exr'
-    filelist = 'exrfilelistR.txt'
-    process_exrs_to_pfms(filelist, path, OUTPUTPATH)
+    #filelist = 'exrfilelistR.txt'
+    #process_exrs_to_pfms(filelist, path, OUTPUTPATH)
+
+    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02'
+    #path = '/media/sf_Shared_Data/dispnet/ep001/'
+    #generate_filelist(path)
 
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
     #rightfile = 'girl_camera1_Lcamera1_L.0246.exr'
     #dispfile = 'girl_camera1_Rcamera1_R.Z.0246.exr'
     #validate_disparity(dispfile, leftfile, rightfile, path)
+#
+    leftfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R/XNCG_ep0001_cam01_rd_lgt.0001.png'
+    rightfile ='/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/L/camera1_L/XNCG_ep0001_cam01_rd_lgt.0001.png'
+    dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R_Z/camera1_R_Z/Z_color/XNCG_ep0001_cam01_rd_lgt_Z.Z.0001.exr'
+    validate_disparity(dispfile, leftfile, rightfile, None)
