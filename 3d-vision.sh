@@ -57,7 +57,8 @@ jview ${left_rgb_root}/${img}
 jview ${left_dis_root}/${disp}
 ./tools/pfm_viewer ${left_dis_root}/${disp} test.exr
 ./tools/DisparityTo3D test.exr test.obj ${left_rgb_root}/${img} ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
-meshlab test.obj
+cp test.obj /media/sf_Shared_Data/dispnet/
+#meshlab test.obj
 
 
 
