@@ -7,7 +7,7 @@
 *.exr
 *.obj
 tmp
-data
 ./data
+data
 ./models
 ./detect_results
