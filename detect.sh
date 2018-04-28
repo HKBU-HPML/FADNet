@@ -27,4 +27,7 @@
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet
 
 # girl data
-python detecter.py --model ./girl-models-dispCSRes-finetune-changeweight/model_best.pth --rp ./girl_detect_cleandata --filepath /home/datasets/imagenet/dispnet/virtual/girl --filelist ./lists/girl.list
+#python detecter.py --model ./girl-models-dispCSRes-finetune-changeweight/model_best.pth --rp ./girl_detect_cleandata --filepath /home/datasets/imagenet/dispnet/virtual/girl --filelist ./lists/girl.list
+
+# girl02 data
+python detecter.py --model ./models/girl02-models-dispCSRes-finetune-changeweight/model_best.pth --rp ./detect_result/girl02 --filepath /home/datasets/imagenet/dispnet/virtual --filelist ./lists/girl02.list
