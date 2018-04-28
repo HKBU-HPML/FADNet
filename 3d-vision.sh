@@ -41,13 +41,32 @@
 # meshlab test.obj
 
 # girl
-no=0226
-left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl
-#left_dis_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl
-left_dis_root=./girl_detect_cleandata
-img=girl_camera1_Rcamera1_R.${no}.png
+#no=0226
+#left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl
+##left_dis_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl
+#left_dis_root=./girl_detect_cleandata
+#img=girl_camera1_Rcamera1_R.${no}.png
+##disp=girl_camera1_Rcamera1_R.Z.${no}.pfm
+#disp=predict_girl_camera1_Rcamera1_R.${no}.png.pfm
+#inv_baseline=0.05
+#focal=1050
+#maxdisp=480
+#mindisp=0
+#jview ${left_rgb_root}/${img}
+#jview ${left_dis_root}/${disp}
+#./tools/pfm_viewer ${left_dis_root}/${disp} test.exr
+#./tools/DisparityTo3D test.exr test.obj ${left_rgb_root}/${img} ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
+#cp test.obj /media/sf_Shared_Data/dispnet/
+#meshlab test.obj
+
+
+# girl02
+no=0025
+left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R
+left_dis_root=./detect_result/girl02
+img=XNCG_ep0001_cam01_rd_lgt.${no}.png
 #disp=girl_camera1_Rcamera1_R.Z.${no}.pfm
-disp=predict_girl_camera1_Rcamera1_R.${no}.png.pfm
+disp=predict_XNCG_ep0001_cam01_rd_lgt.${no}.png.pfm
 inv_baseline=0.05
 focal=1050
 maxdisp=480
@@ -57,7 +76,4 @@ jview ${left_dis_root}/${disp}
 ./tools/pfm_viewer ${left_dis_root}/${disp} test.exr
 ./tools/DisparityTo3D test.exr test.obj ${left_rgb_root}/${img} ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
 cp test.obj /media/sf_Shared_Data/dispnet/
-#meshlab test.obj
-
-
 
