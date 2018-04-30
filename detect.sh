@@ -27,3 +27,4 @@
 
 # girl data
 python detecter.py --model ./models/cleandata-models-dispCSR-girl/model_best.pth --rp ./detect_results/girl_detect_cleandata --filepath ./data/ --filelist lists/girl_TEST.list
+#python detecter.py --model ./models/cleandata-models-dispCSR-girl/model_best.pth --rp ./detect_results/girl_detect_cleandata --filepath /home/datasets/imagenet/dispnet/virtual --filelist lists/girl_TEST.list
