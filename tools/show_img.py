@@ -2,26 +2,18 @@ import os
 from subprocess import Popen
 import re
 import numpy as np
+import argparse
 
-<<<<<<< HEAD
-ORIGINAL_DATAPATH = '/media/gpuhomedataset/clean_dispnet/FlyingThings3D_release/disparity/TEST'
-# ORIGINAL_DATAPATH = '/media/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
+ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
+#ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/clean_dispnet/FlyingThings3D_release/disparity/TEST'
 #PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_cd'
-PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/pytorch-dispnet/flying_detect_result'
-=======
-#ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/FlyingThings3D_release/disparity/TEST'
-ORIGINAL_DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/clean_dispnet/FlyingThings3D_release/disparity/TEST'
-#PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_cd'
-PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/cc_detect_result'
->>>>>>> be3261cdb08ca951d2667edfef40db21f77b9533
+PREDICT_DATAPATH = '/media/sf_Shared_Data/gpuhome/repositories/pytorch-dispnet/detect_result_csr'
 BIN = 'jview'
 #result_name = 'predict_A_0019_0015.pfm'
 #result_name = 'predict_A_0011_0007.pfm'
 #result_name = 'predict_A_0009_0014.pfm'
 #result_name = 'predict_A_0011_0012.pfm'
-#result_name = 'predict_A_0011_0015.pfm'
-<<<<<<< HEAD
-result_name = 'predict_A_0040_0010.pfm'
+result_name = 'predict_A_0011_0006.pfm'
 
 def load_pfm(filename):
 
@@ -57,9 +49,6 @@ def load_pfm(filename):
   shape = (height, width, 3) if color else (height, width)
   file.close()
   return np.reshape(data, shape), scale
-=======
-result_name = 'predict_A_0001_0015.pfm'
->>>>>>> be3261cdb08ca951d2667edfef40db21f77b9533
 
 
 def _get_view_cmd(filepath):
@@ -78,7 +67,9 @@ def show_images(result_name):
     ps = []
     # show original
     name_items = result_name.split('_')
+    print('name_items:', name_items)
     left_image_path = os.path.join(ORIGINAL_DATAPATH, name_items[1], name_items[2], 'left', name_items[3])
+    print('left_image_path:', left_image_path)
     #right_image_path = os.path.join(ORIGINAL_DATAPATH, name_items[1], name_items[2], 'right', name_items[3])
     #depth_np, scale = load_pfm(left_image_path)
     #if np.sum(depth_np) != 0:
@@ -119,5 +110,9 @@ if __name__ == '__main__':
     #         new_f.write(img)
     #     else:
     #         print "%s all 0." % depth_path
-    show_images(result_name)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--fn', type=str, help='File name', default=None)
+    opt = parser.parse_args()
+    rn = opt.fn if opt.fn else result_name
+    show_images(rn)
 

@@ -20,6 +20,7 @@ import csv
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
@@ -36,7 +37,9 @@ parser.add_argument('--endEpoch', type=int, help='the epoch number to end traini
 parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
 parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
 parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
+parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data')
 parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
+parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')
 parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')
 
 opt = parser.parse_args()
@@ -71,8 +74,8 @@ target_transform = transforms.Compose([
         transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
 
-train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = 'data', transform=[input_transform, target_transform])
-test_dataset = DispDataset(txt_file = opt.vallist, root_dir = 'data', transform=[input_transform, target_transform])
+train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform])
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -85,6 +88,14 @@ test_dataset = DispDataset(txt_file = opt.vallist, root_dir = 'data', transform=
 train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
                         shuffle = True, num_workers = opt.workers, \
                         pin_memory = True)
+
+target_loader = None
+if opt.domain_transfer:
+    td_dataset = DispDataset(txt_file = opt.tdlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
+    td_loader  = DataLoader(td_dataset, batch_size = opt.batchSize/4, \
+                        shuffle = True, num_workers = opt.workers, \
+                        pin_memory = True)
+
 
 test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
                         shuffle = False, num_workers = opt.workers, \
@@ -141,7 +152,7 @@ optimizer = torch.optim.Adam(param_groups, init_lr,
                                     betas=(opt.momentum, opt.beta))
 
 # write opt and network
-with open(os.path.join('logs', opt.logFile), 'w') as csvfile:
+with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
     writer.writerow([str(opt)])
     writer.writerow([str(net)])
@@ -188,12 +199,10 @@ def train(train_loader, model, optimizer, epoch):
 
     for i_batch, sample_batched in enumerate(train_loader):
         
-        # print(i_batch, sample_batched['img_left'].size(), \
-        #                sample_batched['img_right'].size(), \
-        #                sample_batched['gt_disp'].size())
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-        # print(input.size())
+
         target = sample_batched['gt_disp']
+        # print(input.size())
 
         data_time.update(time.time() - end)
         target = target.cuda()
@@ -255,6 +264,85 @@ def train(train_loader, model, optimizer, epoch):
     return losses.avg, flow2_EPEs.avg
     # return losses.avg
 
+def train_with_domain_transfer(source_loader, target_loader, c_model, d_model, f_optimizer, c_optimizer, d_optimizer, epoch):
+    domain_criterion = nn.L2Loss();
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    flow2_EPEs = AverageMeter()
+
+    # switch to train mode
+    model.train()
+
+    end = time.time()
+
+    for i_batch, sample_batched in enumerate(source_loader):
+        
+        # print(i_batch, sample_batched['img_left'].size(), \
+        #                sample_batched['img_right'].size(), \
+        #                sample_batched['gt_disp'].size())
+        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        # print(input.size())
+        target = sample_batched['gt_disp']
+        data_time.update(time.time() - end)
+        target = target.cuda()
+        input = input.cuda()
+        # print(i_batch, input.size(), target.size())
+        input_var = torch.autograd.Variable(input)
+        target_var = torch.autograd.Variable(target)
+
+
+        td_batched = td_loader.next()
+        td_input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        td_input = td_input.cuda()
+        domain_labels = np.ones(len(sample_batched)+len(td_batched), dtype=np.float32)
+        domain_labels[len(sample_batched):] = -1.
+
+        td_input_var = torch.autograd.Variable(td_input)
+
+        domain_labels_var = torch.autograd.Variable(domain_labels)
+        total_x = torch.cat([input_var, td_input_var], 0)
+
+
+        p = epoch / float(opt.end_epoch)
+        lambd = 2. / (1. + np.exp(-10. * p)) - 1
+
+        #(1) Train feature_extractor and class_classifier on the source batch
+        f_optimizer.zero_grad()
+        c_optimizer.zero_grad()
+        output_net1, output_net2 = c_model(input_var)
+        loss_net1 = criterion(output_net1, target_var)
+        loss_net2 = criterion(output_net2, target_var)
+        loss = loss_net1 + loss_net2
+        flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
+        losses.update(loss.data[0], target.size(0))
+        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+
+        c_optimizer
+        # compute gradient and do SGD step
+        loss.backward()
+        c_optimizer.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        if i_batch % opt.showFreq == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+              'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+              'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+              'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
+              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})'.format(
+              epoch, i_batch, len(train_loader), batch_time=batch_time, 
+              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
+ 
+	# debug  	
+	#if i_batch >= 3:
+	#    break
+
+    return losses.avg, flow2_EPEs.avg
+
+
 
 def validate(val_loader, model, criterion, high_res_EPE):
     global args
@@ -281,30 +369,6 @@ def validate(val_loader, model, criterion, high_res_EPE):
         # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
         output_net1, output_net2 = model(input_var)
-        # output_net1, output_net2, imgL, imgR, warped_imgL = model([input_var, target_var])
-        # for j in range(opt.batchSize):
-        #     imgL_npy = imgL[j].data.cpu().numpy().transpose(1, 2, 0)
-        #     ax = plt.subplot(1, 3, 1)
-        #     # plt.tight_layout()
-        #     ax.set_title('original left')
-        #     ax.axis('off')
-        #     plt.imshow(imgL_npy)
-
-        #     imgR_npy = imgR[j].data.cpu().numpy().transpose(1, 2, 0)
-        #     ax = plt.subplot(1, 3, 2)
-        #     # plt.tight_layout()
-        #     ax.set_title('original right')
-        #     ax.axis('off')
-        #     plt.imshow(imgR_npy)
-
-        #     warped_npy = warped_imgL[j].data.cpu().numpy().transpose(1, 2, 0)
-        #     ax = plt.subplot(1, 3, 3)
-        #     # plt.tight_layout()
-        #     ax.set_title('warped left')
-        #     ax.axis('off')
-        #     plt.imshow(warped_npy)
-
-        #     plt.show()
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
@@ -350,10 +414,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
-if opt.model != '':
-    EPE = validate(test_loader, net, criterion, high_res_EPE)
-    if best_EPE < 0:
-        best_EPE = EPE
+#if opt.model != '':
+#    EPE = validate(test_loader, net, criterion, high_res_EPE)
+#    if best_EPE < 0:
+#        best_EPE = EPE
 
 for epoch in range(start_epoch, end_epoch):
     cur_lr = adjust_learning_rate(optimizer, epoch)
