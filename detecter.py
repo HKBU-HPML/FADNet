@@ -12,7 +12,7 @@ from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-# cudnn.benchmark = True
+cudnn.benchmark = True
 
 input_transform = transforms.Compose([
         transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
@@ -31,7 +31,7 @@ def detect(model, result_path, file_list, filepath):
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
     #net = DispNetC(ngpu, True)
-    net = DispNetCSRes(ngpu, False)
+    net = DispNetCSRes(ngpu, False, True)
 
     model_data = torch.load(model)
     print(model_data.keys())
@@ -61,7 +61,7 @@ def detect(model, result_path, file_list, filepath):
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
-        output = net(input_var)[0]
+        output = net(input_var)[1]
 
         for j in range(num_of_samples):
             # scale back depth
@@ -77,9 +77,9 @@ def detect(model, result_path, file_list, filepath):
             print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
 
             name_items = sample_batched['img_names'][0][j].split('/')
-            # save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
-            save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
-            # save_name = 'predict_{}.pfm'.format(name_items[-1].split('.')[0])
+            #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
+            #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
+            save_name = 'predict_{}.pfm'.format(name_items[-1])
             img = np.flip(np_depth[0], axis=0)
             print('Name: {}'.format(save_name))
             print('')

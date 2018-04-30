@@ -20,17 +20,18 @@
 
 # # flyingthing3D
 # f1=A
-# f2=0054
-# f3=0010
-# left_rgb_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/FlyingThings3D_release/frames_cleanpass/
+# f2=0027
+# f3=0015
+# #left_rgb_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data/FlyingThings3D_release/frames_cleanpass/
+# left_rgb_root=/media/gpuhomedataset/FlyingThings3D_release/frames_cleanpass/
 # #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/clean_dispnet/FlyingThings3D_release/clean_disparity/
 # #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/FlyingThings3D_release/disparity/
-# left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/flying_detect_cleandata
+# left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/detect_results/flying_detect_cleandata
 # #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/flying_detect_result
 # img=TEST/${f1}/${f2}/left/${f3}
 # inv_baseline=0.0038
-# focal=1050
-# maxdisp=480
+# focal=500
+# maxdisp=800
 # mindisp=10
 # jview ${left_rgb_root}/${img}.png
 # #jview ${left_dis_root}/${img}.pfm
@@ -41,14 +42,14 @@
 # meshlab test.obj
 
 # girl
-no=0247
-left_rgb_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data/dispnet/virtual/girl
-left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data/dispnet/virtual/girl
-#left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/detect_results/girl_detect_cleandata
+no=0222
+left_rgb_root=/media/gpuhomedataset/dispnet/virtual/girl
+#left_dis_root=/media/gpuhomedataset/dispnet/virtual/girl
+left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/detect_results/girl_detect_cleandata
 img=girl_camera1_Rcamera1_R.${no}.png
-disp=girl_camera1_Rcamera1_R.Z.${no}.pfm
-#disp=predict_girl_camera1_Rcamera1_R_${no}.pfm
-inv_baseline=0.05
+#disp=girl_camera1_Rcamera1_R.Z.${no}.pfm
+disp=predict_girl_camera1_Rcamera1_R_${no}.pfm
+inv_baseline=0.038
 focal=1050
 maxdisp=480
 mindisp=0
@@ -56,7 +57,8 @@ jview ${left_rgb_root}/${img}
 jview ${left_dis_root}/${disp}
 ./tools/pfm_viewer ${left_dis_root}/${disp} test.exr
 ./tools/DisparityTo3D test.exr test.obj ${left_rgb_root}/${img} ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
-meshlab test.obj
+cp test.obj /media/sf_Shared_Data/dispnet/
+#meshlab test.obj
 
 
 

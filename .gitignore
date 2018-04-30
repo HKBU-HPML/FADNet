@@ -8,5 +8,6 @@
 *.obj
 tmp
 ./data
+data
 ./models
 ./detect_results
