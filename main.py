@@ -139,6 +139,16 @@ net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 #loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
+# shaohuai
+#loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
+#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
+loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
+
+# qiang
+#loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
+#loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
+#loss_weights = (1, 0, 0, 0, 0, 0, 0)
+
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
