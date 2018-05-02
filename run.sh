@@ -57,4 +57,4 @@ python main.py --cuda --outf ./models/girl02-models-dispCSRes-finetune-changewei
 
 # cleandata-1.68-model + Relu + girl finetune
 #python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-5 --logFile cleandata-train-dispCSR-girl.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-exp/model_best.pth --startEpoch 0 --endEpoch 100
-#python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-6 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60
+python main.py --cuda --outf ./models/cleandata-models-dispCSR-girl --lr 1e-4 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl_TRAIN.list --vallist lists/girl_TEST.list --model ./models/cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60

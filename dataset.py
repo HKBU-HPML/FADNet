@@ -242,9 +242,9 @@ class DispDataset(Dataset):
             sample['img_right'] = self.transform[0](tt(sample['img_right']))
             sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
 
-        if self.phase != 'test':
-            #crop = RandomCrop((384, 768))
-            #crop = RandomCrop((1024, 1024))
-            sample = sample #crop(sample)
+        #if self.phase != 'test':
+        #    #crop = RandomCrop((384, 768))
+        #    crop = RandomCrop((896, 896))
+        #    sample = crop(sample)
         return sample
 
