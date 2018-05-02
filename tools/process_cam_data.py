@@ -1,10 +1,10 @@
 from __future__ import print_function
+import cv2
 from numpy import linalg as LA
 from readers import load_exr
 from dataset import load_pfm, save_pfm
 import numpy as np
 import os
-import cv2
 import scipy.misc
 import PyEXR as exr
 
@@ -132,6 +132,9 @@ def process_exrs_to_pfms(filelist, path, outputpath):
             transform_exr_to_pfm(line, path, outputpath)
 
 def generate_filelist(path):
+    leftlist = []
+    rightlist = []
+    displist = []
     for root, dirs, files in os.walk(path):
         #root_path = root.split(os.sep)
         #print('path: ', root)
@@ -146,10 +149,23 @@ def generate_filelist(path):
                     disp_arr = depth_to_disparity(FOCAL_LENGTH, BASELINE, depth_arr)
                     disp_arr = disp_arr[:,:,0]
                     save_pfm(dst_file, disp_arr)
-                    print(dst_file)
+                    #print(dst_file)
+                    fullpath = dst_file
                 else:
                     pass
                     #print(fullpath)
+                if file.find('.png') > 0:
+                    if fullpath.find('L') > 0:
+                        leftlist.append(fullpath)
+                    elif fullpath.find('R') > 0:
+                        rightlist.append(fullpath)
+                elif fullpath.find('R') > 0:
+                    displist.append(fullpath)
+    leftlist.sort()
+    rightlist.sort()
+    displist.sort()
+    #for i in range(0, len(leftlist)):
+    #    print(rightlist[i], leftlist[i], displist[i])
 
 
 
@@ -161,16 +177,16 @@ if __name__ == '__main__':
     #filelist = 'exrfilelistR.txt'
     #process_exrs_to_pfms(filelist, path, OUTPUTPATH)
 
-    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02'
+    path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03'
     #path = '/media/sf_Shared_Data/dispnet/ep001/'
-    #generate_filelist(path)
+    generate_filelist(path)
 
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
     #rightfile = 'girl_camera1_Lcamera1_L.0246.exr'
     #dispfile = 'girl_camera1_Rcamera1_R.Z.0246.exr'
     #validate_disparity(dispfile, leftfile, rightfile, path)
 #
-    leftfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R/XNCG_ep0001_cam01_rd_lgt.0001.png'
-    rightfile ='/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/L/camera1_L/XNCG_ep0001_cam01_rd_lgt.0001.png'
-    dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R_Z/camera1_R_Z/Z_color/XNCG_ep0001_cam01_rd_lgt_Z.Z.0001.exr'
-    validate_disparity(dispfile, leftfile, rightfile, None)
+    #leftfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R/XNCG_ep0001_cam01_rd_lgt.0001.png'
+    #rightfile ='/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/L/camera1_L/XNCG_ep0001_cam01_rd_lgt.0001.png'
+    #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R_Z/camera1_R_Z/Z_color/XNCG_ep0001_cam01_rd_lgt_Z.Z.0001.exr'
+    #validate_disparity(dispfile, leftfile, rightfile, None)
