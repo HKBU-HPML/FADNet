@@ -18,7 +18,7 @@
 #test 4-1: dispnetC with shrink resnet + clean data, finetune girl data
 #python main.py --cuda --outf ./girl-models-dispCSRes-finetune --lr 0.001 --logFile girl-train-dispCSRes-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./cleandata-dispCSRes-model_best.pth --startEpoch 1 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8
 #python main.py --cuda --outf ./girl-models-dispCSRes-finetune-changeweight-2nd --lr 0.001 --logFile girl-train-dispCSRes-finetune-changeweight-2nd.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./girl-models-dispCSRes-finetune-changeweight/model_best.pth --startEpoch 1 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8
-python main.py --cuda --outf ./girl-models-dispCSRes-finetune-changeweight-2nd --lr 4.8828125e-07 --logFile girl-train-dispCSRes-finetune-changeweight-2nd.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./girl-models-dispCSRes-finetune-changeweight/model_best.pth --startEpoch 40 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8 --endEpoch 100
+#python main.py --cuda --outf ./girl-models-dispCSRes-finetune-changeweight-2nd --lr 4.8828125e-07 --logFile girl-train-dispCSRes-finetune-changeweight-2nd.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./girl-models-dispCSRes-finetune-changeweight/model_best.pth --startEpoch 40 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8 --endEpoch 100
 
 # test 5: dispnetC with shrink resnet + dropout + clean data
 #python main.py --cuda --outf ./cleandata-models-dispCSRes-dropout --lr 0.0001 --logFile cleandata-train-dispCSRes-dropout.log --showFreq 1 --devices 0,1 --trainlist CLEAN_FlyingThings3D_release_TRAIN.list --vallist CLEAN_FlyingThings3D_release_TEST.list
@@ -54,4 +54,9 @@ python main.py --cuda --outf ./girl-models-dispCSRes-finetune-changeweight-2nd -
 
 # cleandata-1.68-model + Relu + girl finetune
 #python main.py --cuda --outf ./cleandata-models-dispCSR-girl --lr 1e-5 --logFile cleandata-train-dispCSR-girl.log --showFreq 1 --devices 0,1,2,3 --trainlist girl_TRAIN.list --vallist girl_TEST.list --model ./cleandata-models-dispCSR-exp/model_best.pth --startEpoch 0 --endEpoch 100
-python main.py --cuda --outf ./models/cleandata-models-dispCSR-girl --lr 1e-4 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl_TRAIN.list --vallist lists/girl_TEST.list --model ./models/cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60
+#python main.py --cuda --outf ./models/cleandata-models-dispCSR-girl --lr 1e-4 --logFile cleandata-train-dispCSR-girl-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl_TRAIN.list --vallist lists/girl_TEST.list --model ./models/cleandata-models-dispCSR-girl/model_best.pth --startEpoch 0 --endEpoch 60
+
+# cleandata-1.68-model + Relu + girl02 finetune
+#python main.py --cuda --outf ./models/cleandata-models-dispCSR-girl02 --lr 1e-3 --logFile cleandata-train-dispCSR-girl02.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl02_TRAIN.list --vallist lists/girl02_TEST.list --model ./models/cleandata-models-dispCSRes-exp/model_best.pth --startEpoch 0 --endEpoch 100 --datapath data/girl02
+python main.py --cuda --outf ./models/cleandata-models-dispCSR-girl02 --lr 1e-4 --logFile cleandata-train-dispCSR-girl02-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl02_TRAIN.list --vallist lists/girl02_TEST.list --model ./models/cleandata-models-dispCSR-girl02/model_best.pth --startEpoch 0 --endEpoch 60 --datapath data/girl02
+

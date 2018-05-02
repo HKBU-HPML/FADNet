@@ -203,8 +203,8 @@ class DispDataset(Dataset):
         img_right_name = os.path.join(self.root_dir, img_names[1])
         gt_disp_name = os.path.join(self.root_dir, img_names[2])
 
-        img_left = io.imread(img_left_name)
-        img_right = io.imread(img_right_name)
+        img_left = io.imread(img_left_name)[:, :, 0:3]
+        img_right = io.imread(img_right_name)[:, :, 0:3]
 
         gt_disp = None
         scale = 1
