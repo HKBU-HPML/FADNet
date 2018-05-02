@@ -20,17 +20,18 @@
 
 # # flyingthing3D
 # f1=A
-# f2=0054
-# f3=0010
-# left_rgb_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/FlyingThings3D_release/frames_cleanpass/
+# f2=0027
+# f3=0015
+# #left_rgb_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data/FlyingThings3D_release/frames_cleanpass/
+# left_rgb_root=/media/gpuhomedataset/FlyingThings3D_release/frames_cleanpass/
 # #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/clean_dispnet/FlyingThings3D_release/clean_disparity/
 # #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/data_local/FlyingThings3D_release/disparity/
-# left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/flying_detect_cleandata
+# left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/detect_results/flying_detect_cleandata
 # #left_dis_root=/home/gpgpu-sim/gpuhome/pytorch-dispnet/flying_detect_result
 # img=TEST/${f1}/${f2}/left/${f3}
 # inv_baseline=0.0038
-# focal=1050
-# maxdisp=480
+# focal=500
+# maxdisp=800
 # mindisp=10
 # jview ${left_rgb_root}/${img}.png
 # #jview ${left_dis_root}/${img}.pfm
@@ -61,7 +62,7 @@
 
 
 # girl02
-no=0025
+no=0109
 left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R
 left_dis_root=./detect_result/girl02
 img=XNCG_ep0001_cam01_rd_lgt.${no}.png
