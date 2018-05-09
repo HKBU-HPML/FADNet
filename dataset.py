@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-
+from PIL import Image, ImageOps
 '''
 Load a PFM file into a Numpy array. Note that it will have
 a shape of H x W, not W x H. Returns a tuple containing the
@@ -202,14 +202,19 @@ class DispDataset(Dataset):
         img_left_name = os.path.join(self.root_dir, img_names[0])
         img_right_name = os.path.join(self.root_dir, img_names[1])
         gt_disp_name = os.path.join(self.root_dir, img_names[2])
-        img_left = io.imread(img_left_name)[:,:,0:3]
-        img_right = io.imread(img_right_name)[:,:,0:3]
+
+        img_left = io.imread(img_left_name)[:, :, 0:3]
+        img_right = io.imread(img_right_name)[:, :, 0:3]
 
         gt_disp = None
         scale = 1
-        if os.path.isfile(gt_disp_name):
+        # if os.path.isfile(gt_disp_name):
+        if gt_disp_name.endswith('pfm'):
             gt_disp, scale = load_pfm(gt_disp_name)
-            gt_disp = gt_disp[::-1, :]
+        else:
+            gt_disp = Image.open(gt_disp_name)
+            gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
+        gt_disp = gt_disp[::-1, :]
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
