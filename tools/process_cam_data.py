@@ -17,7 +17,7 @@ OUTPUTPATH = '/media/sf_Shared_Data/dispnet/cam01-pfm/'
 
 FOV = 37.849197 
 FOCAL_LENGTH = (1024*0.5) / np.tan(FOV* 0.5 * np.pi/180)
-print('Focal length: ', FOCAL_LENGTH)
+#print('Focal length: ', FOCAL_LENGTH)
 
 BASELINE = 15/10. # 15cm = 150mm
 
@@ -141,6 +141,7 @@ def generate_filelist(path):
         for file in files:
             if file.find('.png') > 0 or file.find('.exr') > 0:
                 fullpath = os.path.join(root, file)
+                #print(fullpath)
                 if fullpath.find('.exr') > 0:
                     dst_file = fullpath.replace('.exr', '.pfm')
                     if os.path.exists(dst_file):
@@ -156,10 +157,13 @@ def generate_filelist(path):
                     #print(fullpath)
                 if file.find('.png') > 0:
                     if fullpath.find('L') > 0:
+                        #print(fullpath)
                         leftlist.append(fullpath)
                     elif fullpath.find('R') > 0:
+                        #print(fullpath)
                         rightlist.append(fullpath)
                 elif fullpath.find('R') > 0:
+                    #print(fullpath)
                     displist.append(fullpath)
     leftlist.sort()
     rightlist.sort()
@@ -167,6 +171,13 @@ def generate_filelist(path):
     #for i in range(0, len(leftlist)):
     #    print(rightlist[i], leftlist[i], displist[i])
 
+def convert_single_channel_to_multi_channel(path, exrfile):
+    import PyEXR as exr
+    fn = os.path.join(path, exrfile)
+    outfn = os.path.join(path, 'p'+exrfile)
+    print('outfn: ', outfn)
+    exrimg = exr.PyEXRImage(fn, True)
+    exrimg.save(outfn)
 
 
 if __name__ == '__main__':
@@ -177,16 +188,25 @@ if __name__ == '__main__':
     #filelist = 'exrfilelistR.txt'
     #process_exrs_to_pfms(filelist, path, OUTPUTPATH)
 
-    path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03'
-    #path = '/media/sf_Shared_Data/dispnet/ep001/'
-    generate_filelist(path)
+    for i in ['girl05', 'girl0011',  'girl0012',  'girl06',  'girl07',  'girl08']:
+        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
+        path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
+        generate_filelist(path)
 
+    #path = '/media/sf_Shared_Data/dispnet/ep001/'
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
     #rightfile = 'girl_camera1_Lcamera1_L.0246.exr'
     #dispfile = 'girl_camera1_Rcamera1_R.Z.0246.exr'
     #validate_disparity(dispfile, leftfile, rightfile, path)
 #
-    #leftfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R/XNCG_ep0001_cam01_rd_lgt.0001.png'
-    #rightfile ='/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/L/camera1_L/XNCG_ep0001_cam01_rd_lgt.0001.png'
-    #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R_Z/camera1_R_Z/Z_color/XNCG_ep0001_cam01_rd_lgt_Z.Z.0001.exr'
+    #leftfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/R/camera1_R/XNCG_ep0002_cam01_rd_lgt.0051.png'
+    #rightfile ='/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/L/camera1_L/XNCG_ep0002_cam01_rd_lgt.0051.png'
+    #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/R/camera1_R/XNCG_ep0002_cam01_rd_lgt.Z.0051.exr'
     #validate_disparity(dispfile, leftfile, rightfile, None)
+
+    #for cam in range(0, 8):
+    #    #cam = 0
+    #    path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
+    #    print('path: ', path)
+    #    convert_single_channel_to_multi_channel(path, '0.exr')
+
