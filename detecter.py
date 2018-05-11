@@ -77,9 +77,10 @@ def detect(model, result_path, file_list, filepath):
             print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
 
             name_items = sample_batched['img_names'][0][j].split('/')
+            save_name = '_'.join(name_items) + '.pfm'# for girl02 dataset
             #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
             #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
-            save_name = 'predict_{}.pfm'.format(name_items[-1])
+            #save_name = 'predict_{}.pfm'.format(name_items[-1])
             img = np.flip(np_depth[0], axis=0)
             print('Name: {}'.format(save_name))
             print('')

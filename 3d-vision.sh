@@ -62,12 +62,16 @@
 
 
 # girl02
-no=0109
-left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera1_R
-left_dis_root=./detect_result/girl02
+no=0027
+cam=8
+left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera${cam}_R
 img=XNCG_ep0001_cam01_rd_lgt.${no}.png
-#disp=girl_camera1_Rcamera1_R.Z.${no}.pfm
-disp=predict_XNCG_ep0001_cam01_rd_lgt.${no}.png.pfm
+
+#left_dis_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R_Z/camera${cam}_R_Z/Z_color
+#disp=XNCG_ep0001_cam01_rd_lgt_Z.Z.${no}.pfm
+
+left_dis_root=./detect_result/girl02
+disp=girl02_R_camera${cam}_R_XNCG_ep0001_cam01_rd_lgt.${no}.png.pfm
 inv_baseline=0.05
 focal=1050
 maxdisp=480
@@ -76,5 +80,6 @@ jview ${left_rgb_root}/${img}
 jview ${left_dis_root}/${disp}
 ./tools/pfm_viewer ${left_dis_root}/${disp} test.exr
 ./tools/DisparityTo3D test.exr test.obj ${left_rgb_root}/${img} ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
+#cp test.obj /media/sf_Shared_Data/dispnet/test2.obj
 cp test.obj /media/sf_Shared_Data/dispnet/
 
