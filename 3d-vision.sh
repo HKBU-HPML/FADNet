@@ -62,16 +62,19 @@
 
 
 # girl02
-no=0027
+#girl05_camera8_R_XNCG_ep0005_cam01_rd_lgt.0053.png.pfm
+no=0053
 cam=8
-left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R/camera${cam}_R
-img=XNCG_ep0001_cam01_rd_lgt.${no}.png
-
+girl=05
+left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl$girl/camera${cam}_R
+img=XNCG_ep00${girl}_cam01_rd_lgt.${no}.png
 #left_dis_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl02/R_Z/camera${cam}_R_Z/Z_color
 #disp=XNCG_ep0001_cam01_rd_lgt_Z.Z.${no}.pfm
 
-left_dis_root=./detect_result/girl02
-disp=girl02_R_camera${cam}_R_XNCG_ep0001_cam01_rd_lgt.${no}.png.pfm
+#girl05_camera2_R_XNCG_ep0005_cam01_rd_lgt.0009.png.pfm
+left_dis_root=./detect_result/girl-crop-noscale-2nd
+#disp=girl05_R_camera${cam}_R_XNCG_ep0005_cam01_rd_lgt.${no}.png.pfm
+disp=girl${girl}_camera${cam}_R_XNCG_ep00${girl}_cam01_rd_lgt.${no}.png.pfm
 inv_baseline=0.05
 focal=1050
 maxdisp=480

@@ -19,10 +19,13 @@ FOV = 37.849197
 FOCAL_LENGTH = (1024*0.5) / np.tan(FOV* 0.5 * np.pi/180)
 #print('Focal length: ', FOCAL_LENGTH)
 
-BASELINE = 15/10. # 15cm = 150mm
+BASELINE = 15./10. # 15cm = 150mm
 
 def depth_to_disparity(focal_length, baseline, depth):
     return focal_length * baseline/ (depth) #* 1024.0
+
+def disparity_to_depth(focal_length, baseline, disp):
+    return focal_length * baseline/ (disp) #* 1024.0
 
 def adjust_gamma(image, gamma=1.0):
     # build a lookup table mapping the pixel values [0, 255] to
@@ -176,8 +179,16 @@ def convert_single_channel_to_multi_channel(path, exrfile):
     fn = os.path.join(path, exrfile)
     outfn = os.path.join(path, 'p'+exrfile)
     print('outfn: ', outfn)
-    exrimg = exr.PyEXRImage(fn, True)
-    exrimg.save(outfn)
+    disp2depth = exrfile.find('.pfm') > 0
+    if disp2depth:
+        disp, s = load_pfm(fn)
+        depth = disparity_to_depth(FOCAL_LENGTH, BASELINE, disp)
+        print('shape: ', disp.shape)
+        print('type: ', disp.dtype)
+        save_pfm(outfn, depth)
+    else:
+        exrimg = exr.PyEXRImage(fn, True)
+        exrimg.save(outfn)
 
 
 if __name__ == '__main__':
@@ -188,10 +199,10 @@ if __name__ == '__main__':
     #filelist = 'exrfilelistR.txt'
     #process_exrs_to_pfms(filelist, path, OUTPUTPATH)
 
-    for i in ['girl05', 'girl0011',  'girl0012',  'girl06',  'girl07',  'girl08']:
-        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
-        path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
-        generate_filelist(path)
+    #for i in ['girl05', 'girl0011',  'girl0012',  'girl06',  'girl07',  'girl08']:
+    #    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
+    #    path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
+    #    generate_filelist(path)
 
     #path = '/media/sf_Shared_Data/dispnet/ep001/'
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
@@ -204,9 +215,10 @@ if __name__ == '__main__':
     #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/R/camera1_R/XNCG_ep0002_cam01_rd_lgt.Z.0051.exr'
     #validate_disparity(dispfile, leftfile, rightfile, None)
 
-    #for cam in range(0, 8):
-    #    #cam = 0
-    #    path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
-    #    print('path: ', path)
-    #    convert_single_channel_to_multi_channel(path, '0.exr')
+    for cam in range(0, 8):
+        #cam = 0
+        path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
+        print('path: ', path)
+        convert_single_channel_to_multi_channel(path, '0.exr')
+        #convert_single_channel_to_multi_channel(path, '0.pfm')
 
