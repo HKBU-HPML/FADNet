@@ -253,7 +253,8 @@ class DispDataset(Dataset):
 
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
-            crop = RandomCrop((384, 768))
+            #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)
