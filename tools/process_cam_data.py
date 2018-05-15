@@ -5,6 +5,7 @@ from readers import load_exr
 from dataset import load_pfm, save_pfm
 import numpy as np
 import os
+import disp_to_depth as dd
 import scipy.misc
 import PyEXR as exr
 
@@ -185,7 +186,9 @@ def convert_single_channel_to_multi_channel(path, exrfile):
         depth = disparity_to_depth(FOCAL_LENGTH, BASELINE, disp)
         print('shape: ', disp.shape)
         print('type: ', disp.dtype)
-        save_pfm(outfn, depth)
+        outfn = outfn.replace('.pfm', '.exr')
+        dd.save_openexr(depth, outfn)
+        #save_pfm(outfn, depth)
     else:
         exrimg = exr.PyEXRImage(fn, True)
         exrimg.save(outfn)
@@ -219,6 +222,6 @@ if __name__ == '__main__':
         #cam = 0
         path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
         print('path: ', path)
-        convert_single_channel_to_multi_channel(path, '0.exr')
-        #convert_single_channel_to_multi_channel(path, '0.pfm')
+        #convert_single_channel_to_multi_channel(path, '0.exr')
+        convert_single_channel_to_multi_channel(path, '0.pfm')
 

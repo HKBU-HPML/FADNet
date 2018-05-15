@@ -30,6 +30,6 @@
 #python detecter.py --model ./girl-models-dispCSRes-finetune-changeweight/model_best.pth --rp ./girl_detect_cleandata --filepath /home/datasets/imagenet/dispnet/virtual/girl --filelist ./lists/girl.list
 
 # girl02 data
-python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-2nd/dispS_epoch_57.pth --rp ./detect_result/girl-crop-noscale-2nd --filepath /home/datasets/imagenet/dispnet/virtual --filelist ./lists/girl05.list
+python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-2nd/dispS_epoch_85.pth --rp ./detect_result/girl-crop-noscale-2nd-epe0.182 --filepath /home/datasets/imagenet/dispnet/virtual --filelist ./lists/girl05.list
 #python detecter.py --model ./models/cleandata-models-dispCSR-girl/model_best.pth --rp ./detect_results/girl_detect_cleandata --filepath ./data/ --filelist lists/girl_TEST.list
 #python detecter.py --model ./models/cleandata-models-dispCSR-girl/model_best.pth --rp ./detect_results/girl_detect_cleandata --filepath /home/datasets/imagenet/dispnet/virtual --filelist lists/girl_TEST.list
