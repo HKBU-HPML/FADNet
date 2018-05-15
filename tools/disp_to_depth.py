@@ -1,4 +1,4 @@
-import OpenEXR,Imath,vop
+import OpenEXR,Imath
 import array
 import numpy as np
 import sys
@@ -72,24 +72,35 @@ def save_pfm(filename, image, scale = 1):
 
 def load_openexr(filename):
 
-    pt = Imath.PixelType(Imath.PixelType.FLOAT)
+    pt = Imath.PixelType(Imath.PixelType.HALF)
     exr_img = OpenEXR.InputFile(filename)
     print exr_img.header()
     dw = exr_img.header()['dataWindow']
     size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
     redstr = exr_img.channel('R', pt)
     
-    red = np.fromstring(redstr, dtype = np.float32)
+    red = np.fromstring(redstr, dtype = np.float16)
     red.shape = (size[1], size[0])
     print red.shape, red[10][10]
-    save_pfm("%s.pfm" % filename, red)
+
+    red = red[::-1, :]
+    red = red.astype(np.float32)
+    # save_pfm("%s.pfm" % filename, red[::-1, :])
     return red
 
 def save_openexr(exr_np, filename):
 
     width, height = exr_np.shape
-    out = OpenEXR.OutputFile(filename, OpenEXR.Header(width, height))
-    out.writePixels({'A': exr_np, 'R' : exr_np, 'G' : exr_np, 'B' : exr_np })
+    exr_np = exr_np[::-1, :]
+    data = exr_np.astype(np.float16).tostring()
+
+    header = OpenEXR.Header(width, height)
+    header['compression'] = Imath.Compression(Imath.Compression.NO_COMPRESSION)
+    header['channels'] = { 'A' : Imath.Channel(Imath.PixelType(OpenEXR.HALF)), 'R' : Imath.Channel(Imath.PixelType(OpenEXR.HALF)),  \
+                           'G' : Imath.Channel(Imath.PixelType(OpenEXR.HALF)), 'B' : Imath.Channel(Imath.PixelType(OpenEXR.HALF)) } 
+    header['screenWindowWidth'] = 1024.0
+    out = OpenEXR.OutputFile(filename, header)
+    out.writePixels({'A': data, 'R' : data, 'G' : data, 'B' : data })
 
 single_channel = load_openexr("./p0.exr")
 save_openexr(single_channel, "./save_p0.exr")
