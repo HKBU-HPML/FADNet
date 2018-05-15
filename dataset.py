@@ -254,6 +254,8 @@ class DispDataset(Dataset):
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
             crop = RandomCrop((512, 512))
+            #crop = RandomCrop((384, 768))
+            #crop = RandomCrop((896, 896))
             sample = crop(sample)
         return sample
 
