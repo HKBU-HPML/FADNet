@@ -102,6 +102,6 @@ def save_openexr(exr_np, filename):
     out = OpenEXR.OutputFile(filename, header)
     out.writePixels({'A': data, 'R' : data, 'G' : data, 'B' : data })
 
-single_channel = load_openexr("./p0.exr")
-save_openexr(single_channel, "./save_p0.exr")
-single_channel = load_openexr("./save_p0.exr")
+#single_channel = load_openexr("./p0.exr")
+#save_openexr(single_channel, "./save_p0.exr")
+#single_channel = load_openexr("./save_p0.exr")
