@@ -12,7 +12,8 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from dataset import *
-from dispnet_v2 import *
+#from dispnet_v2 import *
+from dispnet import *
 from multiscaleloss import *
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
@@ -104,8 +105,11 @@ test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
 # use multiple-GPUs training
 devices = [int(item) for item in opt.devices.split(',')]
 ngpu = len(devices)
-net = DispNetCSRes(ngpu, False, True)
+#net = DispNetCSRes(ngpu, False, True)
 # net = DispNetC(ngpu, True)
+
+# Shaohuai
+net = DispNetCSRes(ngpu, False, True)
 print(net)
 
 #start_epoch = 0
@@ -143,7 +147,7 @@ loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
 
 # shaohuai
-#loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
+loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
@@ -190,6 +194,7 @@ class AverageMeter(object):
 
 def adjust_learning_rate(optimizer, epoch):
     cur_lr = init_lr / (2**(epoch // 10))
+    #cur_lr = init_lr / (2**(epoch // 5))
     # if epoch != 0 and epoch % 10 == 0:
     for param_group in optimizer.param_groups:
         param_group['lr'] = cur_lr
