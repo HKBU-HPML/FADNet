@@ -147,7 +147,7 @@ loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
 
 # shaohuai
-loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
+#loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
@@ -429,9 +429,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 best_EPE = -1
 
 if opt.model != '':
-    EPE = validate(test_loader, net, criterion, high_res_EPE)
-    if best_EPE < 0:
-        best_EPE = EPE
+    if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
+        EPE = validate(test_loader, net, criterion, high_res_EPE)
+        if best_EPE < 0:
+            best_EPE = EPE
 
 for epoch in range(start_epoch, end_epoch):
     cur_lr = adjust_learning_rate(optimizer, epoch)
@@ -439,7 +440,11 @@ for epoch in range(start_epoch, end_epoch):
     # train for one epoch
     train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     # evaluate on validation set
-    EPE = validate(test_loader, net, criterion, high_res_EPE)
+    if opt.vallist.split("_")[0] != 'KITTI':
+        EPE = validate(test_loader, net, criterion, high_res_EPE)
+    else:
+        EPE = train_EPE
+
     if best_EPE < 0:
         best_EPE = EPE
 
