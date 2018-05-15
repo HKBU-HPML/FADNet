@@ -198,10 +198,14 @@ class DispDataset(Dataset):
         return len(self.imgPairs)
 
     def __getitem__(self, idx):
-        img_names = self.imgPairs[idx].split()
-        img_left_name = os.path.join(self.root_dir, img_names[0])
-        img_right_name = os.path.join(self.root_dir, img_names[1])
-        gt_disp_name = os.path.join(self.root_dir, img_names[2])
+        img_names = self.imgPairs[idx].rstrip().split()
+        try:
+            img_left_name = os.path.join(self.root_dir, img_names[0])
+            img_right_name = os.path.join(self.root_dir, img_names[1])
+            gt_disp_name = os.path.join(self.root_dir, img_names[2])
+        except Exception as e:
+            print('e: ', e, ' img_names: ', img_names)
+            exit(1)
 
         img_left = io.imread(img_left_name)[:, :, 0:3]
         img_right = io.imread(img_right_name)[:, :, 0:3]
@@ -227,6 +231,7 @@ class DispDataset(Dataset):
         if self.phase == 'test':
             #scale = RandomRescale((384, 768))
             scale = RandomRescale((1024, 1024))
+            #scale = RandomRescale((1024+256, 1024+256))
         #    scale = RandomRescale((768, 1536))
         #    scale = RandomRescale((384, 768))
             #scale = RandomRescale((512 * 3, 896 * 3))
@@ -247,7 +252,9 @@ class DispDataset(Dataset):
             sample['gt_disp'] = self.transform[1](tt(sample['gt_disp']))
 
         if self.phase != 'test':
-            crop = RandomCrop((384, 768))
+            #crop = RandomCrop((384, 768))
+            crop = RandomCrop((512, 512))
+            #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)
         return sample
