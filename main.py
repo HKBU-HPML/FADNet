@@ -429,9 +429,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 best_EPE = -1
 
 if opt.model != '':
-    EPE = validate(test_loader, net, criterion, high_res_EPE)
-    if best_EPE < 0:
-        best_EPE = EPE
+    if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
+        EPE = validate(test_loader, net, criterion, high_res_EPE)
+        if best_EPE < 0:
+            best_EPE = EPE
 
 for epoch in range(start_epoch, end_epoch):
     cur_lr = adjust_learning_rate(optimizer, epoch)
@@ -439,7 +440,11 @@ for epoch in range(start_epoch, end_epoch):
     # train for one epoch
     train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     # evaluate on validation set
-    EPE = validate(test_loader, net, criterion, high_res_EPE)
+    if opt.vallist.split("_")[0] != 'KITTI':
+        EPE = validate(test_loader, net, criterion, high_res_EPE)
+    else:
+        EPE = train_EPE
+
     if best_EPE < 0:
         best_EPE = EPE
 
