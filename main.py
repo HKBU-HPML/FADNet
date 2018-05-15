@@ -189,7 +189,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    cur_lr = init_lr / (2**(epoch // 5))
+    cur_lr = init_lr / (2**(epoch // 10))
     # if epoch != 0 and epoch % 10 == 0:
     for param_group in optimizer.param_groups:
         param_group['lr'] = cur_lr
