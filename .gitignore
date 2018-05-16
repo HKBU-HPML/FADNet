@@ -6,6 +6,8 @@
 *.pfm
 *.exr
 *.obj
+*.png
+*.db
 tmp
 ./data
 data
