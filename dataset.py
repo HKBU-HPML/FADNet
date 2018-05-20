@@ -215,10 +215,10 @@ class DispDataset(Dataset):
         # if os.path.isfile(gt_disp_name):
         if gt_disp_name.endswith('pfm'):
             gt_disp, scale = load_pfm(gt_disp_name)
+            gt_disp = gt_disp[::-1, :]
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
-        gt_disp = gt_disp[::-1, :]
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
@@ -253,8 +253,8 @@ class DispDataset(Dataset):
 
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
-            #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
-            crop = RandomCrop((256, 768)) # KITTI
+            crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)

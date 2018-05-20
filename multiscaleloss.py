@@ -25,7 +25,7 @@ class MultiScaleLoss(nn.Module):
     def __init__(self, scales, downscale, weights=None, loss='L1'):
         super(MultiScaleLoss, self).__init__()
         self.downscale = downscale
-        self.weights = torch.Tensor(scales).fill_(1) if weights is None else torch.Tensor(weights)
+        self.weights = torch.Tensor(scales).fill_(1).cuda() if weights is None else torch.Tensor(weights).cuda()
         assert(len(self.weights) == scales)
 
         if type(loss) is str:
