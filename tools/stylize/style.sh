@@ -1,0 +1,4 @@
+python neural_style/neural_style.py eval --content-image ./content_images/left/img00055.bmp --model ./trained_models/test3.model --output-image ./real_style/frames_cleanpass/left/img00055.bmp --cuda 1
+python neural_style/neural_style.py eval --content-image ./content_images/left/img00000.bmp --model ./trained_models/test3.model --output-image ./real_style/frames_cleanpass/left/img00000.bmp --cuda 1
+python neural_style/neural_style.py eval --content-image ./content_images/right/img00055.bmp --model ./trained_models/test3.model --output-image ./real_style/frames_cleanpass/right/img00055.bmp --cuda 1
+python neural_style/neural_style.py eval --content-image ./content_images/right/img00000.bmp --model ./trained_models/test3.model --output-image ./real_style/frames_cleanpass/right/img00000.bmp --cuda 1

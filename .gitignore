@@ -7,6 +7,9 @@
 *.exr
 *.obj
 *.png
+*.jpg
+*.bmp
+*.model
 *.db
 tmp
 ./data
