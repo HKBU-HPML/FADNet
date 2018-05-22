@@ -6,10 +6,13 @@
 *.pfm
 *.exr
 *.obj
-*.model
-*.jpg
 *.png
+*.jpg
 *.bmp
+*.model
+*.db
+*.so
+*.so.*
 tmp
 ./data
 data
