@@ -274,6 +274,8 @@ class DispDataset(Dataset):
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
             crop = RandomCrop((512, 512), augment=self.augment) # girl
+            #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)
