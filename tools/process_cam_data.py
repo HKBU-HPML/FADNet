@@ -154,7 +154,6 @@ def generate_filelist(path):
                     disp_arr = depth_to_disparity(FOCAL_LENGTH, BASELINE, depth_arr)
                     disp_arr = disp_arr[:,:,0]
                     save_pfm(dst_file, disp_arr)
-                    #print(dst_file)
                     fullpath = dst_file
                 else:
                     pass
@@ -203,9 +202,10 @@ if __name__ == '__main__':
     #process_exrs_to_pfms(filelist, path, OUTPUTPATH)
 
     #for i in ['girl05', 'girl0011',  'girl0012',  'girl06',  'girl07',  'girl08']:
-    #    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
-    #    path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
-    #    generate_filelist(path)
+    for i in ['ep0010', 'ep0013','ep0014','ep0015','ep0016','ep0017','ep0019','ep0020']:
+        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
+        path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
+        generate_filelist(path)
 
     #path = '/media/sf_Shared_Data/dispnet/ep001/'
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
@@ -218,10 +218,10 @@ if __name__ == '__main__':
     #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/R/camera1_R/XNCG_ep0002_cam01_rd_lgt.Z.0051.exr'
     #validate_disparity(dispfile, leftfile, rightfile, None)
 
-    for cam in range(0, 8):
-        #cam = 0
-        path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
-        print('path: ', path)
-        #convert_single_channel_to_multi_channel(path, '0.exr')
-        convert_single_channel_to_multi_channel(path, '0.pfm')
+    #for cam in range(0, 8):
+    #    #cam = 0
+    #    path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
+    #    print('path: ', path)
+    #    #convert_single_channel_to_multi_channel(path, '0.exr')
+    #    convert_single_channel_to_multi_channel(path, '0.pfm')
 
