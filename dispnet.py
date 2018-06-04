@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from skimage.transform import *
 import numpy as np
+from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
 from layers_package.layers import ResBlock
@@ -467,7 +468,7 @@ class DispNetRes(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
         
-    def forward(self, inputs):
+    def forward(self, inputs, get_feature=False):
 
         input = inputs[0]
         base_flow = inputs[1]
@@ -545,9 +546,12 @@ class DispNetRes(nn.Module):
         # pr0_res = self.pred_res0(F.dropout2d(iconv0))
 
         if self.lastRelu:
-             return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
-        # else:
-        #     return pr0
+            if get_feature:
+                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv0
+            else:
+                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
+        if get_feature:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6, iconv0
 
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
@@ -614,6 +618,7 @@ class DispNetCSRes(nn.Module):
         # dispnetres
         dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows])
         dispnetres_final_flow = dispnetres_flows[0]
+        
 
         if self.training:
             return dispnetc_flows, dispnetres_flows
@@ -627,4 +632,85 @@ class DispNetCSRes(nn.Module):
     def bias_parameters(self):
 	return [param for name, param in self.named_parameters() if 'bias' in name]
 
+
+
+class ReverseLayerF(Function):
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.alpha
+        return output, None
+
+
+class DispNetCSResWithDomainTransfer(nn.Module):
+
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False):
+        super(DispNetCSResWithDomainTransfer, self).__init__()
+        self.batchNorm = batchNorm
+        self.lastRelu = lastRelu
+
+        # First Block (DispNetC)
+        self.dispnetc = DispNetC(ngpus, self.batchNorm)
+
+        # warp layer and channelnorm layer
+        self.channelnorm = ChannelNorm()
+        self.resample1 = Resample2d()
+
+        # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
+        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm, lastRelu=self.lastRelu)
+        self.relu = nn.ReLU(inplace=False)
+
+        self.domain_classifier = nn.Sequential()
+        self.domain_classifier.add_module('d_fc1', nn.Linear(512*512*2, 100))
+        self.domain_classifier.add_module('d_sigmoid', nn.Sigmoid())
+        self.domain_classifier.add_module('d_fc2', nn.Linear(100, 2))
+        self.domain_classifier.add_module('d_softmax', nn.LogSoftmax())
+
+
+    def forward(self, inputs, alpha):
+
+        # split left image and right image
+        # inputs = inputs_target[0]
+        # target = inputs_target[1]
+        imgs = torch.chunk(inputs, 2, dim = 1)
+        img_left = imgs[0]
+        img_right = imgs[1]
+
+        # dispnetc
+        dispnetc_flows = self.dispnetc(inputs)
+        dispnetc_final_flow = dispnetc_flows[0]
+
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
+        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
+        dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
+        resampled_img1 = self.resample1(inputs[:, 3:, :, :], -dispnetc_final_flow_2d)
+        diff_img0 = inputs[:, :3, :, :] - resampled_img1
+        norm_diff_img0 = self.channelnorm(diff_img0)
+
+        # concat img0, img1, img1->img0, flow, diff-mag
+        inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
+
+        # dispnetres
+        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows], get_feature=True)
+        dispnetres_final_flow = dispnetres_flows[-1]
+        feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
+        reverse_feature = ReverseLayerF.apply(feature, alpha)
+        domain_output = self.domain_classifier(reverse_feature)
+
+        if self.training:
+            return dispnetc_flows, dispnetres_flows[0:-1], domain_output
+        else:
+            return dispnetc_final_flow, dispnetres_final_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
+
+
+    def weight_parameters(self):
+	return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+	return [param for name, param in self.named_parameters() if 'bias' in name]
 

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image, ImageOps
+from preprocess import ColorJitter, pca_param 
 '''
 Load a PFM file into a Numpy array. Note that it will have
 a shape of H x W, not W x H. Returns a tuple containing the
@@ -128,13 +129,15 @@ class RandomCrop(object):
     Args: int or tuple. tuple is (h, w)
 
     """
-    def __init__(self, output_size):
+    def __init__(self, output_size, augment=False):
         assert isinstance(output_size, (int, tuple))
         if isinstance(output_size, int):
             self.output_size = (output_size, output_size)
         else:
             assert len(output_size) == 2
             self.output_size = output_size
+        self.augment = augment
+        self.transform = ColorJitter() 
 
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
@@ -150,6 +153,15 @@ class RandomCrop(object):
         image_left = image_left[:, top: top + new_h, left: left + new_w]
         image_right = image_right[:, top: top + new_h, left: left + new_w]
         gt_disp = gt_disp[:, top: top + new_h, left: left + new_w]
+        if self.augment:
+            rd = np.random.randint(0,2)
+            if rd == 0:
+                image_left = self.transform(image_left)
+                #imgtmp = image_left.cpu().numpy()
+                #imgtmp = np.transpose(imgtmp, [2, 1, 0])
+                #print('lighted shape:', imgtmp.shape)
+                #io.imsave('test.png', imgtmp)
+                image_right = self.transform(image_right)
         new_sample = sample
         new_sample.update({'img_left': image_left, 
                       'img_right': image_right, 
@@ -181,7 +193,7 @@ class ToTensor(object):
 
 class DispDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, transform = None, phase='train' ):
+    def __init__(self, txt_file, root_dir, transform = None, phase='train', augment=False):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -193,6 +205,7 @@ class DispDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.phase = phase
+        self.augment = augment 
 
     def __len__(self):
         return len(self.imgPairs)
@@ -215,10 +228,10 @@ class DispDataset(Dataset):
         # if os.path.isfile(gt_disp_name):
         if gt_disp_name.endswith('pfm'):
             gt_disp, scale = load_pfm(gt_disp_name)
+            gt_disp = gt_disp[::-1, :]
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
-        gt_disp = gt_disp[::-1, :]
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
@@ -232,11 +245,15 @@ class DispDataset(Dataset):
             #scale = RandomRescale((384, 768))
             scale = RandomRescale((1024, 1024))
             #scale = RandomRescale((1024+256, 1024+256))
-        #    scale = RandomRescale((768, 1536))
-        #    scale = RandomRescale((384, 768))
+            #scale = RandomRescale((768, 1536)) # Flying things
+            #scale = RandomRescale((256, 768)) # KITTI
+            #scale = RandomRescale((256, 512)) # KITTI
+            #scale = RandomRescale((512, 512)) # girl
             #scale = RandomRescale((512 * 3, 896 * 3))
             #scale = RandomRescale((768, 1024 + 512))
-            #scale = RandomRescale((1536, 1536))
+            #scale = RandomRescale((1536, 1536)) # real data
+            #scale = RandomRescale((1024, 1024)) # real data
+            #scale = RandomRescale((2048, 3072)) # moto
             sample = scale(sample)
 
         tt = ToTensor()
@@ -254,7 +271,9 @@ class DispDataset(Dataset):
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
-            crop = RandomCrop((256, 768)) # KITTI
+            #crop = RandomCrop((256, 768)) # KITTI
+            #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
+            crop = RandomCrop((512, 512), augment=self.augment) # girl
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)

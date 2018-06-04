@@ -1,9 +1,11 @@
-no=0125
+no=0001
 girl=02
-#girl05_camera8_R_XNCG_ep0005_cam01_rd_lgt.0053.png.pfm
 #girl02_R_camera8_R_XNCG_ep0001_cam01_rd_lgt.0125.png.pfm
+#girl02_R_camera7_R_XNCG_ep0001_cam01_rd_lgt.0095.png.pfm
+#girl02_R_camera5_R_XNCG_ep0001_cam01_rd_lgt.0001.png.pfm
 dist=/media/sf_Shared_Data/dispnet/FusionPortal/data
-left_dis_root=./detect_result/girl-crop-noscale-2nd-epe0.182
+left_dis_root=./detect_result/girl-crop-noscale-3nd-epe0.152
+#left_dis_root=./detect_result/girl-crop-noscale-2nd-epe0.182
 k=0
 for ((cam=1;cam <= 8;cam++)) 
 do
