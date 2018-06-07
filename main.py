@@ -12,8 +12,8 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from dataset import *
-from dispnet_v2 import *
-#from dispnet import *
+#from dispnet_v2 import *
+from dispnet import *
 from multiscaleloss import *
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
@@ -447,7 +447,7 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
-if opt.model != '':
+if opt.model != '' and not opt.domain_transfer:
     if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
         EPE = validate(test_loader, net, criterion, high_res_EPE)
         if best_EPE < 0:
