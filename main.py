@@ -143,8 +143,8 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
-#loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 # qiang
 #loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
@@ -447,7 +447,7 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
-if opt.model != '':
+if opt.model != '' and not opt.domain_transfer:
     if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
         EPE = validate(test_loader, net, criterion, high_res_EPE)
         if best_EPE < 0:
