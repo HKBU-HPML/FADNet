@@ -547,7 +547,7 @@ class DispNetRes(nn.Module):
 
         if self.lastRelu:
             if get_feature:
-                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv0
+                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1
             else:
                 return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
         if get_feature:
@@ -665,9 +665,10 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         self.relu = nn.ReLU(inplace=False)
 
         self.domain_classifier = nn.Sequential()
-        self.domain_classifier.add_module('d_fc1', nn.Linear(512*512*2, 100))
+        #self.domain_classifier.add_module('d_fc1', nn.Linear(512*512*2, 100))
+        self.domain_classifier.add_module('d_fc1', nn.Linear(256*256*32, 50))
         self.domain_classifier.add_module('d_sigmoid', nn.Sigmoid())
-        self.domain_classifier.add_module('d_fc2', nn.Linear(100, 2))
+        self.domain_classifier.add_module('d_fc2', nn.Linear(50, 2))
         self.domain_classifier.add_module('d_softmax', nn.LogSoftmax())
 
 
@@ -698,7 +699,9 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         # dispnetres
         dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows], get_feature=True)
         dispnetres_final_flow = dispnetres_flows[0]
-        feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
+        #feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
+        #print('size; ', dispnetres_flows[-1].size())
+        feature = dispnetres_flows[-1].view(-1, 256*256*32)
         reverse_feature = ReverseLayerF.apply(feature, alpha)
         domain_output = self.domain_classifier(reverse_feature)
 
