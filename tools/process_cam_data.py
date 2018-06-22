@@ -200,9 +200,9 @@ def generate_filelist(path):
     #    print('len: ', len(rightlist),  len(leftlist), len(displist))
     #    raise
     for i in range(0, len(leftlist)):
-        #if len(dianzhenlist) > 0:
-        #    print(rightlist[i], leftlist[i], displist[i], dianzhenlist[i])
-        print(rightlist[i], leftlist[i], displist[i])
+        if len(dianzhenlist) > 0:
+            print(rightlist[i], leftlist[i], displist[i], dianzhenlist[i])
+        #print(rightlist[i], leftlist[i], displist[i])
 
 def convert_single_channel_to_multi_channel(path, exrfile):
     import PyEXR as exr
@@ -239,7 +239,7 @@ if __name__ == '__main__':
         fn = 'ep00'+str(i) if i >= 10 else 'ep000'+str(i)
         #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
         #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
-        path = '/data2/virtual2/%s'% fn 
+        path = '/data2/virtual3/%s'% fn 
         generate_filelist(path)
 
     #path = '/media/sf_Shared_Data/dispnet/ep001/'
