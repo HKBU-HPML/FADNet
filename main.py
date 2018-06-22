@@ -114,7 +114,7 @@ ngpu = len(devices)
 if opt.domain_transfer:
     net = DispNetCSResWithDomainTransfer(ngpu, False, True)
 else:
-    net = DispNetCSRes(ngpu, False, True)
+    net = DispNetCSRes(ngpu, False, True, input_channel=4)
 print(net)
 
 #start_epoch = 0
@@ -143,7 +143,7 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 # qiang
@@ -153,7 +153,7 @@ net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
 # shaohuai for girl data
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
-loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
+#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
 # shaohuai for kitti data

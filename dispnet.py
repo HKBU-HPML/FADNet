@@ -194,14 +194,15 @@ class DispNet(nn.Module):
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=False):
+    def __init__(self, ngpu, batchNorm=False, input_channel=3):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
+        self.input_channel = input_channel
 
         # shrink and extract features
-        self.conv1   = conv(self.batchNorm, 3, 64, 7, 2)
+        self.conv1   = conv(self.batchNorm, self.input_channel, 64, 7, 2)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
 
@@ -242,7 +243,7 @@ class DispNetC(nn.Module):
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
+        self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
 
         # # original iconv with conv
         # self.iconv5 = conv(self.batchNorm, 1025, 512, 3, 1)
@@ -387,15 +388,17 @@ class DispNetC(nn.Module):
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False):
+    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False, input_channel=3):
         super(DispNetRes, self).__init__()
         
         self.ngpu = ngpu
+        self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu 
         self.res_scale = 7  # number of residuals
 
         # improved with shrink res-block layers
+        in_planes = input_channel * 3 + 2
         self.conv1   = conv(self.batchNorm, in_planes, 64, 7, 2)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
@@ -529,7 +532,7 @@ class DispNetRes(nn.Module):
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
-        concat0 = torch.cat((upconv0, upflow1, input[:, :3, :, :]), 1)
+        concat0 = torch.cat((upconv0, upflow1, input[:, :self.input_channel, :, :]), 1)
         iconv0 = self.iconv0(concat0)
 
         # predict flow residual
@@ -563,20 +566,22 @@ class DispNetRes(nn.Module):
 
 class DispNetCSRes(nn.Module):
 
-    def __init__(self, ngpus, batchNorm=True, lastRelu=False):
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False, input_channel=3):
         super(DispNetCSRes, self).__init__()
+        self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(ngpus, self.batchNorm)
+        self.dispnetc = DispNetC(ngpus, self.batchNorm, input_channel=input_channel)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()
         self.resample1 = Resample2d()
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
-        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm, lastRelu=self.lastRelu)
+        self.dispnetres = DispNetRes(ngpus, self.input_channel, self.batchNorm, lastRelu=self.lastRelu, input_channel=input_channel)
+
         self.relu = nn.ReLU(inplace=False)
 
         # # parameter initialization

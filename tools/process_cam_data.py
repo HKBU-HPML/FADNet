@@ -145,14 +145,18 @@ def generate_filelist(path):
     leftlist = []
     rightlist = []
     displist = []
-    dianzhenlist = []
+    rightdianzhenlist = []
+    leftdianzhenlist = []
     for root, dirs, files in os.walk(path):
         #root_path = root.split(os.sep)
         #print('path: ', root)
         for filename in files:
             if filename.find('dianzhen') > 0:
                 fullpath = os.path.join(root, filename)
-                dianzhenlist.append(fullpath)
+                if fullpath.find('L') > 0:
+                    leftdianzhenlist.append(fullpath)
+                else:
+                    rightdianzhenlist.append(fullpath)
                 continue
             if (filename.find('.png') > 0 or filename.find('.exr') > 0) and not filename.find('dianzhen') > 0 and not filename.find('.lock') > 0:
                 fullpath = os.path.join(root, filename)
@@ -188,7 +192,8 @@ def generate_filelist(path):
     leftlist.sort()
     rightlist.sort()
     displist.sort()
-    dianzhenlist.sort()
+    leftdianzhenlist.sort()
+    rightdianzhenlist.sort()
     #gc.collect()
     #print('len right:',len(rightlist))
     #print('len left:', len(leftlist))
@@ -200,8 +205,8 @@ def generate_filelist(path):
     #    print('len: ', len(rightlist),  len(leftlist), len(displist))
     #    raise
     for i in range(0, len(leftlist)):
-        if len(dianzhenlist) > 0:
-            print(rightlist[i], leftlist[i], displist[i], dianzhenlist[i])
+        if len(leftdianzhenlist) > 0:
+            print(rightlist[i], leftlist[i], displist[i], rightdianzhenlist[i], leftdianzhenlist[i])
         #print(rightlist[i], leftlist[i], displist[i])
 
 def convert_single_channel_to_multi_channel(path, exrfile):
