@@ -12,8 +12,8 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from dataset import *
-from dispnet_v2 import *
-#from dispnet import *
+#from dispnet_v2 import *
+from dispnet import *
 from multiscaleloss import *
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
