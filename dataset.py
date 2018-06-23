@@ -183,7 +183,11 @@ class ToTensor(object):
         #               'gt_disp': torch.from_numpy(gt_disp.copy()) \
         #               }
         # return new_sample
+<<<<<<< HEAD
         if len(array.shape) == 3 and (array.shape[2] == 3 or array.shape[2] == 4):
+=======
+        if len(array.shape) == 3 and array.shape[2] == 3:
+>>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
             array = np.transpose(array, [2, 0, 1])
         if len(array.shape) == 2:
             array = array[np.newaxis, :]
@@ -294,6 +298,7 @@ class DispDataset(Dataset):
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
             #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K
             crop = RandomCrop((1024, 1024), augment=self.augment) # girl 2K
+
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((384, 768))
