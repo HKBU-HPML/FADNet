@@ -18,3 +18,4 @@ tmp
 data
 ./models
 ./detect_results
+./tools/FusionPortal/lib
