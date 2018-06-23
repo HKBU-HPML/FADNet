@@ -429,7 +429,7 @@ class DispNetRes(nn.Module):
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
+        self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
 
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
@@ -613,8 +613,8 @@ class DispNetCSRes(nn.Module):
         dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
         # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
         dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
-        resampled_img1 = self.resample1(inputs[:, 3:, :, :], -dispnetc_final_flow_2d)
-        diff_img0 = inputs[:, :3, :, :] - resampled_img1
+        resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
+        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
         norm_diff_img0 = self.channelnorm(diff_img0)
 
         # concat img0, img1, img1->img0, flow, diff-mag
