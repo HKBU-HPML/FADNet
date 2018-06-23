@@ -5,7 +5,12 @@ from readers import load_exr
 from dataset import load_pfm, save_pfm
 import numpy as np
 import os
+import disp_to_depth as dd
 import scipy.misc
+<<<<<<< HEAD
+import gc
+=======
+>>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 import PyEXR as exr
 
 OUTPUTPATH = '/media/sf_Shared_Data/dispnet/cam01-pfm/'
@@ -18,6 +23,12 @@ OUTPUTPATH = '/media/sf_Shared_Data/dispnet/cam01-pfm/'
 FOV = 37.849197 
 FOCAL_LENGTH = (1024*0.5) / np.tan(FOV* 0.5 * np.pi/180)
 #print('Focal length: ', FOCAL_LENGTH)
+<<<<<<< HEAD
+def _focal_length(width):
+    return (width*0.5) / np.tan(FOV* 0.5 * np.pi/180)
+
+=======
+>>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 
 BASELINE = 15./10. # 15cm = 150mm
 
@@ -135,44 +146,75 @@ def process_exrs_to_pfms(filelist, path, outputpath):
             transform_exr_to_pfm(line, path, outputpath)
 
 def generate_filelist(path):
+    if not os.path.isdir(path):
+        return
     leftlist = []
     rightlist = []
     displist = []
+    rightdianzhenlist = []
+    leftdianzhenlist = []
     for root, dirs, files in os.walk(path):
         #root_path = root.split(os.sep)
         #print('path: ', root)
-        for file in files:
-            if file.find('.png') > 0 or file.find('.exr') > 0:
-                fullpath = os.path.join(root, file)
-                #print(fullpath)
-                if fullpath.find('.exr') > 0:
+        for filename in files:
+            if filename.find('dianzhen') > 0:
+                fullpath = os.path.join(root, filename)
+                if fullpath.find('L') > 0:
+                    leftdianzhenlist.append(fullpath)
+                else:
+                    rightdianzhenlist.append(fullpath)
+                continue
+            if (filename.find('.png') > 0 or filename.find('.exr') > 0) and not filename.find('dianzhen') > 0 and not filename.find('.lock') > 0:
+                fullpath = os.path.join(root, filename)
+                #print(fullpath) if fullpath.find('Z')>0 and fullpath.find('R') > 0 else print
+                if fullpath.find('.exr') > 0 and fullpath.find('Z') > 0:
                     dst_file = fullpath.replace('.exr', '.pfm')
-                    if os.path.exists(dst_file):
-                        continue
-                    depth_arr = load_exr(fullpath, True)
-                    disp_arr = depth_to_disparity(FOCAL_LENGTH, BASELINE, depth_arr)
-                    disp_arr = disp_arr[:,:,0]
-                    save_pfm(dst_file, disp_arr)
-                    #print(dst_file)
+                    #if os.path.exists(dst_file):
+                    #    continue
+                    #depth_arr = load_exr(fullpath, True)
+                    ##disp_arr = depth_to_disparity(FOCAL_LENGTH, BASELINE, depth_arr)
+                    #width=depth_arr.shape[0]
+                    ##print('width: ', width)
+                    #disp_arr = depth_to_disparity(_focal_length(width), BASELINE, depth_arr)
+                    #disp_arr = disp_arr[:,:,0]
+                    #save_pfm(dst_file, disp_arr)
+
                     fullpath = dst_file
                 else:
                     pass
                     #print(fullpath)
-                if file.find('.png') > 0:
+                if filename.find('.png') > 0:
                     if fullpath.find('L') > 0:
                         #print(fullpath)
                         leftlist.append(fullpath)
                     elif fullpath.find('R') > 0:
                         #print(fullpath)
                         rightlist.append(fullpath)
-                elif fullpath.find('R') > 0:
+                elif fullpath.find('R') > 0 and fullpath.find('Z') > 0:
                     #print(fullpath)
                     displist.append(fullpath)
+                else:
+                    #print('fuck:', fullpath)
+                    pass
     leftlist.sort()
     rightlist.sort()
     displist.sort()
-    #for i in range(0, len(leftlist)):
-    #    print(rightlist[i], leftlist[i], displist[i])
+    leftdianzhenlist.sort()
+    rightdianzhenlist.sort()
+    #gc.collect()
+    #print('len right:',len(rightlist))
+    #print('len left:', len(leftlist))
+    #print('len disp;', len(displist))
+    #print('len dianzhen;', len(dianzhenlist))
+    #if  len(rightlist) != len(leftlist) or len(leftlist) != len(displist):
+    #    print(rightlist[0], leftlist[0], displist[0])
+    #    print(rightlist[-1], leftlist[-1], displist[-1])
+    #    print('len: ', len(rightlist),  len(leftlist), len(displist))
+    #    raise
+    for i in range(0, len(leftlist)):
+        if len(leftdianzhenlist) > 0:
+            print(rightlist[i], leftlist[i], displist[i], rightdianzhenlist[i], leftdianzhenlist[i])
+        #print(rightlist[i], leftlist[i], displist[i])
 
 def convert_single_channel_to_multi_channel(path, exrfile):
     import PyEXR as exr
@@ -185,7 +227,9 @@ def convert_single_channel_to_multi_channel(path, exrfile):
         depth = disparity_to_depth(FOCAL_LENGTH, BASELINE, disp)
         print('shape: ', disp.shape)
         print('type: ', disp.dtype)
-        save_pfm(outfn, depth)
+        outfn = outfn.replace('.pfm', '.exr')
+        dd.save_openexr(depth, outfn)
+        #save_pfm(outfn, depth)
     else:
         exrimg = exr.PyEXRImage(fn, True)
         exrimg.save(outfn)
@@ -200,9 +244,15 @@ if __name__ == '__main__':
     #process_exrs_to_pfms(filelist, path, OUTPUTPATH)
 
     #for i in ['girl05', 'girl0011',  'girl0012',  'girl06',  'girl07',  'girl08']:
-    #    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
-    #    path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
-    #    generate_filelist(path)
+    #for i in ['ep0010', 'ep0013','ep0014','ep0015','ep0016','ep0017','ep0019','ep0020']:
+    for i in range(2, 41): 
+        if i == 32 or i == 36:
+            continue
+        fn = 'ep00'+str(i) if i >= 10 else 'ep000'+str(i)
+        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
+        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
+        path = '/data2/virtual3/%s'% fn 
+        generate_filelist(path)
 
     #path = '/media/sf_Shared_Data/dispnet/ep001/'
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
@@ -215,10 +265,10 @@ if __name__ == '__main__':
     #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/R/camera1_R/XNCG_ep0002_cam01_rd_lgt.Z.0051.exr'
     #validate_disparity(dispfile, leftfile, rightfile, None)
 
-    for cam in range(0, 8):
-        #cam = 0
-        path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
-        print('path: ', path)
-        convert_single_channel_to_multi_channel(path, '0.exr')
-        #convert_single_channel_to_multi_channel(path, '0.pfm')
+    #for cam in range(0, 8):
+    #    #cam = 0
+    #    path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
+    #    print('path: ', path)
+    #    #convert_single_channel_to_multi_channel(path, '0.exr')
+    #    convert_single_channel_to_multi_channel(path, '0.pfm')
 
