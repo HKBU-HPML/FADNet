@@ -130,9 +130,9 @@ def train(args):
 def stylize(args):
     device = torch.device("cuda" if args.cuda else "cpu")
 
-    img_list = open(args.content_list).readlines()[7450:]
+    img_list = open(args.content_list).readlines()
     for img in img_list:
-        content_image = utils.load_image(img.strip(), scale=args.content_scale)
+        content_image = utils.load_image(img, scale=args.content_scale)
         content_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x.mul(255))
@@ -160,7 +160,6 @@ def stylize(args):
         save_name = img.replace("virtual3", "virtual3-style").strip()
         # save_name = img.replace("real_release", "real_release-style").strip()
         utils.save_image(save_name, output[0])
-
 
 def stylize_onnx_caffe2(content_image, args):
     """

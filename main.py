@@ -42,6 +42,7 @@ parser.add_argument('--datapath', type=str, help='provide the root path of the d
 parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
 parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')
 parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')
+parser.add_argument('--augment', type=int, help='if augment data in training', default=0)
 
 opt = parser.parse_args()
 print(opt)
@@ -74,8 +75,9 @@ input_transform = transforms.Compose([
 target_transform = transforms.Compose([
         transforms.Normalize(mean=[0],std=[opt.flowDiv])
         ])
-
-train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
+augment= True if opt.augment==1 else False
+print('augment: ', augment)
+train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = opt.datapath, transform=[input_transform, target_transform], augment=augment)
 test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform])
 
 # for i in range(3):
@@ -93,7 +95,7 @@ train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
 target_loader = None
 if opt.domain_transfer:
     td_dataset = DispDataset(txt_file = opt.tdlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
-    td_loader  = DataLoader(td_dataset, batch_size = opt.batchSize/4, \
+    td_loader  = DataLoader(td_dataset, batch_size = opt.batchSize, \
                         shuffle = True, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -109,7 +111,10 @@ ngpu = len(devices)
 # net = DispNetC(ngpu, True)
 
 # Shaohuai
-net = DispNetCSRes(ngpu, False, True)
+if opt.domain_transfer:
+    net = DispNetCSResWithDomainTransfer(ngpu, False, True)
+else:
+    net = DispNetCSRes(ngpu, False, True, input_channel=4)
 print(net)
 
 #start_epoch = 0
@@ -141,15 +146,19 @@ net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
+
 # qiang
 #loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
 
-# shaohuai
+# shaohuai for girl data
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
+
+# shaohuai for kitti data
+#loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
@@ -193,7 +202,8 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    cur_lr = init_lr / (2**(epoch // 10))
+    cur_lr = init_lr / (2**(epoch // 60))
+    #cur_lr = init_lr / (2**(epoch // 20))
     #cur_lr = init_lr / (2**(epoch // 5))
     # if epoch != 0 and epoch % 10 == 0:
     for param_group in optimizer.param_groups:
@@ -246,8 +256,8 @@ def train(train_loader, model, optimizer, epoch):
         #flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
         
         # record loss and EPE
-        losses.update(loss.data[0], target.size(0))
-        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+        losses.update(loss.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
 
         # if np.isnan(flow2_EPE.data[0]):
         #     sys.exit(-1)
@@ -278,64 +288,73 @@ def train(train_loader, model, optimizer, epoch):
     return losses.avg, flow2_EPEs.avg
     # return losses.avg
 
-def train_with_domain_transfer(source_loader, target_loader, c_model, d_model, f_optimizer, c_optimizer, d_optimizer, epoch):
-    domain_criterion = nn.L2Loss();
+def train_with_domain_transfer(source_loader, target_loader, model, optimizer, epoch):
+    domain_criterion = nn.NLLLoss()
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
     flow2_EPEs = AverageMeter()
+    domain_errs = AverageMeter()
 
     # switch to train mode
     model.train()
 
     end = time.time()
 
+    len_dataloader = min(len(source_loader), len(target_loader))
+    len_targetloader = len(target_loader)
+    nbatch_of_target = len_targetloader / opt.batchSize
+
     for i_batch, sample_batched in enumerate(source_loader):
         
-        # print(i_batch, sample_batched['img_left'].size(), \
-        #                sample_batched['img_right'].size(), \
-        #                sample_batched['gt_disp'].size())
+        #print('orig_sample_batched: ', sample_batched)
+        #model.zero_grad()
+        p = float(i_batch + epoch * len_dataloader) / opt.endEpoch / len_dataloader
+        alpha = 2. / (1. + np.exp(-10 * p)) - 1
+
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-        # print(input.size())
+        #print('sample_batched: ', input)
         target = sample_batched['gt_disp']
         data_time.update(time.time() - end)
         target = target.cuda()
         input = input.cuda()
-        # print(i_batch, input.size(), target.size())
+        domain_label = torch.zeros(opt.batchSize)
+        domain_label = domain_label.long().cuda()
+
+        # training model using source data
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
+        domain_label_var = torch.autograd.Variable(domain_label)
 
-
-        td_batched = td_loader.next()
-        td_input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-        td_input = td_input.cuda()
-        domain_labels = np.ones(len(sample_batched)+len(td_batched), dtype=np.float32)
-        domain_labels[len(sample_batched):] = -1.
-
-        td_input_var = torch.autograd.Variable(td_input)
-
-        domain_labels_var = torch.autograd.Variable(domain_labels)
-        total_x = torch.cat([input_var, td_input_var], 0)
-
-
-        p = epoch / float(opt.end_epoch)
-        lambd = 2. / (1. + np.exp(-10. * p)) - 1
-
-        #(1) Train feature_extractor and class_classifier on the source batch
-        f_optimizer.zero_grad()
-        c_optimizer.zero_grad()
-        output_net1, output_net2 = c_model(input_var)
+        output_net1, output_net2, domain_output  = model(input_var, alpha=alpha)
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
         flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
-        losses.update(loss.data[0], target.size(0))
-        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+        losses.update(loss.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
 
-        c_optimizer
-        # compute gradient and do SGD step
-        loss.backward()
-        c_optimizer.step()
+        source_domain_loss = domain_criterion(domain_output, domain_label_var)
+
+        # training model using target data
+        if i_batch % nbatch_of_target == 0:
+            target_loader_iter = iter(target_loader)
+        td_batched = target_loader_iter.next()
+        #print('td_batched: ', td_batched)
+        td_input = torch.cat((td_batched['img_left'], td_batched['img_right']), 1)
+        #print('tdshape: ', td_input)
+        td_input = td_input.cuda()
+        domain_label = torch.ones(opt.batchSize)
+        domain_label = domain_label.long().cuda()
+        td_input_var = torch.autograd.Variable(td_input)
+        domain_label_var = torch.autograd.Variable(domain_label)
+        _, _, target_domain_output  = model(td_input_var, alpha=alpha)
+        target_domain_loss = domain_criterion(target_domain_output, domain_label_var)
+        err = source_domain_loss + target_domain_loss + loss 
+        domain_errs.update(target_domain_loss.data.item())
+        optimizer.zero_grad()
+        err.backward()
+        optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -346,9 +365,10 @@ def train_with_domain_transfer(source_loader, target_loader, c_model, d_model, f
               'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
+              'Domain loss {domain_errs.val:.3f} ({domain_errs.avg:.3f})\t'
               'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})'.format(
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
-              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
+              data_time=data_time, loss=losses, domain_errs=domain_errs, flow2_EPE=flow2_EPEs))
  
 	# debug  	
 	#if i_batch >= 3:
@@ -395,8 +415,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
 
 
         # record loss and EPE
-        losses.update(loss.data[0], target.size(0))
-        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+        losses.update(loss.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
         
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -428,20 +448,28 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
-if opt.model != '':
+if opt.model != '' and not opt.domain_transfer:
     if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
         EPE = validate(test_loader, net, criterion, high_res_EPE)
         if best_EPE < 0:
             best_EPE = EPE
 
+
+
 for epoch in range(start_epoch, end_epoch):
     cur_lr = adjust_learning_rate(optimizer, epoch)
 
     # train for one epoch
-    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    if opt.domain_transfer:
+        train_loss, train_EPE = train_with_domain_transfer(train_loader, td_loader, net, optimizer, epoch)
+    else:
+        train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     # evaluate on validation set
     if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
-        EPE = validate(test_loader, net, criterion, high_res_EPE)
+        if opt.domain_transfer == 0:
+            EPE = validate(test_loader, net, criterion, high_res_EPE)
+        else:
+            EPE = train_EPE
     else:
         EPE = train_EPE
 
