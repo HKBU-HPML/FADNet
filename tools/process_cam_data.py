@@ -7,7 +7,10 @@ import numpy as np
 import os
 import disp_to_depth as dd
 import scipy.misc
+<<<<<<< HEAD
 import gc
+=======
+>>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 import PyEXR as exr
 
 OUTPUTPATH = '/media/sf_Shared_Data/dispnet/cam01-pfm/'
@@ -20,9 +23,12 @@ OUTPUTPATH = '/media/sf_Shared_Data/dispnet/cam01-pfm/'
 FOV = 37.849197 
 FOCAL_LENGTH = (1024*0.5) / np.tan(FOV* 0.5 * np.pi/180)
 #print('Focal length: ', FOCAL_LENGTH)
+<<<<<<< HEAD
 def _focal_length(width):
     return (width*0.5) / np.tan(FOV* 0.5 * np.pi/180)
 
+=======
+>>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 
 BASELINE = 15./10. # 15cm = 150mm
 
@@ -172,6 +178,7 @@ def generate_filelist(path):
                     #disp_arr = depth_to_disparity(_focal_length(width), BASELINE, depth_arr)
                     #disp_arr = disp_arr[:,:,0]
                     #save_pfm(dst_file, disp_arr)
+
                     fullpath = dst_file
                 else:
                     pass
