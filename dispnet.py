@@ -194,25 +194,15 @@ class DispNet(nn.Module):
 
 class DispNetC(nn.Module):
 
-<<<<<<< HEAD
     def __init__(self, ngpu, batchNorm=False, input_channel=3):
-=======
-    def __init__(self, ngpu, batchNorm=False):
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
-<<<<<<< HEAD
         self.input_channel = input_channel
 
         # shrink and extract features
         self.conv1   = conv(self.batchNorm, self.input_channel, 64, 7, 2)
-=======
-
-        # shrink and extract features
-        self.conv1   = conv(self.batchNorm, 3, 64, 7, 2)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
 
@@ -253,11 +243,7 @@ class DispNetC(nn.Module):
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-<<<<<<< HEAD
         self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
-=======
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 
         # # original iconv with conv
         # self.iconv5 = conv(self.batchNorm, 1025, 512, 3, 1)
@@ -402,27 +388,17 @@ class DispNetC(nn.Module):
 
 class DispNetRes(nn.Module):
 
-<<<<<<< HEAD
     def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False, input_channel=3):
         super(DispNetRes, self).__init__()
         
         self.ngpu = ngpu
         self.input_channel = input_channel
-=======
-    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False):
-        super(DispNetRes, self).__init__()
-        
-        self.ngpu = ngpu
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu 
         self.res_scale = 7  # number of residuals
 
         # improved with shrink res-block layers
-<<<<<<< HEAD
         in_planes = input_channel * 3 + 2
-=======
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         self.conv1   = conv(self.batchNorm, in_planes, 64, 7, 2)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
@@ -453,11 +429,7 @@ class DispNetRes(nn.Module):
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-<<<<<<< HEAD
         self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
-=======
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
@@ -560,11 +532,7 @@ class DispNetRes(nn.Module):
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
-<<<<<<< HEAD
         concat0 = torch.cat((upconv0, upflow1, input[:, :self.input_channel, :, :]), 1)
-=======
-        concat0 = torch.cat((upconv0, upflow1, input[:, :3, :, :]), 1)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         iconv0 = self.iconv0(concat0)
 
         # predict flow residual
@@ -582,11 +550,7 @@ class DispNetRes(nn.Module):
 
         if self.lastRelu:
             if get_feature:
-<<<<<<< HEAD
                 return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1
-=======
-                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv0
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
             else:
                 return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
         if get_feature:
@@ -602,35 +566,22 @@ class DispNetRes(nn.Module):
 
 class DispNetCSRes(nn.Module):
 
-<<<<<<< HEAD
     def __init__(self, ngpus, batchNorm=True, lastRelu=False, input_channel=3):
         super(DispNetCSRes, self).__init__()
         self.input_channel = input_channel
-=======
-    def __init__(self, ngpus, batchNorm=True, lastRelu=False):
-        super(DispNetCSRes, self).__init__()
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
 
         # First Block (DispNetC)
-<<<<<<< HEAD
         self.dispnetc = DispNetC(ngpus, self.batchNorm, input_channel=input_channel)
-=======
-        self.dispnetc = DispNetC(ngpus, self.batchNorm)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()
         self.resample1 = Resample2d()
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
-<<<<<<< HEAD
         self.dispnetres = DispNetRes(ngpus, self.input_channel, self.batchNorm, lastRelu=self.lastRelu, input_channel=input_channel)
 
-=======
-        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm, lastRelu=self.lastRelu)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         self.relu = nn.ReLU(inplace=False)
 
         # # parameter initialization
@@ -662,13 +613,8 @@ class DispNetCSRes(nn.Module):
         dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
         # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
         dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
-<<<<<<< HEAD
         resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
         diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
-=======
-        resampled_img1 = self.resample1(inputs[:, 3:, :, :], -dispnetc_final_flow_2d)
-        diff_img0 = inputs[:, :3, :, :] - resampled_img1
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         norm_diff_img0 = self.channelnorm(diff_img0)
 
         # concat img0, img1, img1->img0, flow, diff-mag
@@ -724,16 +670,11 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         self.relu = nn.ReLU(inplace=False)
 
         self.domain_classifier = nn.Sequential()
-<<<<<<< HEAD
         #self.domain_classifier.add_module('d_fc1', nn.Linear(512*512*2, 100))
         self.domain_classifier.add_module('d_fc1', nn.Linear(256*256*32, 50))
         self.domain_classifier.add_module('d_sigmoid', nn.Sigmoid())
         self.domain_classifier.add_module('d_fc2', nn.Linear(50, 2))
-=======
-        self.domain_classifier.add_module('d_fc1', nn.Linear(512*512*2, 100))
-        self.domain_classifier.add_module('d_sigmoid', nn.Sigmoid())
-        self.domain_classifier.add_module('d_fc2', nn.Linear(100, 2))
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
+        
         self.domain_classifier.add_module('d_softmax', nn.LogSoftmax())
 
 
@@ -764,13 +705,9 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         # dispnetres
         dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows], get_feature=True)
         dispnetres_final_flow = dispnetres_flows[0]
-<<<<<<< HEAD
         #feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
         #print('size; ', dispnetres_flows[-1].size())
         feature = dispnetres_flows[-1].view(-1, 256*256*32)
-=======
-        feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
->>>>>>> 188781b4360dfcda5534e3782d360e4ae400c8c3
         reverse_feature = ReverseLayerF.apply(feature, alpha)
         domain_output = self.domain_classifier(reverse_feature)
 
