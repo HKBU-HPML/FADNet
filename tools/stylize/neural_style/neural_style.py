@@ -130,32 +130,36 @@ def train(args):
 def stylize(args):
     device = torch.device("cuda" if args.cuda else "cpu")
 
-    content_image = utils.load_image(args.content_image, scale=args.content_scale)
-    content_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Lambda(lambda x: x.mul(255))
-    ])
-    content_image = content_transform(content_image)
-    content_image = content_image.unsqueeze(0).to(device)
+    img_list = open(args.content_list).readlines()[7450:]
+    for img in img_list:
+        content_image = utils.load_image(img.strip(), scale=args.content_scale)
+        content_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.mul(255))
+        ])
+        content_image = content_transform(content_image)
+        content_image = content_image.unsqueeze(0).to(device)
 
-    if args.model.endswith(".onnx"):
-        output = stylize_onnx_caffe2(content_image, args)
-    else:
-        with torch.no_grad():
-            style_model = TransformerNet()
-            state_dict = torch.load(args.model)
-            # remove saved deprecated running_* keys in InstanceNorm from the checkpoint
-            for k in list(state_dict.keys()):
-                if re.search(r'in\d+\.running_(mean|var)$', k):
-                    del state_dict[k]
-            style_model.load_state_dict(state_dict)
-            style_model.to(device)
-            if args.export_onnx:
-                assert args.export_onnx.endswith(".onnx"), "Export model file should end with .onnx"
-                output = torch.onnx._export(style_model, content_image, args.export_onnx)
-            else:
-                output = style_model(content_image).cpu()
-    utils.save_image(args.output_image, output[0])
+        if args.model.endswith(".onnx"):
+            output = stylize_onnx_caffe2(content_image, args)
+        else:
+            with torch.no_grad():
+                style_model = TransformerNet()
+                state_dict = torch.load(args.model)
+                # remove saved deprecated running_* keys in InstanceNorm from the checkpoint
+                for k in list(state_dict.keys()):
+                    if re.search(r'in\d+\.running_(mean|var)$', k):
+                        del state_dict[k]
+                style_model.load_state_dict(state_dict)
+                style_model.to(device)
+                if args.export_onnx:
+                    assert args.export_onnx.endswith(".onnx"), "Export model file should end with .onnx"
+                    output = torch.onnx._export(style_model, content_image, args.export_onnx)
+                else:
+                    output = style_model(content_image).cpu()
+        save_name = img.replace("virtual3", "virtual3-style").strip()
+        # save_name = img.replace("real_release", "real_release-style").strip()
+        utils.save_image(save_name, output[0])
 
 
 def stylize_onnx_caffe2(content_image, args):
@@ -218,11 +222,13 @@ def main():
                                   help="number of batches after which a checkpoint of the trained model will be created")
 
     eval_arg_parser = subparsers.add_parser("eval", help="parser for evaluation/stylizing arguments")
-    eval_arg_parser.add_argument("--content-image", type=str, required=True,
+    eval_arg_parser.add_argument("--content-image", type=str,
                                  help="path to content image you want to stylize")
+    eval_arg_parser.add_argument("--content-list", type=str, required=True,
+                                 help="path to list of content image you want to stylize")
     eval_arg_parser.add_argument("--content-scale", type=float, default=None,
                                  help="factor for scaling down the content image")
-    eval_arg_parser.add_argument("--output-image", type=str, required=True,
+    eval_arg_parser.add_argument("--output-image", type=str,
                                  help="path for saving the output image")
     eval_arg_parser.add_argument("--model", type=str, required=True,
                                  help="saved model to be used for stylizing the image. If file ends in .pth - PyTorch path is used, if in .onnx - Caffe2 path")
