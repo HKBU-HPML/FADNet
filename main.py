@@ -93,6 +93,7 @@ train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
                         pin_memory = True)
 
 target_loader = None
+opt.domain_transfer = False if opt.domain_transfer == 0 else True
 if opt.domain_transfer:
     td_dataset = DispDataset(txt_file = opt.tdlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
     td_loader  = DataLoader(td_dataset, batch_size = opt.batchSize, \
@@ -465,7 +466,7 @@ for epoch in range(start_epoch, end_epoch):
         train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     # evaluate on validation set
     if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
-        if opt.domain_transfer == 0:
+        if not opt.domain_transfer:
             EPE = validate(test_loader, net, criterion, high_res_EPE)
         else:
             EPE = train_EPE

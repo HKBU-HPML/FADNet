@@ -221,26 +221,26 @@ class DispDataset(Dataset):
             if len(img_names) > 4:
                 ir_left_name = os.path.join(self.root_dir, img_names[3])
                 ir_right_name = os.path.join(self.root_dir, img_names[4])
+
+            img_left = io.imread(img_left_name)
+            img_right = io.imread(img_right_name)
+            if ir_left_name:
+                ir_left = io.imread(ir_left_name)[:, :, 0]
+                ir_right = io.imread(ir_right_name)[:, :, 0]
+                with_ir_left = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
+                with_ir_right = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
+                with_ir_left[:,:,0:3] = img_left[:,:,0:3]
+                with_ir_left[:,:,3] = ir_left
+                with_ir_right[:,:,0:3] = img_right[:,:,0:3]
+                with_ir_right[:,:,3] = ir_right
+                img_right = with_ir_right
+                img_left = with_ir_left
+            else:
+                img_left = img_left[:, :, 0:3]
+                img_right = img_right[:, :, 0:3]
         except Exception as e:
             print('e: ', e, ' img_names: ', img_names)
             exit(1)
-
-        img_left = io.imread(img_left_name)
-        img_right = io.imread(img_right_name)
-        if ir_left_name:
-            ir_left = io.imread(ir_left_name)[:, :, 0]
-            ir_right = io.imread(ir_right_name)[:, :, 0]
-            with_ir_left = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
-            with_ir_right = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
-            with_ir_left[:,:,0:3] = img_left[:,:,0:3]
-            with_ir_left[:,:,3] = ir_left
-            with_ir_right[:,:,0:3] = img_right[:,:,0:3]
-            with_ir_right[:,:,3] = ir_right
-            img_right = with_ir_right
-            img_left = with_ir_left
-        else:
-            img_left = img_left[:, :, 0:3]
-            img_right = img_right[:, :, 0:3]
 
         gt_disp = None
         scale = 1
@@ -251,6 +251,8 @@ class DispDataset(Dataset):
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
+        if img_left.shape[0] != 2048 or img_right.shape[0] != 2048 or gt_disp.shape[0] != 2048:
+            print('Error in shape: ', img_left.shape, img_right.shape, gt_disp.shape, img_names)
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
