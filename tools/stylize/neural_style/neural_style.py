@@ -132,6 +132,11 @@ def stylize(args):
 
     img_list = open(args.content_list).readlines()
     for img in img_list:
+        img = img.strip()
+        save_name = img.replace("virtual3", "virtual3-style")
+        if os.path.exists(save_name):
+            print "exists:", save_name
+            continue
         content_image = utils.load_image(img, scale=args.content_scale)
         content_transform = transforms.Compose([
             transforms.ToTensor(),
@@ -157,7 +162,6 @@ def stylize(args):
                     output = torch.onnx._export(style_model, content_image, args.export_onnx)
                 else:
                     output = style_model(content_image).cpu()
-        save_name = img.replace("virtual3", "virtual3-style").strip()
         # save_name = img.replace("real_release", "real_release-style").strip()
         utils.save_image(save_name, output[0])
 
