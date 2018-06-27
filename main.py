@@ -101,7 +101,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
+test_loader = DataLoader(test_dataset, batch_size = 1, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
