@@ -6,7 +6,7 @@
 # python main.py --cuda --outf ./models/kitti-models-dispCSR --lr 0.001 --logFile kitti-train-dispCSR.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/KITTI_TRAIN.list --vallist ./lists/KITTI_TEST.list --endEpoch 100 --model ./models/cleandata-models-dispCSRes-exp/model_best.pth --endEpoch 100 --devices 0,1
 
 # dispnetCSR best model + virtual-style
-python main.py --cuda --outf ./models/virtual-style-dispCSR --lr 0.001 --logFile virtual-style-train-dispCSR.log --showFreq 1 --trainlist ./lists/girl_style_TRAIN.list --vallist ./lists/girl_style_TEST.list --model ./models/virtual-style-dispCSR/model_best.pth --endEpoch 300 --devices 0,1 
+python main.py --cuda --outf ./models/virtual-style-dispCSR --lr 0.0001 --logFile virtual-style-train-dispCSR.log --showFreq 1 --trainlist ./lists/girl_style_part_TRAIN.list --vallist ./lists/girl_style_part_TEST.list --model ./models/virtual-style-dispCSR/model_best.pth --endEpoch 300 --devices 0,1 
 
 # Shaohuai run KITTI 
 #python main.py --cuda --outf ./models/kitti--models-dispCSRes --lr 0.00001 --logFile kitti-train-dispCSRes.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/KITTI_TRAIN.list --vallist ./lists/KITTI_TEST.list --startEpoch 1 --model ./models/girl-models-dispCSRes-finetune-crop-2nd/model_best.pth --datapath /home/datasets/imagenet/dispnet --batchSize 8 --endEpoch 400
