@@ -147,7 +147,6 @@ net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
-
 # qiang
 #loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
@@ -203,7 +202,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    cur_lr = init_lr / (2**(epoch // 60))
+    cur_lr = init_lr / (2**(epoch // 10))
     #cur_lr = init_lr / (2**(epoch // 20))
     #cur_lr = init_lr / (2**(epoch // 5))
     # if epoch != 0 and epoch % 10 == 0:
