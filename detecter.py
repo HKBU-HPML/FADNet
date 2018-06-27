@@ -52,10 +52,10 @@ def detect(model, result_path, file_list, filepath):
 
     for i, sample_batched in enumerate(test_loader):
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-        print('input Shape: {}'.format(input.size()))
+        # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
         target = sample_batched['gt_disp']
-        print('disp Shape: {}'.format(target.size()))
+        # print('disp Shape: {}'.format(target.size()))
 	original_size = (1, target.size()[2], target.size()[3])
         target = target.cuda()
         input = input.cuda()
@@ -74,7 +74,8 @@ def detect(model, result_path, file_list, filepath):
             # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
             flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
             #print('Shape: {}'.format(output[j].size()))
-            print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
+            #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
+            print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
 
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = '_'.join(name_items) + '.pfm'# for girl02 dataset
@@ -82,8 +83,8 @@ def detect(model, result_path, file_list, filepath):
             #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
             #save_name = 'predict_{}.pfm'.format(name_items[-1])
             img = np.flip(np_depth[0], axis=0)
-            print('Name: {}'.format(save_name))
-            print('')
+            # print('Name: {}'.format(save_name))
+            # print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)
 
     print('Evaluation time used: {}'.format(time.time()-s))

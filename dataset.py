@@ -114,12 +114,12 @@ class RandomRescale(object):
 
     @staticmethod
     def scale_back(disp, original_size=(1, 540, 960)):
-        print('current shape:', disp.shape)
+        # print('current shape:', disp.shape)
         o_w = original_size[2]
         s_w = disp.shape[2]
         trans_disp = transform.resize(disp, original_size, preserve_range=True)
         trans_disp = trans_disp * (o_w * 1.0 / s_w)
-        print('trans shape:', trans_disp.shape)
+        # print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
 
 
@@ -300,7 +300,7 @@ class DispDataset(Dataset):
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             # crop = RandomCrop((512, 512)) # girl 1k
-            crop = RandomCrop((1024, 1024)) # girl 2k
+            crop = RandomCrop((512, 512)) # girl 2k
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)
