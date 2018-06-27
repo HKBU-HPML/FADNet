@@ -5,10 +5,10 @@ import sys
 from skimage import io
 from dataset import load_pfm
 
-orignal_list = './lists/virtual02'
+orignal_list = './lists/virtual01'
 #root_dir = '/data2/virtual2'
 root_dir = '/'
-target_list = './lists/virtual02-1024x1024.list'
+target_list = './lists/virtual01-1024x1024.list'
 tf = open(target_list, 'w')
 
 with open(orignal_list+'.list', 'r') as f:
