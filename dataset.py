@@ -251,8 +251,8 @@ class DispDataset(Dataset):
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
-        if img_left.shape[0] != 2048 or img_right.shape[0] != 2048 or gt_disp.shape[0] != 2048:
-            print('Error in shape: ', img_left.shape, img_right.shape, gt_disp.shape, img_names)
+        #if img_left.shape[0] != 2048 or img_right.shape[0] != 2048 or gt_disp.shape[0] != 2048:
+        #    print('Error in shape: ', img_left.shape, img_right.shape, gt_disp.shape, img_names)
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
@@ -264,7 +264,7 @@ class DispDataset(Dataset):
 
         if self.phase == 'test':
             #scale = RandomRescale((384, 768))
-            scale = RandomRescale((1024, 1024))
+            scale = RandomRescale((512, 512))
             #scale = RandomRescale((1024+256, 1024+256))
             #scale = RandomRescale((768, 1536)) # Flying things
             #scale = RandomRescale((256, 768)) # KITTI
@@ -295,12 +295,12 @@ class DispDataset(Dataset):
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
             #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K
-            #crop = RandomCrop((1024, 1024), augment=self.augment) # girl 2K
-
+            crop = RandomCrop((512, 512), augment=self.augment) # girl 2K
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             # crop = RandomCrop((512, 512)) # girl 1k
             crop = RandomCrop((512, 512)) # girl 2k
+            #crop = RandomCrop((1024, 1024)) # girl 2k
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)

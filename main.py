@@ -22,7 +22,7 @@ import csv
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
