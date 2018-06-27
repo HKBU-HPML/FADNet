@@ -70,8 +70,6 @@ python main.py --cuda --outf ./models/girl-models-dispCSRes-finetune-crop-3nd --
 #python main.py --cuda --outf ./models/girl02-models-dispCSR-ks --lr 1e-3 --logFile girl02-models-dispCSR-ks.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl02_TRAIN.list --vallist lists/girl02_TEST.list --startEpoch 0 --endEpoch 100 --datapath data/girl02
 #python main.py --cuda --outf ./models/girl02-models-dispCSR-ks --lr 1e-4 --logFile girl02-models-dispCSR-ks-cont.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/girl02_TRAIN.list --vallist lists/girl02_TEST.list --model ./models/girl02-models-dispCSR-ks/model_best.pth --startEpoch 0 --endEpoch 60 --datapath data/girl02
 
-
-
 # test 5: dispnetC with shrink resnet + dropout + clean data
 #python main.py --cuda --outf ./cleandata-models-dispCSRes-dropout --lr 0.0001 --logFile cleandata-train-dispCSRes-dropout.log --showFreq 1 --devices 0,1 --trainlist CLEAN_FlyingThings3D_release_TRAIN.list --vallist CLEAN_FlyingThings3D_release_TEST.list
 #python main.py --cuda --outf ./cleandata-models-dispC-resnet-b64 --lr 0.0001 --logFile cleandata-train-dispC-resnet-b64.log --showFreq 1 --devices 0,1,2,3 --trainlist CLEAN_FlyingThings3D_release_TRAIN.list --vallist CLEAN_FlyingThings3D_release_TEST.list --batchSize 64
