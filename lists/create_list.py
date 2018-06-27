@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 
-orignal_list = 'exclude_1536'
+orignal_list = 'girl-1024x1024'
 train_list = orignal_list+'_TRAIN.list'
 test_list = orignal_list+'_TEST.list'
 
