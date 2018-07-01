@@ -697,7 +697,7 @@ class DispNetCSResWithDomainTransfer(nn.Module):
 
         # dispnetres
         dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows], get_feature=True)
-        dispnetres_final_flow = dispnetres_flows[-1]
+        dispnetres_final_flow = dispnetres_flows[0]
         feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
         reverse_feature = ReverseLayerF.apply(feature, alpha)
         domain_output = self.domain_classifier(reverse_feature)

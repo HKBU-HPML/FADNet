@@ -255,8 +255,8 @@ def train(train_loader, model, optimizer, epoch):
         #flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
         
         # record loss and EPE
-        losses.update(loss.data[0], target.size(0))
-        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+        losses.update(loss.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
 
         # if np.isnan(flow2_EPE.data[0]):
         #     sys.exit(-1)
@@ -330,8 +330,8 @@ def train_with_domain_transfer(source_loader, target_loader, model, optimizer, e
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
         flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
-        losses.update(loss.data[0], target.size(0))
-        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+        losses.update(loss.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
 
         source_domain_loss = domain_criterion(domain_output, domain_label_var)
 
@@ -350,7 +350,7 @@ def train_with_domain_transfer(source_loader, target_loader, model, optimizer, e
         _, _, target_domain_output  = model(td_input_var, alpha=alpha)
         target_domain_loss = domain_criterion(target_domain_output, domain_label_var)
         err = source_domain_loss + target_domain_loss + loss 
-        domain_errs.update(target_domain_loss.data[0], target_domain_loss.size(0))
+        domain_errs.update(target_domain_loss.data.item())
         optimizer.zero_grad()
         err.backward()
         optimizer.step()
@@ -414,8 +414,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
 
 
         # record loss and EPE
-        losses.update(loss.data[0], target.size(0))
-        flow2_EPEs.update(flow2_EPE.data[0], target.size(0))
+        losses.update(loss.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
         
         # measure elapsed time
         batch_time.update(time.time() - end)
