@@ -18,11 +18,13 @@ from multiscaleloss import *
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import csv
+import gc
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
+parser.add_argument('--input_channel', type=int, help='with or without ir', default=3)
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
@@ -67,7 +69,7 @@ if torch.cuda.is_available() and not opt.cuda:
 
 # input transform, normalize with 255
 input_transform = transforms.Compose([
-        transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
+    transforms.Normalize(mean=[0 for i in range(opt.input_channel)], std=[255 for i in range(opt.input_channel)]),
         # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
         ])
 
@@ -115,7 +117,7 @@ ngpu = len(devices)
 if opt.domain_transfer:
     net = DispNetCSResWithDomainTransfer(ngpu, False, True)
 else:
-    net = DispNetCSRes(ngpu, False, True, input_channel=3)
+    net = DispNetCSRes(ngpu, False, True, input_channel=opt.input_channel)
 print(net)
 
 #start_epoch = 0
@@ -223,7 +225,14 @@ def train(train_loader, model, optimizer, epoch):
 
     for i_batch, sample_batched in enumerate(train_loader):
         
-        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        left_img = sample_batched['img_left']
+        right_img = sample_batched['img_right']
+        #print(left_img.size())
+        #print("left rgb:", np.min(left_img[:, :3, :, :].numpy()), np.max(left_img[:, :3, :, :].numpy()))
+        #print("right rgb:", np.min(right_img[:, :3, :, :].numpy()), np.max(right_img[:, :3, :, :].numpy()))
+        #print("left ir:", np.min(left_img[:, 3, :, :].numpy()), np.max(left_img[:, 3, :, :].numpy()))
+        #print("right ir:", np.min(right_img[:, 3, :, :].numpy()), np.max(right_img[:, 3, :, :].numpy()))
+        input = torch.cat((left_img, right_img), 1)
 
         target = sample_batched['gt_disp']
         # print(input.size())
@@ -330,6 +339,7 @@ def train_with_domain_transfer(source_loader, target_loader, model, optimizer, e
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
+        gc.collect()
         flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
         losses.update(loss.data.item(), target.size(0))
         flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
