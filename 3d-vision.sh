@@ -1,10 +1,11 @@
-img=img00055
+img=img00018
 inv_baseline=0.0038
 focal=1800
 maxdisp=200
 mindisp=1
 #real_release_frames_cleanpass_left_img00008.bmp.pfm
-disp_root=./detect_result/real_detect_cleandata
+disp_root=./detect_result/domain_adaptation
+#disp_root=./detect_result/cropfrom1024model_real_detect_cleandata_scale1024
 left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/left
 # nn 3d model
 rgb=${left_rgb_root}/${img}.bmp
@@ -13,7 +14,7 @@ jview $rgb
 jview $disp
 ./tools/pfm_viewer $disp  predict_${img}.exr
 ./tools/DisparityTo3D predict_${img}.exr ${img}.obj $rgb ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
-# ${img}.obj
+cp ${img}.obj /media/sf_Shared_Data/dispnet/
 
 # # sgm 3d model
 # pfm_viewer ./data_local/dispnet/real_release/sgm_disp/left/${img}.pfm ./real_detect_result_sgm/predict_${img}.exr

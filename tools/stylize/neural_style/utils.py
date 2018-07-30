@@ -1,5 +1,6 @@
 import torch
 from PIL import Image
+import os
 
 
 def load_image(filename, size=None, scale=None):
@@ -16,6 +17,11 @@ def save_image(filename, data):
     img = data.clone().clamp(0, 255).numpy()
     img = img.transpose(1, 2, 0).astype("uint8")
     img = Image.fromarray(img)
+
+    parF = os.path.dirname(filename)
+    print filename
+    if not os.path.exists(parF):
+        os.makedirs(parF)
     img.save(filename)
 
 

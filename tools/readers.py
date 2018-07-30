@@ -5,7 +5,6 @@ import sys
 def load_exr(filename, single_depth=False):
     exrimg = exr.PyEXRImage(filename, single_depth)
     #exrimg = exr.PyEXRImage(filename)
-    print('height, width: ', exrimg.height, exrimg.width)
     disp_arr = np.array(exrimg, copy = False)
     print('disp shape: ', disp_arr.shape)
     try:
