@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 
-orignal_list = 'girl20'
+orignal_list = 'virtual01-1024x1024'
 train_list = orignal_list+'_TRAIN.list'
 test_list = orignal_list+'_TEST.list'
 

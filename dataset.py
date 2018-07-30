@@ -118,7 +118,7 @@ class RandomRescale(object):
         o_w = original_size[2]
         s_w = disp.shape[2]
         trans_disp = transform.resize(disp, original_size, preserve_range=True)
-        trans_disp = trans_disp * (o_w * 1.0 / s_w)
+        trans_disp = trans_disp #* (o_w * 1.0 / s_w)
         print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
 
@@ -183,7 +183,7 @@ class ToTensor(object):
         #               'gt_disp': torch.from_numpy(gt_disp.copy()) \
         #               }
         # return new_sample
-        if len(array.shape) == 3 and array.shape[2] == 3:
+        if len(array.shape) == 3 and (array.shape[2] == 3 or array.shape[2] == 4):
             array = np.transpose(array, [2, 0, 1])
         if len(array.shape) == 2:
             array = array[np.newaxis, :]
@@ -216,12 +216,31 @@ class DispDataset(Dataset):
             img_left_name = os.path.join(self.root_dir, img_names[0])
             img_right_name = os.path.join(self.root_dir, img_names[1])
             gt_disp_name = os.path.join(self.root_dir, img_names[2])
+            ir_left_name = None
+            ir_right_name = None
+            if len(img_names) > 4:
+                ir_left_name = os.path.join(self.root_dir, img_names[3])
+                ir_right_name = os.path.join(self.root_dir, img_names[4])
+
+            img_left = io.imread(img_left_name)
+            img_right = io.imread(img_right_name)
+            if ir_left_name:
+                ir_left = io.imread(ir_left_name)[:, :, 0]
+                ir_right = io.imread(ir_right_name)[:, :, 0]
+                with_ir_left = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
+                with_ir_right = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
+                with_ir_left[:,:,0:3] = img_left[:,:,0:3]
+                with_ir_left[:,:,3] = ir_left
+                with_ir_right[:,:,0:3] = img_right[:,:,0:3]
+                with_ir_right[:,:,3] = ir_right
+                img_right = with_ir_right
+                img_left = with_ir_left
+            else:
+                img_left = img_left[:, :, 0:3]
+                img_right = img_right[:, :, 0:3]
         except Exception as e:
             print('e: ', e, ' img_names: ', img_names)
             exit(1)
-
-        img_left = io.imread(img_left_name)[:, :, 0:3]
-        img_right = io.imread(img_right_name)[:, :, 0:3]
 
         gt_disp = None
         scale = 1
@@ -232,6 +251,8 @@ class DispDataset(Dataset):
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
+        #if img_left.shape[0] != 2048 or img_right.shape[0] != 2048 or gt_disp.shape[0] != 2048:
+        #    print('Error in shape: ', img_left.shape, img_right.shape, gt_disp.shape, img_names)
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
@@ -243,8 +264,9 @@ class DispDataset(Dataset):
 
         if self.phase == 'test':
             #scale = RandomRescale((384, 768))
-            scale = RandomRescale((1024, 1024))
             #scale = RandomRescale((1024+256, 1024+256))
+            #scale = RandomRescale((1024,1024))
+            #scale = RandomRescale((512, 512))
             #scale = RandomRescale((768, 1536)) # Flying things
             #scale = RandomRescale((256, 768)) # KITTI
             #scale = RandomRescale((256, 512)) # KITTI
@@ -252,8 +274,8 @@ class DispDataset(Dataset):
             #scale = RandomRescale((512 * 3, 896 * 3))
             #scale = RandomRescale((768, 1024 + 512))
             #scale = RandomRescale((1536, 1536)) # real data
-            #scale = RandomRescale((1024, 1024)) # real data
             #scale = RandomRescale((2048, 3072)) # moto
+            scale = RandomRescale((512, 512))
             sample = scale(sample)
 
         tt = ToTensor()
@@ -273,11 +295,16 @@ class DispDataset(Dataset):
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
-            crop = RandomCrop((512, 512), augment=self.augment) # girl
+            #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K
+            #crop = RandomCrop((1024, 1024), augment=self.augment) # girl 2K
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
+            #crop = RandomCrop((512, 512)) # girl 1k
+            #crop = RandomCrop((1024, 1024)) # girl 2k
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
-            sample = crop(sample)
+
+            #sample = crop(sample)
+            pass
         return sample
 

@@ -56,7 +56,7 @@ def detect(model, result_path, file_list, filepath):
         num_of_samples = input.size(0)
         target = sample_batched['gt_disp']
         print('disp Shape: {}'.format(target.size()))
-	original_size = (1, target.size()[2], target.size()[3])
+        original_size = (1, target.size()[2], target.size()[3])
         target = target.cuda()
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -67,7 +67,7 @@ def detect(model, result_path, file_list, filepath):
             # scale back depth
             np_depth = output[j].data.cpu().numpy()
             np_depth = RandomRescale.scale_back(np_depth, original_size)
-            #np_depth = RandomRescale.scale_back(np_depth, original_size=(1, 1024, 1024))
+            net_out_np_depth = np_depth
             cuda_depth = torch.from_numpy(np_depth).cuda()
             cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
@@ -81,7 +81,7 @@ def detect(model, result_path, file_list, filepath):
             #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
             #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
             #save_name = 'predict_{}.pfm'.format(name_items[-1])
-            img = np.flip(np_depth[0], axis=0)
+            img = np.flip(net_out_np_depth[0], axis=0)
             print('Name: {}'.format(save_name))
             print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)

@@ -7,8 +7,8 @@ from matplotlib import pyplot as plt
 from dataset import load_pfm
 
 #DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
-#DATAPATH = '/home/datasets/imagenet'
-DATAPATH = './data'
+DATAPATH = '/home/datasets/imagenet/dispnet/virtual'
+#DATAPATH = './data'
 OUTPUTPATH = './tmp'
 #FILELIST = 'FlyingThings3D_release_TEST.list'
 FILELIST = 'FlyingThings3D_release_TRAIN.list'
@@ -122,21 +122,33 @@ def plot_hist_with_filename(fn):
 
 def extract_exception_of_occulution():
     #occulution_list = 'CC_FlyingThings3D_release_TRAIN.list'
-    occulution_list = 'CC_FlyingThings3D_release_TEST.list'
+    #occulution_list = './lists/CC_FlyingThings3D_release_TRAIN.list'
+    occulution_list = './lists/girl20_TRAIN.list'
     img_pairs = []
     with open(occulution_list, "r") as f:
         img_pairs = f.readlines()
     means = []
+    maxcount = 10000
+    i = 0
     for f in img_pairs:
         names = f.split()
         name = names[2]
         #gt_disp_name = os.path.join(DATAPATH, 'clean_dispnet', name)
         gt_disp_name = os.path.join(DATAPATH,  name)
         if not os.path.isfile(gt_disp_name):
-            print('Not found: ', gt_disp_name)
+            #print('Not found: ', gt_disp_name)
             continue
         gt_disp, scale = load_pfm(gt_disp_name)
-        print('Name: ', name, ', Mean: ', np.mean(gt_disp), ', std: ', np.std(gt_disp))
+        mean = np.mean(gt_disp)
+        means.append(mean)
+        i+=1
+        if i > maxcount:
+            break
+        print('Name: ', name, ', Mean: ', mean, ', std: ', np.std(gt_disp), ' min: ', np.min(gt_disp), ' max: ', np.max(gt_disp))
+    np.save('virtualmean.log', np.array(means))
+    #mean, std, max = plot_hist(np.array(means), save=False, filename=None, plot=True, color='r')
+    #plt.show()
+
 
 def parse_mean_log():
     filename = './logs/meanstd_test.log'
@@ -167,5 +179,5 @@ if __name__ == '__main__':
     #fn='0006.png'
     #plot_hist_with_filename(fn)
     #statistic_mean_std(FILELIST)
-    #extract_exception_of_occulution()
-    parse_mean_log()
+    extract_exception_of_occulution()
+    #parse_mean_log()

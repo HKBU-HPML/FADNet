@@ -22,7 +22,7 @@ import csv
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
@@ -93,6 +93,7 @@ train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
                         pin_memory = True)
 
 target_loader = None
+opt.domain_transfer = False if opt.domain_transfer == 0 else True
 if opt.domain_transfer:
     td_dataset = DispDataset(txt_file = opt.tdlist, root_dir = opt.datapath, transform=[input_transform, target_transform])
     td_loader  = DataLoader(td_dataset, batch_size = opt.batchSize, \
@@ -100,7 +101,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = opt.batchSize, \
+test_loader = DataLoader(test_dataset, batch_size = 1, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -114,7 +115,7 @@ ngpu = len(devices)
 if opt.domain_transfer:
     net = DispNetCSResWithDomainTransfer(ngpu, False, True)
 else:
-    net = DispNetCSRes(ngpu, False, True)
+    net = DispNetCSRes(ngpu, False, True, input_channel=3)
 print(net)
 
 #start_epoch = 0
@@ -143,7 +144,7 @@ else:
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 # qiang
@@ -153,7 +154,7 @@ loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 
 # shaohuai for girl data
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
-#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
+loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
 # shaohuai for kitti data
@@ -201,7 +202,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def adjust_learning_rate(optimizer, epoch):
-    cur_lr = init_lr / (2**(epoch // 60))
+    cur_lr = init_lr / (2**(epoch // 10))
     #cur_lr = init_lr / (2**(epoch // 20))
     #cur_lr = init_lr / (2**(epoch // 5))
     # if epoch != 0 and epoch % 10 == 0:
@@ -257,6 +258,8 @@ def train(train_loader, model, optimizer, epoch):
         # record loss and EPE
         losses.update(loss.data.item(), target.size(0))
         flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
+        #print('Names: {}'.format(sample_batched['img_names']))
+        #print('Epes: {}'.format(flow2_EPE))
 
         # if np.isnan(flow2_EPE.data[0]):
         #     sys.exit(-1)
@@ -465,7 +468,7 @@ for epoch in range(start_epoch, end_epoch):
         train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     # evaluate on validation set
     if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
-        if opt.domain_transfer == 0:
+        if not opt.domain_transfer:
             EPE = validate(test_loader, net, criterion, high_res_EPE)
         else:
             EPE = train_EPE
