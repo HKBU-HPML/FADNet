@@ -1,0 +1,3 @@
+#python main.py --cuda --outf ./models/girl-ir-dispCSRes --lr 0.001 --logFile girl-ir-train-dispCSRes.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/exclude_1536_TRAIN.list  --vallist ./lists/exclude_1536_TEST.list --startEpoch 0 --datapath /home/vradmin/data/virtual3 --batchSize 16 --endEpoch 200 --domain_transfer 0 --input_channel 4
+python main.py --cuda --outf ./models/girl-ir-dispCSRes --lr 0.00025 --logFile girl-ir-train-dispCSRes.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/exclude_1536_TRAIN.list  --vallist ./lists/exclude_1536_TEST.list --startEpoch 0 --datapath /data2/virtual3 --batchSize 16 --endEpoch 100 --domain_transfer 0 --input_channel 4 --model ./models/girl-ir-dispCSRes/model_best.pth
+

@@ -13,8 +13,10 @@
 *.db
 *.so
 *.so.*
+*.npy
 tmp
 ./data
 data
 ./models
 ./detect_results
+./tools/FusionPortal/lib
