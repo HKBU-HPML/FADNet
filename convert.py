@@ -1,5 +1,5 @@
 from netdef_slim.utils.io import read 
-import sys
+import sys, os
 import numpy as np
 
 '''
@@ -34,6 +34,7 @@ def save_pfm(filename, image, scale = 1):
 
 
 left_img = sys.argv[1]
+subfolder = sys.argv[2]
 
 occ_file = 'tmp/disp.L.float3'
 occ_data = read(occ_file) # returns a numpy array
@@ -44,7 +45,11 @@ print(np.mean(occ_data))
 #plt.imshow(occ_data[:,:,0], cmap='gray')
 # plt.show()
 
+subfolder = "detect_results/%s" % subfolder
+if not os.path.exists(subfolder):
+    os.makedirs(subfolder)
+
 name_items = left_img.split('.')[0].split('/')
 save_name = '_'.join(name_items) + '.pfm'
-save_pfm('detect_results/disp3-CSS-real/%s' % save_name, occ_data[:,:,0])
+save_pfm('%s/%s' % (subfolder, save_name), occ_data[:,:,0])
 
