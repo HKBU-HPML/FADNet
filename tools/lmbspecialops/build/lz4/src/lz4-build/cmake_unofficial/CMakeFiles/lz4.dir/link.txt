@@ -1,0 +1,1 @@
+/usr/bin/cc   -rdynamic CMakeFiles/lz4.dir/__/lib/lz4frame.c.o CMakeFiles/lz4.dir/__/lib/xxhash.c.o CMakeFiles/lz4.dir/__/programs/bench.c.o CMakeFiles/lz4.dir/__/programs/lz4cli.c.o CMakeFiles/lz4.dir/__/programs/lz4io.c.o  -o lz4 liblz4.a 

@@ -1,0 +1,57 @@
+libimagedec_la-image_dec.lo: ../../webp/imageio/image_dec.c \
+ /usr/include/stdc-predef.h ../../webp/imageio/./image_dec.h \
+ ../../webp/src/webp/types.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h \
+ /usr/include/inttypes.h /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h ../src/webp/config.h \
+ ../../webp/imageio/././metadata.h ../../webp/imageio/././jpegdec.h \
+ ../../webp/imageio/././pngdec.h ../../webp/imageio/././tiffdec.h \
+ ../../webp/imageio/././webpdec.h ../../webp/src/webp/decode.h \
+ ../../webp/src/webp/./types.h ../../webp/imageio/././wicdec.h
+
+/usr/include/stdc-predef.h:
+
+../../webp/imageio/./image_dec.h:
+
+../../webp/src/webp/types.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h:
+
+/usr/include/inttypes.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/bits/wchar.h:
+
+../src/webp/config.h:
+
+../../webp/imageio/././metadata.h:
+
+../../webp/imageio/././jpegdec.h:
+
+../../webp/imageio/././pngdec.h:
+
+../../webp/imageio/././tiffdec.h:
+
+../../webp/imageio/././webpdec.h:
+
+../../webp/src/webp/decode.h:
+
+../../webp/src/webp/./types.h:
+
+../../webp/imageio/././wicdec.h:
