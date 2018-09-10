@@ -6,12 +6,14 @@ from skimage import io
 from matplotlib import pyplot as plt
 from dataset import load_pfm
 
-#DATAPATH = '/media/sf_Shared_Data/gpuhomedataset'
-DATAPATH = '/home/datasets/imagenet/dispnet/virtual'
+DATAPATH = '/media/sf_Shared_Data/gpuhomedataset/dispnet'
+#DATAPATH = '/home/datasets/imagenet/dispnet/virtual'
+#DATAPATH = '/home/datasets/imagenet/dispnet'
 #DATAPATH = './data'
 OUTPUTPATH = './tmp'
 #FILELIST = 'FlyingThings3D_release_TEST.list'
-FILELIST = 'FlyingThings3D_release_TRAIN.list'
+#FILELIST = 'FlyingThings3D_release_TRAIN.list'
+FILELIST='lists/real_release.list'
 RESULTLIST = 'NEW_' + FILELIST
 CLEANRESULTLIST = 'CLEAN_' + FILELIST
 
@@ -103,6 +105,24 @@ def statistic_mean_std(filelist):
     print('total std: ', np.std(means))
 
 
+def statistic_disparity(filelist):
+    img_pairs = []
+    with open(filelist, "r") as f:
+        img_pairs = f.readlines()
+    all = np.array([], dtype=np.float32)
+    for f in img_pairs:
+        names = f.split()
+        dispname = names[2]
+        fn = os.path.join(DATAPATH, dispname)
+        gt_disp, _ = load_pfm(fn)
+        all = np.concatenate((gt_disp.ravel(), all))
+    mean = np.mean(all)
+    std = np.std(all)
+    mean, std, max = plot_hist(all, save=True, filename='real_disp.png', plot=True, color='r')
+    print('total mean: ', mean)
+    print('total std: ', std)
+
+
 def plot_hist_with_filename(fn):
     fnt='img00000.bmp'
     leftfn = '/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/left/%s'%fnt
@@ -179,5 +199,6 @@ if __name__ == '__main__':
     #fn='0006.png'
     #plot_hist_with_filename(fn)
     #statistic_mean_std(FILELIST)
-    extract_exception_of_occulution()
+    statistic_disparity(FILELIST)
+    #extract_exception_of_occulution()
     #parse_mean_log()
