@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image, ImageOps
+from preprocess import ColorJitter, pca_param 
 '''
 Load a PFM file into a Numpy array. Note that it will have
 a shape of H x W, not W x H. Returns a tuple containing the
@@ -128,13 +129,15 @@ class RandomCrop(object):
     Args: int or tuple. tuple is (h, w)
 
     """
-    def __init__(self, output_size):
+    def __init__(self, output_size, augment=False):
         assert isinstance(output_size, (int, tuple))
         if isinstance(output_size, int):
             self.output_size = (output_size, output_size)
         else:
             assert len(output_size) == 2
             self.output_size = output_size
+        self.augment = augment
+        self.transform = ColorJitter() 
 
     def __call__(self, sample):
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
@@ -150,6 +153,15 @@ class RandomCrop(object):
         image_left = image_left[:, top: top + new_h, left: left + new_w]
         image_right = image_right[:, top: top + new_h, left: left + new_w]
         gt_disp = gt_disp[:, top: top + new_h, left: left + new_w]
+        if self.augment:
+            rd = np.random.randint(0,2)
+            if rd == 0:
+                image_left = self.transform(image_left)
+                #imgtmp = image_left.cpu().numpy()
+                #imgtmp = np.transpose(imgtmp, [2, 1, 0])
+                #print('lighted shape:', imgtmp.shape)
+                #io.imsave('test.png', imgtmp)
+                image_right = self.transform(image_right)
         new_sample = sample
         new_sample.update({'img_left': image_left, 
                       'img_right': image_right, 
@@ -171,7 +183,7 @@ class ToTensor(object):
         #               'gt_disp': torch.from_numpy(gt_disp.copy()) \
         #               }
         # return new_sample
-        if len(array.shape) == 3 and array.shape[2] == 3:
+        if len(array.shape) == 3 and (array.shape[2] == 3 or array.shape[2] == 4):
             array = np.transpose(array, [2, 0, 1])
         if len(array.shape) == 2:
             array = array[np.newaxis, :]
@@ -181,7 +193,7 @@ class ToTensor(object):
 
 class DispDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, transform = None, phase='train' ):
+    def __init__(self, txt_file, root_dir, transform = None, phase='train', augment=False):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -193,6 +205,7 @@ class DispDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.phase = phase
+        self.augment = augment 
 
     def __len__(self):
         return len(self.imgPairs)
@@ -203,12 +216,40 @@ class DispDataset(Dataset):
             img_left_name = os.path.join(self.root_dir, img_names[0])
             img_right_name = os.path.join(self.root_dir, img_names[1])
             gt_disp_name = os.path.join(self.root_dir, img_names[2])
+            ir_left_name = None
+            ir_right_name = None
+            if len(img_names) > 4:
+                ir_left_name = os.path.join(self.root_dir, img_names[3])
+                ir_right_name = os.path.join(self.root_dir, img_names[4])
+            if img_left_name.find('.npy') > 0:
+                img_left = np.load(img_left_name)
+                img_right = np.load(img_right_name)
+            else:
+                img_left = io.imread(img_left_name)
+                img_right = io.imread(img_right_name)
+            if ir_left_name:
+                if ir_left_name.find('.npy') > 0:
+                    ir_left = np.load(ir_left_name)[:, :, 0]
+                    ir_right= np.load(ir_right_name)[:, :, 0]
+                else:
+                    ir_left = io.imread(ir_left_name)[:, :, 0]
+                    ir_right = io.imread(ir_right_name)[:, :, 0]
+                #img_left = np.concatenate((img_left, ir_left[:, :, np.newaxis]), axis=2)
+                #img_right = np.concatenate((img_right, ir_right[:, :, np.newaxis]), axis=2)
+                with_ir_left = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
+                with_ir_right = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
+                with_ir_left[:,:,0:3] = img_left[:,:,0:3]
+                with_ir_left[:,:,3] = ir_left
+                with_ir_right[:,:,0:3] = img_right[:,:,0:3]
+                with_ir_right[:,:,3] = ir_right
+                img_right = with_ir_right
+                img_left = with_ir_left
+            else:
+                img_left = img_left[:, :, 0:3]
+                img_right = img_right[:, :, 0:3]
         except Exception as e:
             print('e: ', e, ' img_names: ', img_names)
             exit(1)
-
-        img_left = io.imread(img_left_name)[:, :, 0:3]
-        img_right = io.imread(img_right_name)[:, :, 0:3]
 
         gt_disp = None
         scale = 1
@@ -216,9 +257,14 @@ class DispDataset(Dataset):
         if gt_disp_name.endswith('pfm'):
             gt_disp, scale = load_pfm(gt_disp_name)
             gt_disp = gt_disp[::-1, :]
+        elif gt_disp_name.endswith('npy'):
+            gt_disp = np.load(gt_disp_name)
+            gt_disp = gt_disp[::-1, :]
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
+        #if img_left.shape[0] != 2048 or img_right.shape[0] != 2048 or gt_disp.shape[0] != 2048:
+        #    print('Error in shape: ', img_left.shape, img_right.shape, gt_disp.shape, img_names)
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
@@ -232,11 +278,15 @@ class DispDataset(Dataset):
             #scale = RandomRescale((384, 768))
             scale = RandomRescale((1024, 1024))
             #scale = RandomRescale((1024+256, 1024+256))
-        #    scale = RandomRescale((768, 1536))
-        #    scale = RandomRescale((384, 768))
+            #scale = RandomRescale((768, 1536)) # Flying things
+            #scale = RandomRescale((256, 768)) # KITTI
+            #scale = RandomRescale((256, 512)) # KITTI
+            #scale = RandomRescale((512, 512)) # girl
             #scale = RandomRescale((512 * 3, 896 * 3))
             #scale = RandomRescale((768, 1024 + 512))
-            #scale = RandomRescale((1536, 1536))
+            #scale = RandomRescale((1536, 1536)) # real data
+            #scale = RandomRescale((1024, 1024)) # real data
+            #scale = RandomRescale((2048, 3072)) # moto
             sample = scale(sample)
 
         tt = ToTensor()
@@ -253,8 +303,15 @@ class DispDataset(Dataset):
 
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
-            crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
+            #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
+            #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K
+            crop = RandomCrop((512, 512), augment=self.augment) # girl 2K
+            #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            #crop = RandomCrop((256, 768)) # KITTI
+            # crop = RandomCrop((512, 512)) # girl 1k
+            #crop = RandomCrop((1024, 1024)) # girl 2k
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
             sample = crop(sample)
