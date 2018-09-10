@@ -1,0 +1,129 @@
+libwebpdsp_la-dec.lo: ../../../webp/src/dsp/dec.c \
+ /usr/include/stdc-predef.h ../../../webp/src/dsp/./dsp.h \
+ ../webp/config.h ../../../webp/src/dsp/./../webp/types.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h \
+ /usr/include/inttypes.h /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h \
+ ../../../webp/src/dsp/../dec/vp8i_dec.h /usr/include/string.h \
+ /usr/include/xlocale.h ../../../webp/src/dsp/../dec/./common_dec.h \
+ ../../../webp/src/dsp/../dec/./vp8li_dec.h \
+ ../../../webp/src/dsp/../dec/././webpi_dec.h \
+ ../../../webp/src/dsp/../dec/././../utils/rescaler_utils.h \
+ ../../../webp/src/dsp/../dec/././../utils/../webp/types.h \
+ ../../../webp/src/dsp/../dec/./././vp8_dec.h \
+ ../../../webp/src/dsp/../dec/./././../webp/decode.h \
+ ../../../webp/src/dsp/../dec/./././../webp/./types.h \
+ ../../../webp/src/dsp/../dec/./../utils/bit_reader_utils.h \
+ /usr/include/assert.h \
+ ../../../webp/src/dsp/../dec/./../utils/../webp/types.h \
+ ../../../webp/src/dsp/../dec/./../utils/color_cache_utils.h \
+ ../../../webp/src/dsp/../dec/./../utils/huffman_utils.h \
+ ../../../webp/src/dsp/../dec/./../utils/../webp/format_constants.h \
+ ../../../webp/src/dsp/../dec/../utils/bit_reader_utils.h \
+ ../../../webp/src/dsp/../dec/../utils/random_utils.h \
+ ../../../webp/src/dsp/../dec/../utils/../webp/types.h \
+ ../../../webp/src/dsp/../dec/../utils/thread_utils.h \
+ ../../../webp/src/dsp/../dec/../dsp/dsp.h \
+ ../../../webp/src/dsp/../utils/utils.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/limits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h \
+ ../../../webp/src/dsp/../utils/../dsp/dsp.h \
+ ../../../webp/src/dsp/../utils/../webp/types.h
+
+/usr/include/stdc-predef.h:
+
+../../../webp/src/dsp/./dsp.h:
+
+../webp/config.h:
+
+../../../webp/src/dsp/./../webp/types.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h:
+
+/usr/include/inttypes.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/bits/wchar.h:
+
+../../../webp/src/dsp/../dec/vp8i_dec.h:
+
+/usr/include/string.h:
+
+/usr/include/xlocale.h:
+
+../../../webp/src/dsp/../dec/./common_dec.h:
+
+../../../webp/src/dsp/../dec/./vp8li_dec.h:
+
+../../../webp/src/dsp/../dec/././webpi_dec.h:
+
+../../../webp/src/dsp/../dec/././../utils/rescaler_utils.h:
+
+../../../webp/src/dsp/../dec/././../utils/../webp/types.h:
+
+../../../webp/src/dsp/../dec/./././vp8_dec.h:
+
+../../../webp/src/dsp/../dec/./././../webp/decode.h:
+
+../../../webp/src/dsp/../dec/./././../webp/./types.h:
+
+../../../webp/src/dsp/../dec/./../utils/bit_reader_utils.h:
+
+/usr/include/assert.h:
+
+../../../webp/src/dsp/../dec/./../utils/../webp/types.h:
+
+../../../webp/src/dsp/../dec/./../utils/color_cache_utils.h:
+
+../../../webp/src/dsp/../dec/./../utils/huffman_utils.h:
+
+../../../webp/src/dsp/../dec/./../utils/../webp/format_constants.h:
+
+../../../webp/src/dsp/../dec/../utils/bit_reader_utils.h:
+
+../../../webp/src/dsp/../dec/../utils/random_utils.h:
+
+../../../webp/src/dsp/../dec/../utils/../webp/types.h:
+
+../../../webp/src/dsp/../dec/../utils/thread_utils.h:
+
+../../../webp/src/dsp/../dec/../dsp/dsp.h:
+
+../../../webp/src/dsp/../utils/utils.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/limits.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/bits/posix1_lim.h:
+
+/usr/include/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/bits/posix2_lim.h:
+
+../../../webp/src/dsp/../utils/../dsp/dsp.h:
+
+../../../webp/src/dsp/../utils/../webp/types.h:
