@@ -1,0 +1,83 @@
+bit_reader_utils.lo: ../../../webp/src/utils/bit_reader_utils.c \
+ /usr/include/stdc-predef.h ../webp/config.h \
+ ../../../webp/src/utils/./bit_reader_inl_utils.h /usr/include/string.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h \
+ /usr/include/xlocale.h ../../../webp/src/utils/./../dsp/dsp.h \
+ ../../../webp/src/utils/./../dsp/../webp/types.h /usr/include/inttypes.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h \
+ ../../../webp/src/utils/././bit_reader_utils.h /usr/include/assert.h \
+ ../../../webp/src/utils/././../webp/types.h \
+ ../../../webp/src/utils/././endian_inl_utils.h \
+ ../../../webp/src/utils/././../dsp/dsp.h \
+ ../../../webp/src/utils/././utils.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/limits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h ../../../webp/src/utils/../utils/utils.h
+
+/usr/include/stdc-predef.h:
+
+../webp/config.h:
+
+../../../webp/src/utils/./bit_reader_inl_utils.h:
+
+/usr/include/string.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h:
+
+/usr/include/xlocale.h:
+
+../../../webp/src/utils/./../dsp/dsp.h:
+
+../../../webp/src/utils/./../dsp/../webp/types.h:
+
+/usr/include/inttypes.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/bits/wchar.h:
+
+../../../webp/src/utils/././bit_reader_utils.h:
+
+/usr/include/assert.h:
+
+../../../webp/src/utils/././../webp/types.h:
+
+../../../webp/src/utils/././endian_inl_utils.h:
+
+../../../webp/src/utils/././../dsp/dsp.h:
+
+../../../webp/src/utils/././utils.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/limits.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/bits/posix1_lim.h:
+
+/usr/include/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/bits/posix2_lim.h:
+
+../../../webp/src/utils/../utils/utils.h:
