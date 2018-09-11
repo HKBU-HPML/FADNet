@@ -238,14 +238,14 @@ if __name__ == '__main__':
 
     #for i in ['girl05', 'girl0011',  'girl0012',  'girl06',  'girl07',  'girl08']:
     #for i in ['ep0010', 'ep0013','ep0014','ep0015','ep0016','ep0017','ep0019','ep0020']:
-    for i in range(1, 41): 
-        #if i == 32 or i == 36:
-        #    continue
-        fn = 'ep00'+str(i) if i >= 10 else 'ep000'+str(i)
-        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
-        #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
-        path = '/data2/virtual/%s'% fn 
-        generate_filelist(path)
+    #for i in range(1, 41): 
+    #    #if i == 32 or i == 36:
+    #    #    continue
+    #    fn = 'ep00'+str(i) if i >= 10 else 'ep000'+str(i)
+    #    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl05'
+    #    #path = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/%s'% i
+    #    path = '/data2/virtual/%s'% fn 
+    #    generate_filelist(path)
 
     #path = '/media/sf_Shared_Data/dispnet/ep001/'
     #leftfile = 'girl_camera1_Rcamera1_R.0246.exr'
@@ -258,10 +258,10 @@ if __name__ == '__main__':
     #dispfile = '/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/girl03/R/camera1_R/XNCG_ep0002_cam01_rd_lgt.Z.0051.exr'
     #validate_disparity(dispfile, leftfile, rightfile, None)
 
-    #for cam in range(0, 8):
-    #    #cam = 0
-    #    path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
-    #    print('path: ', path)
-    #    #convert_single_channel_to_multi_channel(path, '0.exr')
-    #    convert_single_channel_to_multi_channel(path, '0.pfm')
+    for cam in range(0, 8):
+        #cam = 0
+        path = '/media/sf_Shared_Data/dispnet/FusionPortal/data/%d/' % cam
+        print('path: ', path)
+        #convert_single_channel_to_multi_channel(path, '0.exr')
+        convert_single_channel_to_multi_channel(path, '0.pfm')
 

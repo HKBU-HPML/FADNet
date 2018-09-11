@@ -57,7 +57,7 @@ def detect(model, result_path, file_list, filepath):
         target = sample_batched['gt_disp']
         print('disp Shape: {}'.format(target.size()))
         original_size = (1, target.size()[2], target.size()[3])
-        original_size = (1, 768, 1024)
+        #original_size = (1, 768, 1024)
         target = target.cuda()
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
