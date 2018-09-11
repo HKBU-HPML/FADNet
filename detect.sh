@@ -12,8 +12,8 @@
 #python detecter.py --model ./cc-models-dispC-resnet-cleandata-mix/model_best.pth --rp ./flying_detect_occlusion --filepath /home/datasets/imagenet --filelist RB_FlyingThings3D_release_TEST.list
 #python detecter.py --model ./models/cleandata-models-dispCSR/model_best.pth --rp ./detect_results/flying_detect_cleandata --filepath /home/datasets/imagenet --filelist lists/FlyingThings3D_release_TEST.list
 
-#python detecter.py --model ./models/finetune-from-flyingthings-3nd/dispS_epoch_28.pth --rp ./detect_result/flyingthings_model --filepath /home/datasets/imagenet/dispnet --filelist lists/real_release.list #lists/girl20_TEST.list #--filelist 
-python detecter.py --model ./models/finetune-from-flyingthings-2nd/dispS_epoch_59.pth --rp ./detect_result/flyingthings_model --filepath /home/datasets/imagenet/dispnet --filelist lists/custom.list #lists/girl20_TEST.list #--filelist 
+python detecter.py --model ./models/finetune-from-flyingthings-3nd/dispS_epoch_12.pth --rp ./detect_result/flyingthings_model --filepath /home/datasets/imagenet/dispnet --filelist lists/real_release.list #lists/girl20_TEST.list #--filelist 
+#python detecter.py --model ./models/finetune-from-flyingthings-2nd/dispS_epoch_59.pth --rp ./detect_result/flyingthings_model --filepath /home/datasets/imagenet/dispnet --filelist lists/custom.list #lists/girl20_TEST.list #--filelist 
 
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath /home/datasets/imagenet --devices 1,2 --batchSize 2 
 

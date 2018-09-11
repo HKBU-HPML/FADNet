@@ -283,13 +283,13 @@ class DispDataset(Dataset):
             #scale = RandomRescale((256, 512)) # KITTI
             #scale = RandomRescale((512, 512)) # girl
             #scale = RandomRescale((512 * 3, 896 * 3))
-            scale = RandomRescale((768-256, 1024-384)) 
+            #scale = RandomRescale((768-256, 1024-384)) 
             #scale = RandomRescale((768+128, 1024+128)) 
             #scale = RandomRescale((768, 1024 + 512))
             #scale = RandomRescale((1536, 1536)) # real data
             #scale = RandomRescale((2048, 3072)) # moto
             #scale = RandomRescale((512, 512))
-            sample = scale(sample)
+            #sample = scale(sample)
             pass
 
         tt = ToTensor()

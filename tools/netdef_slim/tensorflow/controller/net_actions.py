@@ -37,8 +37,8 @@ class NetActions:
 
     def eval(self, image_0, image_1, state=None):
         nd.phase = 'test'
-        if isinstance(image_0, str): image_0=read(image_0).transpose(2, 0, 1)[np.newaxis, :, :, :].astype(np.float32)
-        if isinstance(image_1, str): image_1=read(image_1).transpose(2, 0, 1)[np.newaxis, :, :, :].astype(np.float32)
+        if isinstance(image_0, str): image_0=read(image_0)[:, :, 0:3].transpose(2, 0, 1)[np.newaxis, :, :, :].astype(np.float32)
+        if isinstance(image_1, str): image_1=read(image_1)[:, :, 0:3].transpose(2, 0, 1)[np.newaxis, :, :, :].astype(np.float32)
         tf.reset_default_graph()
         height = image_0.shape[2]
         width = image_0.shape[3]

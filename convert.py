@@ -49,7 +49,15 @@ subfolder = "detect_results/%s" % subfolder
 if not os.path.exists(subfolder):
     os.makedirs(subfolder)
 
-name_items = left_img.split('.')[0].split('/')
-save_name = '_'.join(name_items) + '.pfm'
-save_pfm('%s/%s' % (subfolder, save_name), occ_data[:,:,0])
+#name_items = left_img.split('.')[0].split('/')
+#save_name = '_'.join(name_items) + '.pfm'
+name_items = left_img.split('/')
+filename = name_items[-1]
+topfolder = name_items[-2]
+save_name = filename + '.pfm'
+target_folder = '%s/%s' % (subfolder, topfolder)
+print('target_folder: ', target_folder)
+if not os.path.exists(target_folder):
+    os.makedirs(target_folder)
+save_pfm('%s/%s' % (target_folder, save_name), occ_data[:,:,0])
 
