@@ -205,12 +205,12 @@ class DispNetC(nn.Module):
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
 
-	# start corr from conv3, output channel is 32 + (max_disp+1) = , max_disp = 40
+	# start corr from conv3, output channel is 32 + (max_disp * 2+1) = , max_disp = 40
 	self.conv_redir = ResBlock(256, 32, stride=1)
-	self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=40, stride1=1, stride2=1, corr_multiply=1)
+	self.corr = Correlation1d(pad_size=40, kernel_size=3, max_displacement=40, stride1=1, stride2=1, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
-        self.conv3_1 = ResBlock(73, 256)
+        self.conv3_1 = ResBlock(113, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
         self.conv4_1 = ResBlock(512, 512)
         self.conv5   = ResBlock(512, 512, stride=2)
@@ -311,6 +311,7 @@ class DispNetC(nn.Module):
         out_corr = self.corr_activation(out_corr)
 	out_conv3a_redir = self.conv_redir(conv3a_l)
 	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
+
 
         conv3b = self.conv3_1(in_conv3b)
         conv4a = self.conv4(conv3b)
