@@ -14,6 +14,7 @@ from layers_package.resample2d_package.modules.resample2d import Resample2d
 from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
 from layers_package.submodules import *
 
+from correlation_package.modules.corr import Correlation1d # from PWC-Net
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
     if batchNorm:
