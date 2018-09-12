@@ -1,6 +1,6 @@
 from __future__ import print_function
 import argparse
-import os, shutil, sys
+import os, shutil, sys, gc
 import numpy as np
 import time, datetime
 import matplotlib.pyplot as plt
@@ -15,16 +15,24 @@ from dataset import *
 from dispnet_v2 import *
 #from dispnet import *
 from multiscaleloss import *
+#from monodepthloss import *
+from lr_monoloss import *
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import csv
+from monodepth_net import resnet50_decoder
 import gc
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
-parser.add_argument('--input_channel', type=int, help='with or without ir', default=3)
+parser.add_argument('--unsupervised', type=bool, help='if open the function of domain transer', default=False)
+parser.add_argument('--unsuper_alpha', type=float, help='weight of unsupervised learning', default=1.0)
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
+parser.add_argument('--input_channel', type=int, help='with or without ir', default=3)
+<<<<<<< HEAD
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
+=======
+>>>>>>> 23ed753fde5ff2fb34bd675c3a3f722f75acc917
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
@@ -89,7 +97,6 @@ test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, tran
 #              sample['gt_disp'].size(), type(sample['gt_disp'])  \
 #          )
 
-
 train_loader = DataLoader(train_dataset, batch_size = opt.batchSize, \
                         shuffle = True, num_workers = opt.workers, \
                         pin_memory = True)
@@ -103,7 +110,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = 1, \
+test_loader = DataLoader(test_dataset, batch_size = 2, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -113,12 +120,17 @@ ngpu = len(devices)
 #net = DispNetCSRes(ngpu, False, True)
 # net = DispNetC(ngpu, True)
 
-# Shaohuai
-if opt.domain_transfer:
-    net = DispNetCSResWithDomainTransfer(ngpu, False, True)
-else:
-    net = DispNetCSRes(ngpu, False, True, input_channel=opt.input_channel)
-print(net)
+# qiang
+net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
+#net = DispNetCSRes(ngpu, False, True, input_channel=3)
+#mono_decoder = resnet50_decoder()
+
+## Shaohuai
+#if opt.domain_transfer:
+#    net = DispNetCSResWithDomainTransfer(ngpu, False, True)
+#else:
+#    net = DispNetCSRes(ngpu, False, True, input_channel=opt.input_channel)
+#print(net)
 
 #start_epoch = 0
 #model_data = torch.load('./dispC_epoch_29.pth')
@@ -140,17 +152,25 @@ else:
             net.load_state_dict(model_data['state_dict'])
         else:
             net.load_state_dict(model_data)
+
+        #model_data = torch.load("./models/real-dispCSR/mono_epoch_9.pth")
+        #print(model_data.keys())
+        #if 'state_dict' in model_data.keys():
+        #    mono_decoder.load_state_dict(model_data['state_dict'])
+        #else:
+        #    mono_decoder.load_state_dict(model_data)
     else:
         print('Can not find the specific model, initial a new model...')
 
 
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
+#mono_decoder = torch.nn.DataParallel(mono_decoder, device_ids=devices).cuda()
 
 #loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 # qiang
-#loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
+loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
 
@@ -163,12 +183,15 @@ loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 #loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 criterion = multiscaleloss(7, 1, loss_weights, loss='L1', sparse=False)
+unsuper_loss = MonodepthLoss()
 high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
 print('=> setting {} solver'.format('adam'))
 init_lr = opt.lr
 param_groups = [{'params': net.module.bias_parameters(), 'weight_decay': 0},
-                    {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
+                {'params': net.module.weight_parameters(), 'weight_decay': 4e-4}]
+                #{'params': mono_decoder.module.bias_parameters(), 'weight_decay': 0},
+                #{'params': mono_decoder.module.weight_parameters(), 'weight_decay': 4e-4}]
 
 # optimizer = torch.optim.SGD(param_groups, init_lr,
 #                                     momentum=0.9)
@@ -216,6 +239,7 @@ def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    target_losses = AverageMeter()
     flow2_EPEs = AverageMeter()
 
     # switch to train mode
@@ -223,55 +247,49 @@ def train(train_loader, model, optimizer, epoch):
 
     end = time.time()
 
+    len_dataloader = min(len(train_loader), len(td_loader))
+    len_targetloader = len(td_loader)
+    nbatch_of_target = len_targetloader / opt.batchSize
+
     for i_batch, sample_batched in enumerate(train_loader):
         
-        left_img = sample_batched['img_left']
-        right_img = sample_batched['img_right']
+        left_input = torch.autograd.Variable(sample_batched['img_left'].cuda())
+        right_input = torch.autograd.Variable(sample_batched['img_right'].cuda())
+        input = torch.cat((left_input, right_input), 1)
+        # input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+
+        #left_img = sample_batched['img_left']
+        #right_img = sample_batched['img_right']
         #print(left_img.size())
         #print("left rgb:", np.min(left_img[:, :3, :, :].numpy()), np.max(left_img[:, :3, :, :].numpy()))
         #print("right rgb:", np.min(right_img[:, :3, :, :].numpy()), np.max(right_img[:, :3, :, :].numpy()))
         #print("left ir:", np.min(left_img[:, 3, :, :].numpy()), np.max(left_img[:, 3, :, :].numpy()))
         #print("right ir:", np.min(right_img[:, 3, :, :].numpy()), np.max(right_img[:, 3, :, :].numpy()))
-        input = torch.cat((left_img, right_img), 1)
+        #input = torch.cat((left_img, right_img), 1)
 
         target = sample_batched['gt_disp']
-        # print(input.size())
-
-        data_time.update(time.time() - end)
         target = target.cuda()
-        input = input.cuda()
         # print(i_batch, input.size(), target.size())
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
+        data_time.update(time.time() - end)
 
         # compute output and loss
         # output = model(input_var)
         # loss = criterion(output, target_var)
-        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiva
+        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
         output_net1, output_net2 = model(input_var)
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
-        flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
-        # output = model(input_var)
-        # loss = criterion(output, target_var)
-        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
 
-        #output_net1, output_net2 = model(input_var)
-        #loss_net1 = criterion(output_net1, target_var)
-        #loss_net2 = criterion(output_net2, target_var)
-        #loss = loss_net1 + loss_net2
-        #flow2_EPE = high_res_EPE(output_net1[0], target_var) * opt.flowDiv
-        
+        output_net2_final = output_net2[0]
+        flow2_EPE = high_res_EPE(output_net2_final, target_var) * opt.flowDiv
+
         # record loss and EPE
         losses.update(loss.data.item(), target.size(0))
         flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
-        #print('Names: {}'.format(sample_batched['img_names']))
-        #print('Epes: {}'.format(flow2_EPE))
-
-        # if np.isnan(flow2_EPE.data[0]):
-        #     sys.exit(-1)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -288,9 +306,114 @@ def train(train_loader, model, optimizer, epoch):
               'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
-              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})'.format(
+              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'
+              'target loss {target_losses.val:.3f} ({target_losses.avg:.3f})'.format(
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
-              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
+              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, target_losses=target_losses))
+ 
+	# debug  	
+	#if i_batch >= 3:
+	#    break
+
+    return losses.avg, flow2_EPEs.avg
+    # return losses.avg
+
+def train_with_monodepth(train_loader, model, optimizer, epoch):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    unsuper_losses = AverageMeter()
+    flow2_EPEs = AverageMeter()
+
+    # switch to train mode
+    model.train()
+
+    end = time.time()
+
+    len_dataloader = min(len(train_loader), len(td_loader))
+    len_targetloader = len(td_loader)
+    nbatch_of_target = len_targetloader / opt.batchSize
+
+    for i_batch, sample_batched in enumerate(train_loader):
+        
+        left_input = torch.autograd.Variable(sample_batched['img_left'].cuda())
+        right_input = torch.autograd.Variable(sample_batched['img_right'].cuda())
+        input = torch.cat((left_input, right_input), 1)
+        # input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+
+        target = sample_batched['gt_disp']
+        target = target.cuda()
+        # print(i_batch, input.size(), target.size())
+        input_var = torch.autograd.Variable(input)
+        target_var = torch.autograd.Variable(target)
+        data_time.update(time.time() - end)
+
+        # compute output and loss
+        # output = model(input_var)
+        # loss = criterion(output, target_var)
+        # flow2_EPE = high_res_EPE(output[0], target_var) * opt.flowDiv
+
+        output_net1, output_net2 = model(input_var)
+        loss_net1 = criterion(output_net1[:-1], target_var)
+        loss_net2 = criterion(output_net2, target_var)
+
+        # feed monodepth net
+        #skip_layers = model.module.get_skips()
+        #disps = mono_decoder(skip_layers)
+        #loss_mono = unsuper_loss(disps, [left_input, right_input])
+
+        loss = loss_net1 + loss_net2 
+
+        output_net2_final = output_net2[0]
+        flow2_EPE = high_res_EPE(output_net2_final, target_var) * opt.flowDiv
+
+        # record loss and EPE
+        losses.update(loss.data.item(), target.size(0))
+        # unsuper_losses.update(loss_mono.data.item(), target.size(0))
+        flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
+        #print('Names: {}'.format(sample_batched['img_names']))
+        #print('Epes: {}'.format(flow2_EPE))
+
+        # training model using target data
+        #if i_batch % nbatch_of_target == 0:
+        if i_batch % 6 == 0:
+            gc.collect()
+            target_loader_iter = iter(td_loader)
+        td_batched = target_loader_iter.next()
+        #print('td_batched: ', td_batched)
+        td_left_input = torch.autograd.Variable(td_batched['img_left'].cuda())
+        td_right_input = torch.autograd.Variable(td_batched['img_right'].cuda())
+        td_input = torch.cat((td_left_input, td_right_input), 1)
+        td_input_var = torch.autograd.Variable(td_input)
+        #print('tdshape: ', td_input)
+        td_output_net1, td_output_net2 = model(td_input_var)
+        # feed monodepth net
+        td_loss_mono = unsuper_loss(td_output_net1[-1], [td_left_input, td_right_input]) 
+
+        loss += td_loss_mono * 3
+
+        # record loss and EPE
+        unsuper_losses.update(td_loss_mono.data.item(), target.size(0))
+
+        # compute gradient and do SGD step
+        optimizer.zero_grad()
+        loss.backward()
+        # print(loss.grad)
+        optimizer.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        if i_batch % opt.showFreq == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+              'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+              'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+              'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
+              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'
+              'unsuper loss {unsuper_losses.val:.3f} ({unsuper_losses.avg:.3f})'.format(
+              epoch, i_batch, len(train_loader), batch_time=batch_time, 
+              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, unsuper_losses=unsuper_losses))
  
 	# debug  	
 	#if i_batch >= 3:
@@ -402,12 +525,16 @@ def validate(val_loader, model, criterion, high_res_EPE):
 
     end = time.time()
     for i, sample_batched in enumerate(val_loader):
-        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        left_input = torch.autograd.Variable(sample_batched['img_left'].cuda())
+        right_input = torch.autograd.Variable(sample_batched['img_right'].cuda())
+        input = torch.cat((left_input, right_input), 1)
+        # input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+
         target = sample_batched['gt_disp']
-        input = input.cuda()
         target = target.cuda()
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
+        # print(i_batch, input.size(), target.size())
+        input_var = torch.autograd.Variable(input)
+        target_var = torch.autograd.Variable(target)
 
 	# compute output
         # output = model(input_var)
@@ -418,13 +545,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
-        flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
-        #output_net1, output_net2 = model(input_var)
-        #loss_net1 = criterion(output_net1, target_var)
-        #loss_net2 = criterion(output_net2, target_var)
-        #loss = loss_net1 + loss_net2
-        #flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
 
+        flow2_EPE = high_res_EPE(output_net2, target_var) * opt.flowDiv
 
         # record loss and EPE
         losses.update(loss.data.item(), target.size(0))
@@ -446,8 +568,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
                   .format(i, len(val_loader), batch_time.val, flow2_EPEs.val))
 
 	# debug
-	#if i >= 3:
-	#    break
+	if i >= 3:
+	    break
 
     print(' * EPE {:.3f}'.format(flow2_EPEs.avg))
 
@@ -460,30 +582,40 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
 
 best_EPE = -1
 
-if opt.model != '' and not opt.domain_transfer:
-    if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
-        EPE = validate(test_loader, net, criterion, high_res_EPE)
-        if best_EPE < 0:
-            best_EPE = EPE
+# preload best_EPE of pretrained model
+#if opt.model != '' and not opt.domain_transfer:
+#    if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
+#        EPE = validate(test_loader, net, criterion, high_res_EPE)
+#        if best_EPE < 0:
+#            best_EPE = EPE
 
+if opt.model != '':
+    EPE = validate(test_loader, net, criterion, high_res_EPE)
+    if best_EPE < 0:
+        best_EPE = EPE
 
 
 for epoch in range(start_epoch, end_epoch):
     cur_lr = adjust_learning_rate(optimizer, epoch)
 
     # train for one epoch
-    if opt.domain_transfer:
-        train_loss, train_EPE = train_with_domain_transfer(train_loader, td_loader, net, optimizer, epoch)
-    else:
-        train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #if opt.domain_transfer:
+    #    train_loss, train_EPE = train_with_domain_transfer(train_loader, td_loader, net, optimizer, epoch)
+    #else:
+    #    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
+    train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
+
     # evaluate on validation set
-    if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
-        if not opt.domain_transfer:
-            EPE = validate(test_loader, net, criterion, high_res_EPE)
-        else:
-            EPE = train_EPE
-    else:
-        EPE = train_EPE
+    #if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
+    #    if not opt.domain_transfer:
+    #        EPE = validate(test_loader, net, criterion, high_res_EPE)
+    #    else:
+    #        EPE = train_EPE
+    #else:
+    #    EPE = train_EPE
+    EPE = validate(test_loader, net, criterion, high_res_EPE)
 
     if best_EPE < 0:
         best_EPE = EPE
@@ -497,6 +629,13 @@ for epoch in range(start_epoch, end_epoch):
         'state_dict': net.module.state_dict(),
         'best_EPE': best_EPE,    
     }, is_best, 'dispS_epoch_%d.pth' % epoch)
+
+    #save_checkpoint({
+    #    'epoch': epoch + 1,
+    #    'arch': 'mono_decoder',
+    #    'state_dict': mono_decoder.module.state_dict(),
+    #    'best_EPE': best_EPE,    
+    #}, False, 'mono_epoch_%d.pth' % epoch)
 
     with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')
