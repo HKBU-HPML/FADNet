@@ -13,7 +13,7 @@
 #python main.py --cuda --outf ./models-dispCSRes --lr 0.0001 --logFile train-dispCSRes.log --showFreq 1 --devices 0,1,2,3
 
 #test 4: dispnetC with shrink resnet + clean data
-#python main.py --cuda --outf ./no-occ-models-dispCSRes-finetune --lr 0.00001 --logFile no-occ-train-dispCSRes-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TRAIN.list --vallist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list --model ./cleandata-dispCSRes-model_best.pth --startEpoch 1
+python main.py --cuda --outf ./models/dispCSRes-r1 --lr 0.0001 --logFile dispCSRes-r1.log --showFreq 1 --devices 0,1 --trainlist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TRAIN.list --vallist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list --startEpoch 0 --endEpoch 50 --batchSize 16
 
 #test 4-1: dispnetC with shrink resnet + clean data, finetune girl data
 #python main.py --cuda --outf ./girl-models-dispCSRes-finetune --lr 0.001 --logFile girl-train-dispCSRes-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./cleandata-dispCSRes-model_best.pth --startEpoch 1 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8
@@ -125,4 +125,4 @@
 # Finetune from Flyingthings
 #python main.py --cuda --outf ./models/finetune-from-flyingthings-1nd --lr 1e-4 --logFile finetune-from-flyingthings-1nd.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/CLEAN_FlyingThings3D_release_TRAIN.list --vallist lists/CLEAN_FlyingThings3D_release_TEST.list --model ./models/finetune-from-flyingthings-1nd/model_best.pth --startEpoch 0 --endEpoch 60 --datapath /home/datasets/imagenet
 #python main.py --cuda --outf ./models/finetune-from-flyingthings-2nd --lr 1e-4 --logFile finetune-from-flyingthings-2nd.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/CLEAN_FlyingThings3D_release_TRAIN.list --vallist lists/CLEAN_FlyingThings3D_release_TEST.list --model ./models/finetune-from-flyingthings-1nd/dispS_epoch_59.pth --startEpoch 0 --endEpoch 60 --datapath /home/datasets/imagenet
-python main.py --cuda --outf ./models/finetune-from-flyingthings-3nd --lr 0.0001 --logFile finetune-from-flyingthings-3nd.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/CLEAN_FlyingThings3D_release_TRAIN.list --vallist lists/CLEAN_FlyingThings3D_release_TEST.list --model ./models/finetune-from-flyingthings-2nd/dispS_epoch_59.pth --startEpoch 0 --endEpoch 60 --datapath /home/datasets/imagenet
+#python main.py --cuda --outf ./models/finetune-from-flyingthings-3nd --lr 0.0001 --logFile finetune-from-flyingthings-3nd.log --showFreq 1 --devices 0,1,2,3 --trainlist lists/CLEAN_FlyingThings3D_release_TRAIN.list --vallist lists/CLEAN_FlyingThings3D_release_TEST.list --model ./models/finetune-from-flyingthings-2nd/dispS_epoch_59.pth --startEpoch 0 --endEpoch 60 --datapath /home/datasets/imagenet
