@@ -14,6 +14,8 @@ from layers_package.resample2d_package.modules.resample2d import Resample2d
 from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
 from layers_package.submodules import *
 
+from lr_monoloss import *
+from monodepth_net import resnet50_decoder
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
     if batchNorm:
@@ -194,12 +196,17 @@ class DispNet(nn.Module):
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=False, input_channel=3):
+    def __init__(self, ngpu, batchNorm=False, input_channel=3, with_mono=False):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
         self.input_channel = input_channel
+
+        if with_mono:
+            self.mono_net = resnet50_decoder()
+        else:
+            self.mono_net = None
 
         # shrink and extract features
         self.conv1   = conv(self.batchNorm, self.input_channel, 64, 7, 2)
@@ -278,6 +285,8 @@ class DispNetC(nn.Module):
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow0 = predict_flow(16)
 
+        ## for domain transfer learning
+        #self.skip_layers = [[], [], [], [], [], []]
 
         # weight initialization
         for m in self.modules():
@@ -292,6 +301,9 @@ class DispNetC(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
         
+    #def get_skips(self):
+    #    return self.skip_layers
+
     def forward(self, input):
 
         # split left image and right image
@@ -321,6 +333,16 @@ class DispNetC(nn.Module):
         conv6a = self.conv6(conv5b)
         conv6b = self.conv6_1(conv6a)
 
+        mono_disps = []
+        if self.mono_net != None:
+            mono_disps = self.mono_net([conv1_l, conv2_l, conv3b, conv4b, conv5b, conv6b])
+
+        #self.skip_layers[0] = conv1_l
+        #self.skip_layers[1] = conv2_l
+        #self.skip_layers[2] = conv3b
+        #self.skip_layers[3] = conv4b
+        #self.skip_layers[4] = conv5b
+        #self.skip_layers[5] = conv6b
 
         pr6 = self.pred_flow6(conv6b)
         upconv5 = self.upconv5(conv6b)
@@ -377,7 +399,10 @@ class DispNetC(nn.Module):
         #     return pr0
 
         # can be chosen outside
-        return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        if len(mono_disps) == 0:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        else:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6, mono_disps
 
     def weight_parameters(self):
 	return [param for name, param in self.named_parameters() if 'weight' in name]
@@ -388,7 +413,7 @@ class DispNetC(nn.Module):
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False, input_channel=3):
+    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False, input_channel=3, with_mono=False):
         super(DispNetRes, self).__init__()
         
         self.ngpu = ngpu
@@ -396,6 +421,11 @@ class DispNetRes(nn.Module):
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu 
         self.res_scale = 7  # number of residuals
+
+        if with_mono:
+            self.mono_net = resnet50_decoder()
+        else:
+            self.mono_net = None
 
         # improved with shrink res-block layers
         in_planes = input_channel * 3 + 2
@@ -487,6 +517,10 @@ class DispNetRes(nn.Module):
         conv6a = self.conv6(conv5b)
         conv6b = self.conv6_1(conv6a)
 
+        mono_disps = []
+        if self.mono_net != None:
+            mono_disps = self.mono_net([conv1, conv2, conv3b, conv4b, conv5b, conv6b])
+
         pr6_res = self.pred_res6(conv6b)
         pr6 = pr6_res + base_flow[6]
 
@@ -550,13 +584,25 @@ class DispNetRes(nn.Module):
 
         if self.lastRelu:
             if get_feature:
-                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1
+                if len(mono_disps) == 0:
+                    return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1
+                else:
+                    return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1, mono_disps
             else:
-                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
+                if len(mono_disps) == 0:
+                    return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
+                else:
+                    return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), mono_disps
         if get_feature:
-            return pr0, pr1, pr2, pr3, pr4, pr5, pr6, iconv0
+            if len(mono_disps) == 0:
+                return pr0, pr1, pr2, pr3, pr4, pr5, pr6, iconv0
+            else:
+                return pr0, pr1, pr2, pr3, pr4, pr5, pr6, iconv0, mono_disps
 
-        return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        if len(mono_disps) == 0:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        else:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6, mono_disps
 
     def weight_parameters(self):
 	return [param for name, param in self.named_parameters() if 'weight' in name]
@@ -637,6 +683,80 @@ class DispNetCSRes(nn.Module):
     def bias_parameters(self):
 	return [param for name, param in self.named_parameters() if 'bias' in name]
 
+class DispNetCSResWithMono(nn.Module):
+
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False, input_channel=3):
+        super(DispNetCSResWithMono, self).__init__()
+        self.input_channel = input_channel
+        self.batchNorm = batchNorm
+        self.lastRelu = lastRelu
+
+        # First Block (DispNetC)
+        self.dispnetc = DispNetC(ngpus, self.batchNorm, input_channel=input_channel, with_mono = True)
+
+        # warp layer and channelnorm layer
+        self.channelnorm = ChannelNorm()
+        self.resample1 = Resample2d()
+
+        # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
+        self.dispnetres = DispNetRes(ngpus, self.input_channel, self.batchNorm, lastRelu=self.lastRelu, input_channel=input_channel)
+
+        self.relu = nn.ReLU(inplace=False)
+
+        # # parameter initialization
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         if m.bias is not None:
+        #             init.uniform(m.bias)
+        #         init.xavier_uniform(m.weight)
+
+        #     if isinstance(m, nn.ConvTranspose2d):
+        #         if m.bias is not None:
+        #             init.uniform(m.bias)
+        #         init.xavier_uniform(m.weight)
+
+    def forward(self, inputs):
+
+        # split left image and right image
+        # inputs = inputs_target[0]
+        # target = inputs_target[1]
+        imgs = torch.chunk(inputs, 2, dim = 1)
+        img_left = imgs[0]
+        img_right = imgs[1]
+
+        # dispnetc
+        dispnetc_flows = self.dispnetc(inputs)
+        dispnetc_final_flow = dispnetc_flows[0]
+
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
+        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
+        dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
+        resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
+        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
+        norm_diff_img0 = self.channelnorm(diff_img0)
+
+        # concat img0, img1, img1->img0, flow, diff-mag
+        inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
+
+        # dispnetres
+        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows[:-1]])
+        dispnetres_final_flow = dispnetres_flows[0]
+        
+
+        if self.training:
+            return dispnetc_flows, dispnetres_flows
+        else:
+            return dispnetc_final_flow, dispnetres_final_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
+
+
+    def weight_parameters(self):
+	return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+	return [param for name, param in self.named_parameters() if 'bias' in name]
+
+
 
 
 class ReverseLayerF(Function):
@@ -677,6 +797,8 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         
         self.domain_classifier.add_module('d_softmax', nn.LogSoftmax())
 
+    def get_skips():
+        return self.dispnetc.get_skips()
 
     def forward(self, inputs, alpha):
 
