@@ -668,7 +668,9 @@ class DispNetCSRes(nn.Module):
 
         # dispnetres
         dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows])
-        dispnetres_final_flow = dispnetres_flows[0]
+        index = 0
+        #print('Index: ', index)
+        dispnetres_final_flow = dispnetres_flows[index]
         
 
         if self.training:
@@ -829,9 +831,10 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         dispnetres_final_flow = dispnetres_flows[0]
         #feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
         #print('size; ', dispnetres_flows[-1].size())
-        feature = dispnetres_flows[-1].view(-1, 256*256*32)
-        reverse_feature = ReverseLayerF.apply(feature, alpha)
-        domain_output = self.domain_classifier(reverse_feature)
+        if self.training:
+            feature = dispnetres_flows[-1].view(-1, 256*256*32)
+            reverse_feature = ReverseLayerF.apply(feature, alpha)
+            domain_output = self.domain_classifier(reverse_feature)
 
         if self.training:
             return dispnetc_flows, dispnetres_flows[0:-1], domain_output

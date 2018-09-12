@@ -1,0 +1,125 @@
+libwebpencode_la-delta_palettization_enc.lo: \
+ ../../../webp/src/enc/delta_palettization_enc.c \
+ /usr/include/stdc-predef.h \
+ ../../../webp/src/enc/./delta_palettization_enc.h \
+ ../../../webp/src/enc/./../webp/encode.h \
+ ../../../webp/src/enc/./../webp/./types.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h \
+ /usr/include/inttypes.h /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h \
+ ../../../webp/src/enc/./../enc/vp8li_enc.h \
+ ../../../webp/src/enc/./../enc/./backward_references_enc.h \
+ /usr/include/assert.h /usr/include/stdlib.h \
+ /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
+ /usr/include/endian.h /usr/include/bits/endian.h \
+ /usr/include/bits/byteswap.h /usr/include/bits/types.h \
+ /usr/include/bits/typesizes.h /usr/include/bits/byteswap-16.h \
+ /usr/include/sys/types.h /usr/include/time.h /usr/include/sys/select.h \
+ /usr/include/bits/select.h /usr/include/bits/sigset.h \
+ /usr/include/bits/time.h /usr/include/sys/sysmacros.h \
+ /usr/include/bits/pthreadtypes.h /usr/include/alloca.h \
+ /usr/include/bits/stdlib-float.h \
+ ../../../webp/src/enc/./../enc/./../webp/types.h \
+ ../../../webp/src/enc/./../enc/./../webp/format_constants.h \
+ ../../../webp/src/enc/./../enc/./histogram_enc.h /usr/include/string.h \
+ /usr/include/xlocale.h \
+ ../../../webp/src/enc/./../enc/././backward_references_enc.h \
+ ../../../webp/src/enc/./../enc/../utils/bit_writer_utils.h \
+ ../../../webp/src/enc/./../enc/../utils/../webp/types.h \
+ ../../../webp/src/enc/./../enc/../webp/encode.h \
+ ../../../webp/src/enc/./../enc/../webp/format_constants.h
+
+/usr/include/stdc-predef.h:
+
+../../../webp/src/enc/./delta_palettization_enc.h:
+
+../../../webp/src/enc/./../webp/encode.h:
+
+../../../webp/src/enc/./../webp/./types.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h:
+
+/usr/include/inttypes.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/bits/wchar.h:
+
+../../../webp/src/enc/./../enc/vp8li_enc.h:
+
+../../../webp/src/enc/./../enc/./backward_references_enc.h:
+
+/usr/include/assert.h:
+
+/usr/include/stdlib.h:
+
+/usr/include/bits/waitflags.h:
+
+/usr/include/bits/waitstatus.h:
+
+/usr/include/endian.h:
+
+/usr/include/bits/endian.h:
+
+/usr/include/bits/byteswap.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
+
+/usr/include/bits/byteswap-16.h:
+
+/usr/include/sys/types.h:
+
+/usr/include/time.h:
+
+/usr/include/sys/select.h:
+
+/usr/include/bits/select.h:
+
+/usr/include/bits/sigset.h:
+
+/usr/include/bits/time.h:
+
+/usr/include/sys/sysmacros.h:
+
+/usr/include/bits/pthreadtypes.h:
+
+/usr/include/alloca.h:
+
+/usr/include/bits/stdlib-float.h:
+
+../../../webp/src/enc/./../enc/./../webp/types.h:
+
+../../../webp/src/enc/./../enc/./../webp/format_constants.h:
+
+../../../webp/src/enc/./../enc/./histogram_enc.h:
+
+/usr/include/string.h:
+
+/usr/include/xlocale.h:
+
+../../../webp/src/enc/./../enc/././backward_references_enc.h:
+
+../../../webp/src/enc/./../enc/../utils/bit_writer_utils.h:
+
+../../../webp/src/enc/./../enc/../utils/../webp/types.h:
+
+../../../webp/src/enc/./../enc/../webp/encode.h:
+
+../../../webp/src/enc/./../enc/../webp/format_constants.h:

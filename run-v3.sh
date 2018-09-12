@@ -1,3 +1,4 @@
+python main.py --cuda --outf ./models/girl-domain-transfer-models-dispCSRes --lr 0.0001 --logFile girl-domain-transfer-train-dispCSRes.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl20_TRAIN.list --vallist ./lists/girl20_TEST.list --startEpoch 0 --datapath /home/datasets/imagenet/dispnet/virtual --model ./models/girl-domain-transfer-models-dispCSRes/model_best.pth --batchSize 8 --endEpoch 50 --domain_transfer 1 --tdlist lists/real_release.list
 #python main.py --cuda --outf ./models/girl-domain-transfer-models-dispCSRes --lr 0.0001 --logFile girl-domain-transfer-train-dispCSRes.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl20_TRAIN.list --vallist ./lists/girl20_TEST.list --startEpoch 0 --datapath /home/datasets/imagenet/dispnet/virtual --batchSize 8 --endEpoch 200 --domain_transfer 1 --tdlist lists/real_release.list
 
 # TITANX
