@@ -19,4 +19,4 @@ nvcc -c -o corr1d_cuda_kernel.cu.o corr1d_cuda_kernel.cu -x cu -Xcompiler -fPIC 
                            -gencode arch=compute_61,code=sm_61 
 
 cd ../../
-python setup.py build install
+sudo python setup.py build install
