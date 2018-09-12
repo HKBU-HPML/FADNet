@@ -1,4 +1,4 @@
-img=img00077
+img=img00019
 inv_baseline=0.0038
 focal=1800
 maxdisp=200
@@ -12,9 +12,23 @@ rgb=${left_rgb_root}/${img}.bmp
 disp=${disp_root}/real_release_frames_cleanpass_left_${img}.bmp.pfm
 #jview $rgb
 #jview $disp
+#disp_root=./detect_result/domain_adaptation
+#disp_root=./detect_result/flyingthings_model
+#disp_root=./detect_results/flyingthings_model/disp3
+#disp_root=./detect_result/cropfrom1024model_real_detect_cleandata_scale1024
+#left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/left
+#left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/custom/left
+rgb=${left_rgb_root}/${img}.png
+#disp=${disp_root}/custom_left_${img}.png.pfm
+# nn 3d model
+#rgb=${left_rgb_root}/${img}.bmp
+#disp=${disp_root}/real_release_frames_cleanpass_left_${img}.bmp.pfm
+disp=${disp_root}/real_release_frames_cleanpass_left_${img}.pfm
+jview $rgb
+jview $disp
 ./tools/pfm_viewer $disp  predict_${img}.exr
 ./tools/DisparityTo3D predict_${img}.exr ${img}.obj $rgb ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
-# ${img}.obj
+cp ${img}.obj /media/sf_Shared_Data/dispnet/
 
 # # sgm 3d model
 # pfm_viewer ./data_local/dispnet/real_release/sgm_disp/left/${img}.pfm ./real_detect_result_sgm/predict_${img}.exr

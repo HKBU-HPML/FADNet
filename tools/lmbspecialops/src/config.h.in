@@ -1,0 +1,6 @@
+#ifndef CONFIG_H_
+#define CONFIG_H_
+
+#cmakedefine BUILD_WITH_CUDA
+
+#endif /* CONFIG_H_ */

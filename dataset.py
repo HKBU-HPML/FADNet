@@ -221,12 +221,21 @@ class DispDataset(Dataset):
             if len(img_names) > 4:
                 ir_left_name = os.path.join(self.root_dir, img_names[3])
                 ir_right_name = os.path.join(self.root_dir, img_names[4])
-
-            img_left = io.imread(img_left_name)
-            img_right = io.imread(img_right_name)
+            if img_left_name.find('.npy') > 0:
+                img_left = np.load(img_left_name)
+                img_right = np.load(img_right_name)
+            else:
+                img_left = io.imread(img_left_name)
+                img_right = io.imread(img_right_name)
             if ir_left_name:
-                ir_left = io.imread(ir_left_name)[:, :, 0]
-                ir_right = io.imread(ir_right_name)[:, :, 0]
+                if ir_left_name.find('.npy') > 0:
+                    ir_left = np.load(ir_left_name)[:, :, 0]
+                    ir_right= np.load(ir_right_name)[:, :, 0]
+                else:
+                    ir_left = io.imread(ir_left_name)[:, :, 0]
+                    ir_right = io.imread(ir_right_name)[:, :, 0]
+                #img_left = np.concatenate((img_left, ir_left[:, :, np.newaxis]), axis=2)
+                #img_right = np.concatenate((img_right, ir_right[:, :, np.newaxis]), axis=2)
                 with_ir_left = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
                 with_ir_right = np.zeros(shape=(img_left.shape[0], img_left.shape[1], 4), dtype=ir_left.dtype)
                 with_ir_left[:,:,0:3] = img_left[:,:,0:3]
@@ -248,6 +257,9 @@ class DispDataset(Dataset):
         if gt_disp_name.endswith('pfm'):
             gt_disp, scale = load_pfm(gt_disp_name)
             gt_disp = gt_disp[::-1, :]
+        elif gt_disp_name.endswith('npy'):
+            gt_disp = np.load(gt_disp_name)
+            gt_disp = gt_disp[::-1, :]
         else:
             gt_disp = Image.open(gt_disp_name)
             gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
@@ -264,18 +276,21 @@ class DispDataset(Dataset):
 
         if self.phase == 'test':
             #scale = RandomRescale((384, 768))
-            scale = RandomRescale((512, 512))
-            #scale = RandomRescale((1024+256, 1024+256))
+            #scale = RandomRescale((1024+128, 1024+128))
+            #scale = RandomRescale((1024-128,1024-128))
             #scale = RandomRescale((768, 1536)) # Flying things
             #scale = RandomRescale((256, 768)) # KITTI
             #scale = RandomRescale((256, 512)) # KITTI
             #scale = RandomRescale((512, 512)) # girl
             #scale = RandomRescale((512 * 3, 896 * 3))
+            #scale = RandomRescale((768-256, 1024-384)) 
+            #scale = RandomRescale((768+128, 1024+128)) 
             #scale = RandomRescale((768, 1024 + 512))
             #scale = RandomRescale((1536, 1536)) # real data
-            #scale = RandomRescale((1024, 1024)) # real data
             #scale = RandomRescale((2048, 3072)) # moto
-            sample = scale(sample)
+            #scale = RandomRescale((512, 512))
+            #sample = scale(sample)
+            pass
 
         tt = ToTensor()
         if self.transform:
@@ -295,12 +310,15 @@ class DispDataset(Dataset):
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
             #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K
+            #crop = RandomCrop((1024, 1024), augment=self.augment) # girl 2K
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((512, 512)) # girl 1k
             #crop = RandomCrop((1024, 1024)) # girl 2k
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))
+
             sample = crop(sample)
+            pass
         return sample
 
