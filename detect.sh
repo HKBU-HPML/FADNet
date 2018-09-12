@@ -22,6 +22,7 @@ python detecter.py --model ./models/finetune-from-flyingthings-3nd/dispS_epoch_1
 # python detecter.py --model ./cleandata-models-dispC-resnet-relu-ft-rb/model_best.pth --rp ./flying_detect_result --filepath data --filelist RB_FlyingThings3D_release_TEST.list
 
 # real camera
+python detecter.py --model ./models/real-dispCSR/model_best.pth --rp ./detect_results/real_detect_virtual --filepath /home/datasets/imagenet/dispnet --filelist lists/test.list
 #python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-3nd/model_best.pth --rp ./detect_result/real_detect_cleandata_cropscale --filepath /home/datasets/imagenet/dispnet --filelist lists/real_release.list
 #python detecter.py --model ./models/girl02-train-dispCSRes-crop-3nd/model_best.pth --rp ./detect_result/real_detect_cleandata_cropscale --filepath /home/datasets/imagenet/dispnet --filelist lists/real_release.list
 #python detecter.py --model /home/comp/csshshi/fromsz/model_best.pth --rp ./detect_result/cropfrom1024model_real_detect_cleandata_scale1024 --filepath /home/datasets/imagenet/dispnet --filelist lists/real_release.list

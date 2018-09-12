@@ -114,12 +114,12 @@ class RandomRescale(object):
 
     @staticmethod
     def scale_back(disp, original_size=(1, 540, 960)):
-        print('current shape:', disp.shape)
+        # print('current shape:', disp.shape)
         o_w = original_size[2]
         s_w = disp.shape[2]
         trans_disp = transform.resize(disp, original_size, preserve_range=True)
         trans_disp = trans_disp * (o_w * 1.0 / s_w)
-        print('trans shape:', trans_disp.shape)
+        # print('trans shape:', trans_disp.shape)
         return trans_disp.astype(np.float32)
 
 
