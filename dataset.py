@@ -169,6 +169,51 @@ class RandomCrop(object):
 
         return new_sample
 
+class CenterCrop(object):
+    """
+    Crop the image at center
+    Args: int or tuple. tuple is (h, w)
+
+    """
+    def __init__(self, output_size, augment=False):
+        assert isinstance(output_size, (int, tuple))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
+        else:
+            assert len(output_size) == 2
+            self.output_size = output_size
+        self.augment = augment
+        self.transform = ColorJitter() 
+
+    def __call__(self, sample):
+        image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
+
+        h, w = image_left.shape[1:3]
+        new_h, new_w = self.output_size
+
+        top = int((h - new_h) / 2)
+        left = int((w - new_w) / 2)
+        # top = 0
+        # left = 0
+
+        image_left = image_left[:, top: top + new_h, left: left + new_w]
+        image_right = image_right[:, top: top + new_h, left: left + new_w]
+        gt_disp = gt_disp[:, top: top + new_h, left: left + new_w]
+        if self.augment:
+            rd = np.random.randint(0,2)
+            if rd == 0:
+                image_left = self.transform(image_left)
+                #imgtmp = image_left.cpu().numpy()
+                #imgtmp = np.transpose(imgtmp, [2, 1, 0])
+                #print('lighted shape:', imgtmp.shape)
+                #io.imsave('test.png', imgtmp)
+                image_right = self.transform(image_right)
+        new_sample = sample
+        new_sample.update({'img_left': image_left, 
+                      'img_right': image_right, 
+                      'gt_disp': gt_disp})
+
+        return new_sample
 class ToTensor(object):
 
     def __call__(self, array):
@@ -193,7 +238,7 @@ class ToTensor(object):
 
 class DispDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, transform = None, phase='train', augment=False):
+    def __init__(self, txt_file, root_dir, transform = None, phase='train', augment=False, center_crop=False):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -206,6 +251,7 @@ class DispDataset(Dataset):
         self.transform = transform
         self.phase = phase
         self.augment = augment 
+        self.center_crop = center_crop
 
     def __len__(self):
         return len(self.imgPairs)
@@ -306,7 +352,10 @@ class DispDataset(Dataset):
 
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
-            crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            if self.center_crop == True:
+                crop = CenterCrop((384, 768))
+            else:
+                crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
             #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K

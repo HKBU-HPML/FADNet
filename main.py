@@ -84,7 +84,7 @@ target_transform = transforms.Compose([
 augment= True if opt.augment==1 else False
 print('augment: ', augment)
 train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = opt.datapath, transform=[input_transform, target_transform], augment=augment)
-test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform], center_crop = True)
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -106,7 +106,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = 2, \
+test_loader = DataLoader(test_dataset, batch_size = 8, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -117,8 +117,8 @@ ngpu = len(devices)
 # net = DispNetC(ngpu, True)
 
 # qiang
-net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
-#net = DispNetCSRes(ngpu, False, True, input_channel=3)
+#net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
+net = DispNetCSRes(ngpu, False, True, input_channel=3)
 #mono_decoder = resnet50_decoder()
 
 ## Shaohuai
@@ -166,14 +166,14 @@ net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 # qiang
-loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
+#loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
 #loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
 
 # shaohuai for girl data
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
-#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
-loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
+loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
+#loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
 # shaohuai for kitti data
 #loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
@@ -235,7 +235,7 @@ def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    target_losses = AverageMeter()
+    #target_losses = AverageMeter()
     flow2_EPEs = AverageMeter()
 
     # switch to train mode
@@ -243,9 +243,9 @@ def train(train_loader, model, optimizer, epoch):
 
     end = time.time()
 
-    len_dataloader = min(len(train_loader), len(td_loader))
-    len_targetloader = len(td_loader)
-    nbatch_of_target = len_targetloader / opt.batchSize
+    #len_dataloader = min(len(train_loader), len(td_loader))
+    #len_targetloader = len(td_loader)
+    #nbatch_of_target = len_targetloader / opt.batchSize
 
     for i_batch, sample_batched in enumerate(train_loader):
         
@@ -302,10 +302,9 @@ def train(train_loader, model, optimizer, epoch):
               'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
-              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'
-              'target loss {target_losses.val:.3f} ({target_losses.avg:.3f})'.format(
+              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})'.format(
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
-              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, target_losses=target_losses))
+              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
  
 	# debug  	
 	#if i_batch >= 3:
@@ -564,8 +563,8 @@ def validate(val_loader, model, criterion, high_res_EPE):
                   .format(i, len(val_loader), batch_time.val, flow2_EPEs.val))
 
 	# debug
-	if i >= 3:
-	    break
+	#if i >= 3:
+	#    break
 
     print(' * EPE {:.3f}'.format(flow2_EPEs.avg))
 
@@ -599,9 +598,9 @@ for epoch in range(start_epoch, end_epoch):
     #    train_loss, train_EPE = train_with_domain_transfer(train_loader, td_loader, net, optimizer, epoch)
     #else:
     #    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
-    #train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
-    train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
 
     # evaluate on validation set
     #if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
