@@ -6,7 +6,7 @@ import argparse
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--dataset', type=str, help='file list', default='girl02')
-parser.add_argument('--trainPer', type=float, help='percentage of train', default=0.8)
+parser.add_argument('--trainPer', type=float, help='percentage of train', default=0.9)
 
 opt = parser.parse_args()
 

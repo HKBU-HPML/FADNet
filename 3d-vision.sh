@@ -1,16 +1,17 @@
-img=img00055
+img=img00077
 inv_baseline=0.0038
 focal=1800
 maxdisp=200
 mindisp=1
 #real_release_frames_cleanpass_left_img00008.bmp.pfm
-disp_root=./detect_result/real_detect_cleandata
-left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/left
+disp_root=./detect_results/real-monodepth
+#left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/real_release/frames_cleanpass/left
+left_rgb_root=/media/external/data/real_release/frames_cleanpass/left
 # nn 3d model
 rgb=${left_rgb_root}/${img}.bmp
 disp=${disp_root}/real_release_frames_cleanpass_left_${img}.bmp.pfm
-jview $rgb
-jview $disp
+#jview $rgb
+#jview $disp
 ./tools/pfm_viewer $disp  predict_${img}.exr
 ./tools/DisparityTo3D predict_${img}.exr ${img}.obj $rgb ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
 # ${img}.obj

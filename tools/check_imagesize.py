@@ -5,17 +5,16 @@ import sys
 from skimage import io
 from dataset import load_pfm
 
-orignal_list = './lists/girl20'
-root_dir = '/data2/virtual2'
-target_list = './lists/girl-1024x1024.list'
+orignal_list = './lists/virtual01'
+#root_dir = '/data2/virtual2'
+root_dir = '/'
+target_list = './lists/virtual01-1024x1024.list'
 tf = open(target_list, 'w')
 
 with open(orignal_list+'.list', 'r') as f:
     for line in f.readlines():
         r = line.strip('\n').split(' ')
         if len(r) < 3:
-            print('error: ', line)
-            print(r)
             continue
         error = False
         for im in r:
@@ -28,9 +27,9 @@ with open(orignal_list+'.list', 'r') as f:
                 img = io.imread(path)
             else:
                 img, scale = load_pfm(path)
-            print('name: ', im, ', shape: ', img.shape)
+            #print('name: ', im, ', shape: ', img.shape)
             if img.shape[0] != 1024 or img.shape[1] != 1024:
-                #print('error img: ', img.shape, line, im)
+                print(img.shape, line)
                 error = True
                 break
         if not error:

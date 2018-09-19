@@ -1,6 +1,28 @@
 from __future__ import absolute_import, division, print_function
 import torch
 from torch.nn.functional import pad
+import dataset
+from skimage import io
+import numpy as np
+from layers_package.resample2d_package.modules.resample2d import Resample2d
+import math
+
+def validate_disparity(disp, left, right):
+    disp = np.transpose(disp.numpy()[0], [1, 2, 0])
+    left = np.transpose(left.numpy()[0], [1, 2, 0])
+    right = np.transpose(right.numpy()[0], [1, 2, 0])
+    val_right = np.zeros(right.shape, dtype=left.dtype)
+    shape = right.shape
+    for i in range(shape[0]):
+        for j in reversed(range(shape[1])):
+            d = int(math.ceil(disp[i][j][0]))
+            #print('disp: ', d)
+            right_j = j-d
+            if right_j < 0 or right_j >= shape[1]:
+                continue
+            val_right[i][right_j] = left[i][j]
+    val_right = np.transpose(val_right, [2, 0, 1])
+    return val_right
 
 def apply_disparity(input_images, x_offset, wrap_mode='border', tensor_type = 'torch.cuda.FloatTensor'):
     num_batch, num_channels, height, width = input_images.size()
@@ -36,6 +58,7 @@ def apply_disparity(input_images, x_offset, wrap_mode='border', tensor_type = 't
     # Now we want to sample pixels with indicies shifted by disparity in X direction
     # For that we convert disparity from % to pixels and add to X indicies
     x = x + x_offset.contiguous().view(-1) * width
+    #x = x + x_offset.contiguous().view(-1) # direct predict disparity
     # Make sure we don't go outside of image
     x = torch.clamp(x, 0.0, width - 1 + 2 * edge_size)
     # Round disparity to sample from integer-valued pixel grid
@@ -72,3 +95,46 @@ def apply_disparity(input_images, x_offset, wrap_mode='border', tensor_type = 't
     output = output.view(num_channels, num_batch, height, width).permute(1,0,2,3)
 
     return output
+
+if __name__ == '__main__':
+    img_left_name = "/media/external/data/virtual2/ep0010/camera1_R/XNCG_ep0010_cam01_rd_lgt.0003.png"
+    img_right_name = "/media/external/data/virtual2/ep0010/camera1_L/XNCG_ep0010_cam01_rd_lgt.0003.png"
+    gt_disp_name = "/media/external/data/virtual2/ep0010/camera1_R/XNCG_ep0010_cam01_rd_lgt.Z.0003.pfm"
+    #img_left_name = "./test_imgs/flying_left.png"
+    #img_right_name = "./test_imgs/flying_right.png"
+    #gt_disp_name = "./test_imgs/flying_left.pfm"
+
+    gt_disp, scale = dataset.load_pfm(gt_disp_name)
+    gt_disp = gt_disp[::-1, :]
+    img_left = io.imread(img_left_name)[:, :, :3]
+    img_right = io.imread(img_right_name)[:, :, :3]
+
+    print(np.mean(gt_disp), np.mean(img_left), np.mean(img_right))
+
+    img_left = np.transpose(img_left, [2, 0, 1])
+    img_right = np.transpose(img_right, [2, 0, 1])
+
+    gt_disp = torch.from_numpy(gt_disp[np.newaxis, np.newaxis, :].astype(np.float32))
+    img_left = torch.from_numpy(img_left[np.newaxis, :].astype(np.float32))
+    img_right = torch.from_numpy(img_right[np.newaxis, :].astype(np.float32))
+
+    print(gt_disp.size(), img_left.size(), img_right.size())
+
+    # shaohuai's warp
+    warp_left = validate_disparity(gt_disp, img_left, img_right)
+
+    # resample warp
+    #resample1 = Resample2d()
+    #dummy_flow = torch.autograd.Variable(torch.zeros(img_right.size()))
+    #gt_disp = torch.cat((gt_disp, dummy_flow), dim = 1)
+    #warp_left = resample1(img_right.cuda(), -gt_disp.cuda()).data.cpu()
+    #warp_left = warp_left.numpy()[0]
+
+    # monodepth warp
+    #warp_left = apply_disparity(img_right, -gt_disp, tensor_type = 'torch.FloatTensor')
+    #warp_left = warp_left.numpy()[0]
+
+    print(warp_left.shape)
+    print(np.mean(warp_left))
+    io.imsave("test_reverse.png", np.transpose(warp_left, [1, 2, 0]).astype(np.int))
+
