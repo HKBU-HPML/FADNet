@@ -20,7 +20,7 @@
 # python detecter.py --model ./cleandata-models-dispC-resnet-relu-ft-rb/model_best.pth --rp ./flying_detect_result --filepath data --filelist RB_FlyingThings3D_release_TEST.list
 
 # real camera
-python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-3nd/model_best.pth --rp ./detect_result/real_detect_cleandata --filepath /home/datasets/imagenet/dispnet --filelist lists/test.list
+python detecter.py --model ./models/real-dispCSR/model_best.pth --rp ./detect_results/real_detect_virtual --filepath /home/datasets/imagenet/dispnet --filelist lists/test.list
 # python detecter.py --model ./cleandata-models-dispC-resnet-relu-ft-rb-mix/model_best.pth --rp ./real_detect_result_s1.5 --filepath data/dispnet --filelist real_sgm_release.list
 # detect with titanx
 # python detecter.py --model ./models/cc-dispCSRes-model_best.pth --rp ./cc-detect_result_l2norm --filepath data 

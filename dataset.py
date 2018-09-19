@@ -264,7 +264,9 @@ class DispDataset(Dataset):
 
         if self.phase == 'test':
             #scale = RandomRescale((384, 768))
-            scale = RandomRescale((512, 512))
+            #scale = RandomRescale((512, 512))
+            #scale = RandomRescale((1024, 1024))
+            scale = RandomRescale((1024, 1024))
             #scale = RandomRescale((1024+256, 1024+256))
             #scale = RandomRescale((768, 1536)) # Flying things
             #scale = RandomRescale((256, 768)) # KITTI
@@ -291,13 +293,13 @@ class DispDataset(Dataset):
 
         if self.phase != 'test':
             #crop = RandomCrop((384, 768))
-            #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
+            crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
             #crop = RandomCrop((256, 384), augment=self.augment) # KITTI
             #crop = RandomCrop((512, 512), augment=self.augment) # girl 1K
             #crop = RandomCrop((384, 768)) # flyingthing, monkaa, driving
             #crop = RandomCrop((256, 768)) # KITTI
-            crop = RandomCrop((512, 512)) # girl 1k
+            #crop = RandomCrop((512, 512)) # girl 1k
             #crop = RandomCrop((1024, 1024)) # girl 2k
             #crop = RandomCrop((384, 768))
             #crop = RandomCrop((896, 896))

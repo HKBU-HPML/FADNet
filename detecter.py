@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from dispnet import *
 from multiscaleloss import multiscaleloss
+import torch.nn.functional as F
 from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -24,14 +25,15 @@ target_transform = transforms.Compose([
         ])
 
 
-def detect(model, result_path, file_list, filepath):
+def detect(opt, model, result_path, file_list, filepath):
     if not os.path.exists(result_path):
         os.mkdir(result_path)
 
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
     #net = DispNetC(ngpu, True)
-    net = DispNetCSRes(ngpu, False, True)
+    #net = DispNetCSRes(ngpu, False, True)
+    net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 
     model_data = torch.load(model)
     print(model_data.keys())
@@ -61,11 +63,13 @@ def detect(model, result_path, file_list, filepath):
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
+        # output = net(input_var)[1]
         output = net(input_var)[1]
 
         for j in range(num_of_samples):
             # scale back depth
             np_depth = output[j].data.cpu().numpy()
+            print(np.min(np_depth), np.max(np_depth))
             np_depth = RandomRescale.scale_back(np_depth, original_size)
             #np_depth = RandomRescale.scale_back(np_depth, original_size=(1, 1024, 1024))
             cuda_depth = torch.from_numpy(np_depth).cuda()
@@ -74,8 +78,8 @@ def detect(model, result_path, file_list, filepath):
             # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
             flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
             #print('Shape: {}'.format(output[j].size()))
-            #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
-            print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
+            print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
+            #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
 
             name_items = sample_batched['img_names'][0][j].split('/')
             save_name = '_'.join(name_items) + '.pfm'# for girl02 dataset
@@ -98,7 +102,8 @@ if __name__ == '__main__':
     parser.add_argument('--devices', type=str, help='devices', default='0')
     parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
     parser.add_argument('--rp', type=str, help='result path', default='./result')
+    parser.add_argument('--flowDiv', type=float, help='flow division', default='1.0')
     parser.add_argument('--batchSize', type=int, help='mini batch size', default=1)
 
     opt = parser.parse_args()
-    detect(opt.model, opt.rp, opt.filelist, opt.filepath)
+    detect(opt, opt.model, opt.rp, opt.filelist, opt.filepath)

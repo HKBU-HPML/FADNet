@@ -33,7 +33,10 @@
 
 # girl style data
 #python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-3nd/dispS_epoch_40.pth --rp ./detect_result/girl-crop-noscale-3nd-epe0.152 --filepath /home/datasets/imagenet/dispnet/virtual --filelist ./lists/girl05.list
-python detecter.py --model ./models/virtual-style-dispCSR/model_best.pth --rp ./detect_results/virtual-style-virtual --filelist ./lists/girl_style.list --filepath / 
+#CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/real-dispCSR/model_best.pth --rp ./detect_results/real --filelist ./lists/real_release.list --filepath /media/external/data/virtual
+#CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/cleandata-models-dispCSRes-exp/model_best.pth --rp ./detect_results/real --filelist ./lists/real_release.list --filepath /media/external/data/virtual
+CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/flying-real-dispCSRWithMono-in1024-r2/dispS_epoch_43.pth --rp ./detect_results/real-monodepth --filelist ./lists/real_release.list --filepath /media/external/data/virtual
+#CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/real-dispCSR/model_best.pth --rp ./detect_results/real-monodepth --filelist ./lists/real_release.list --filepath /media/external/data/virtual
 
 # moto 
 #python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-3nd/dispS_epoch_40.pth --rp ./detect_result/moto --filepath /home/datasets/imagenet/dispnet --filelist lists/moto.list
