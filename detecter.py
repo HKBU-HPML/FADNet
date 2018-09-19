@@ -57,8 +57,10 @@ def detect(opt, model, result_path, file_list, filepath):
         # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
         target = sample_batched['gt_disp']
-        # print('disp Shape: {}'.format(target.size()))
-	original_size = (1, target.size()[2], target.size()[3])
+
+        print('disp Shape: {}'.format(target.size()))
+        original_size = (1, target.size()[2], target.size()[3])
+
         target = target.cuda()
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -71,12 +73,12 @@ def detect(opt, model, result_path, file_list, filepath):
             np_depth = output[j].data.cpu().numpy()
             print(np.min(np_depth), np.max(np_depth))
             np_depth = RandomRescale.scale_back(np_depth, original_size)
-            #np_depth = RandomRescale.scale_back(np_depth, original_size=(1, 1024, 1024))
+            net_out_np_depth = np_depth
             cuda_depth = torch.from_numpy(np_depth).cuda()
             cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
             # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
-            flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
+            #flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
             #print('Shape: {}'.format(output[j].size()))
             print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
             #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
@@ -86,9 +88,9 @@ def detect(opt, model, result_path, file_list, filepath):
             #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
             #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
             #save_name = 'predict_{}.pfm'.format(name_items[-1])
-            img = np.flip(np_depth[0], axis=0)
-            # print('Name: {}'.format(save_name))
-            # print('')
+            img = np.flip(net_out_np_depth[0], axis=0)
+            print('Name: {}'.format(save_name))
+            print('')
             save_pfm('{}/{}'.format(result_path, save_name), img)
 
     print('Evaluation time used: {}'.format(time.time()-s))

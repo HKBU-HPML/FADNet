@@ -30,9 +30,10 @@ def save_pfm(filename, image, scale = 1):
   image.tofile(file) 
   file.close()
 
-
+exr_name = sys.argv[1]
+pfm_name = sys.argv[2]
 pt = Imath.PixelType(Imath.PixelType.FLOAT)
-exr_img = OpenEXR.InputFile("R.0040.exr")
+exr_img = OpenEXR.InputFile(exr_name)
 print exr_img.header()
 dw = exr_img.header()['dataWindow']
 size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
@@ -41,4 +42,4 @@ redstr = exr_img.channel('R', pt)
 red = np.fromstring(redstr, dtype = np.float32)
 red.shape = (size[1], size[0])
 print red.shape, red[10][10]
-save_pfm("test.pfm", red)
+save_pfm(pfm_name, red)

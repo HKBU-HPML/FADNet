@@ -13,6 +13,8 @@
 *.db
 *.so
 *.so.*
+*.npy
+*.o
 tmp
 ./data
 data
