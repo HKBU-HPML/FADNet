@@ -1,0 +1,178 @@
+libwebpencode_la-histogram_enc.lo: ../../../webp/src/enc/histogram_enc.c \
+ /usr/include/stdc-predef.h ../webp/config.h /usr/include/math.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h /usr/include/bits/math-vector.h \
+ /usr/include/bits/libm-simd-decl-stubs.h /usr/include/bits/huge_val.h \
+ /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h \
+ /usr/include/bits/inf.h /usr/include/bits/nan.h \
+ /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h \
+ ../../../webp/src/enc/./backward_references_enc.h /usr/include/assert.h \
+ /usr/include/stdlib.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h \
+ /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
+ /usr/include/endian.h /usr/include/bits/endian.h \
+ /usr/include/bits/byteswap.h /usr/include/bits/types.h \
+ /usr/include/bits/typesizes.h /usr/include/bits/byteswap-16.h \
+ /usr/include/sys/types.h /usr/include/time.h /usr/include/sys/select.h \
+ /usr/include/bits/select.h /usr/include/bits/sigset.h \
+ /usr/include/bits/time.h /usr/include/sys/sysmacros.h \
+ /usr/include/bits/pthreadtypes.h /usr/include/alloca.h \
+ /usr/include/bits/stdlib-float.h ../../../webp/src/enc/./../webp/types.h \
+ /usr/include/inttypes.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h \
+ ../../../webp/src/enc/./../webp/format_constants.h \
+ ../../../webp/src/enc/./histogram_enc.h /usr/include/string.h \
+ /usr/include/xlocale.h \
+ ../../../webp/src/enc/././backward_references_enc.h \
+ ../../../webp/src/enc/../dsp/lossless.h \
+ ../../../webp/src/enc/../dsp/../webp/types.h \
+ ../../../webp/src/enc/../dsp/../webp/decode.h \
+ ../../../webp/src/enc/../dsp/../webp/./types.h \
+ ../../../webp/src/enc/../dsp/../enc/histogram_enc.h \
+ ../../../webp/src/enc/../dsp/../utils/utils.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/limits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h \
+ ../../../webp/src/enc/../dsp/../utils/../dsp/dsp.h \
+ ../../../webp/src/enc/../dsp/../utils/../dsp/../webp/types.h \
+ ../../../webp/src/enc/../dsp/../utils/../webp/types.h \
+ ../../../webp/src/enc/../dsp/lossless_common.h \
+ ../../../webp/src/enc/../utils/utils.h
+
+/usr/include/stdc-predef.h:
+
+../webp/config.h:
+
+/usr/include/math.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/include/bits/math-vector.h:
+
+/usr/include/bits/libm-simd-decl-stubs.h:
+
+/usr/include/bits/huge_val.h:
+
+/usr/include/bits/huge_valf.h:
+
+/usr/include/bits/huge_vall.h:
+
+/usr/include/bits/inf.h:
+
+/usr/include/bits/nan.h:
+
+/usr/include/bits/mathdef.h:
+
+/usr/include/bits/mathcalls.h:
+
+../../../webp/src/enc/./backward_references_enc.h:
+
+/usr/include/assert.h:
+
+/usr/include/stdlib.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stddef.h:
+
+/usr/include/bits/waitflags.h:
+
+/usr/include/bits/waitstatus.h:
+
+/usr/include/endian.h:
+
+/usr/include/bits/endian.h:
+
+/usr/include/bits/byteswap.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
+
+/usr/include/bits/byteswap-16.h:
+
+/usr/include/sys/types.h:
+
+/usr/include/time.h:
+
+/usr/include/sys/select.h:
+
+/usr/include/bits/select.h:
+
+/usr/include/bits/sigset.h:
+
+/usr/include/bits/time.h:
+
+/usr/include/sys/sysmacros.h:
+
+/usr/include/bits/pthreadtypes.h:
+
+/usr/include/alloca.h:
+
+/usr/include/bits/stdlib-float.h:
+
+../../../webp/src/enc/./../webp/types.h:
+
+/usr/include/inttypes.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/bits/wchar.h:
+
+../../../webp/src/enc/./../webp/format_constants.h:
+
+../../../webp/src/enc/./histogram_enc.h:
+
+/usr/include/string.h:
+
+/usr/include/xlocale.h:
+
+../../../webp/src/enc/././backward_references_enc.h:
+
+../../../webp/src/enc/../dsp/lossless.h:
+
+../../../webp/src/enc/../dsp/../webp/types.h:
+
+../../../webp/src/enc/../dsp/../webp/decode.h:
+
+../../../webp/src/enc/../dsp/../webp/./types.h:
+
+../../../webp/src/enc/../dsp/../enc/histogram_enc.h:
+
+../../../webp/src/enc/../dsp/../utils/utils.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/limits.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/5.1.1/include/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/bits/posix1_lim.h:
+
+/usr/include/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/bits/posix2_lim.h:
+
+../../../webp/src/enc/../dsp/../utils/../dsp/dsp.h:
+
+../../../webp/src/enc/../dsp/../utils/../dsp/../webp/types.h:
+
+../../../webp/src/enc/../dsp/../utils/../webp/types.h:
+
+../../../webp/src/enc/../dsp/lossless_common.h:
+
+../../../webp/src/enc/../utils/utils.h:

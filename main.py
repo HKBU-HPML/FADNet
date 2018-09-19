@@ -12,8 +12,8 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from dataset import *
-#from dispnet_v2 import *
-from dispnet import *
+from dispnet_v2 import *
+#from dispnet import *
 from multiscaleloss import *
 #from monodepthloss import *
 from lr_monoloss import *
@@ -21,12 +21,14 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import csv
 from monodepth_net import resnet50_decoder
+import gc
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
 parser.add_argument('--unsupervised', type=bool, help='if open the function of domain transer', default=False)
 parser.add_argument('--unsuper_alpha', type=float, help='weight of unsupervised learning', default=1.0)
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
+parser.add_argument('--input_channel', type=int, help='with or without ir', default=3)
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
@@ -71,7 +73,7 @@ if torch.cuda.is_available() and not opt.cuda:
 
 # input transform, normalize with 255
 input_transform = transforms.Compose([
-        transforms.Normalize(mean=[0,0,0], std=[255,255,255]),
+    transforms.Normalize(mean=[0 for i in range(opt.input_channel)], std=[255 for i in range(opt.input_channel)]),
         # transforms.Normalize(mean=[0.411,0.432,0.45], std=[1,1,1])
         ])
 
@@ -82,7 +84,7 @@ target_transform = transforms.Compose([
 augment= True if opt.augment==1 else False
 print('augment: ', augment)
 train_dataset = DispDataset(txt_file = opt.trainlist, root_dir = opt.datapath, transform=[input_transform, target_transform], augment=augment)
-test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform])
+test_dataset = DispDataset(txt_file = opt.vallist, root_dir = opt.datapath, transform=[input_transform, target_transform], center_crop = True)
 
 # for i in range(3):
 #     sample = train_dataset[i]
@@ -104,7 +106,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = 2, \
+test_loader = DataLoader(test_dataset, batch_size = 8, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -114,18 +116,18 @@ ngpu = len(devices)
 #net = DispNetCSRes(ngpu, False, True)
 # net = DispNetC(ngpu, True)
 
+# qiang
+#net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
+net = DispNetCSRes(ngpu, False, True, input_channel=3)
+#mono_decoder = resnet50_decoder()
+print(net)
+
 ## Shaohuai
 #if opt.domain_transfer:
 #    net = DispNetCSResWithDomainTransfer(ngpu, False, True)
 #else:
-#    net = DispNetCSRes(ngpu, False, True, input_channel=3)
+#    net = DispNetCSRes(ngpu, False, True, input_channel=opt.input_channel)
 #print(net)
-
-# qiang
-net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
-#net = DispNetCSRes(ngpu, False, True, input_channel=3)
-#mono_decoder = resnet50_decoder()
-print(net)
 
 #start_epoch = 0
 #model_data = torch.load('./dispC_epoch_29.pth')
@@ -161,7 +163,7 @@ else:
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 #mono_decoder = torch.nn.DataParallel(mono_decoder, device_ids=devices).cuda()
 
-loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 #loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
 
 # qiang
@@ -171,7 +173,7 @@ loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
 
 # shaohuai for girl data
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
-#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
+loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
 # shaohuai for kitti data
@@ -234,7 +236,7 @@ def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    target_losses = AverageMeter()
+    #target_losses = AverageMeter()
     flow2_EPEs = AverageMeter()
 
     # switch to train mode
@@ -242,9 +244,9 @@ def train(train_loader, model, optimizer, epoch):
 
     end = time.time()
 
-    len_dataloader = min(len(train_loader), len(td_loader))
-    len_targetloader = len(td_loader)
-    nbatch_of_target = len_targetloader / opt.batchSize
+    #len_dataloader = min(len(train_loader), len(td_loader))
+    #len_targetloader = len(td_loader)
+    #nbatch_of_target = len_targetloader / opt.batchSize
 
     for i_batch, sample_batched in enumerate(train_loader):
         
@@ -252,6 +254,15 @@ def train(train_loader, model, optimizer, epoch):
         right_input = torch.autograd.Variable(sample_batched['img_right'].cuda())
         input = torch.cat((left_input, right_input), 1)
         # input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+
+        #left_img = sample_batched['img_left']
+        #right_img = sample_batched['img_right']
+        #print(left_img.size())
+        #print("left rgb:", np.min(left_img[:, :3, :, :].numpy()), np.max(left_img[:, :3, :, :].numpy()))
+        #print("right rgb:", np.min(right_img[:, :3, :, :].numpy()), np.max(right_img[:, :3, :, :].numpy()))
+        #print("left ir:", np.min(left_img[:, 3, :, :].numpy()), np.max(left_img[:, 3, :, :].numpy()))
+        #print("right ir:", np.min(right_img[:, 3, :, :].numpy()), np.max(right_img[:, 3, :, :].numpy()))
+        #input = torch.cat((left_img, right_img), 1)
 
         target = sample_batched['gt_disp']
         target = target.cuda()
@@ -292,10 +303,9 @@ def train(train_loader, model, optimizer, epoch):
               'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
               'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
               'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
-              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'
-              'target loss {target_losses.val:.3f} ({target_losses.avg:.3f})'.format(
+              'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})'.format(
               epoch, i_batch, len(train_loader), batch_time=batch_time, 
-              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, target_losses=target_losses))
+              data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
  
 	# debug  	
 	#if i_batch >= 3:
@@ -357,9 +367,12 @@ def train_with_monodepth(train_loader, model, optimizer, epoch):
         losses.update(loss.data.item(), target.size(0))
         # unsuper_losses.update(loss_mono.data.item(), target.size(0))
         flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
+        #print('Names: {}'.format(sample_batched['img_names']))
+        #print('Epes: {}'.format(flow2_EPE))
 
         # training model using target data
-        if i_batch % nbatch_of_target == 0:
+        #if i_batch % nbatch_of_target == 0:
+        if i_batch % 6 == 0:
             gc.collect()
             target_loader_iter = iter(td_loader)
         td_batched = target_loader_iter.next()
@@ -447,6 +460,7 @@ def train_with_domain_transfer(source_loader, target_loader, model, optimizer, e
         loss_net1 = criterion(output_net1, target_var)
         loss_net2 = criterion(output_net2, target_var)
         loss = loss_net1 + loss_net2
+        gc.collect()
         flow2_EPE = high_res_EPE(output_net2[0], target_var) * opt.flowDiv
         losses.update(loss.data.item(), target.size(0))
         flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
@@ -587,7 +601,10 @@ for epoch in range(start_epoch, end_epoch):
     #    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     #train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
-    train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
+    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
 
     # evaluate on validation set
     #if opt.vallist.split("/")[-1].split("_")[0] != 'KITTI':
@@ -612,12 +629,12 @@ for epoch in range(start_epoch, end_epoch):
         'best_EPE': best_EPE,    
     }, is_best, 'dispS_epoch_%d.pth' % epoch)
 
-    save_checkpoint({
-        'epoch': epoch + 1,
-        'arch': 'mono_decoder',
-        'state_dict': mono_decoder.module.state_dict(),
-        'best_EPE': best_EPE,    
-    }, False, 'mono_epoch_%d.pth' % epoch)
+    #save_checkpoint({
+    #    'epoch': epoch + 1,
+    #    'arch': 'mono_decoder',
+    #    'state_dict': mono_decoder.module.state_dict(),
+    #    'best_EPE': best_EPE,    
+    #}, False, 'mono_epoch_%d.pth' % epoch)
 
     with open(os.path.join('logs', opt.logFile), 'a') as csvfile:
         writer = csv.writer(csvfile, delimiter='\t')

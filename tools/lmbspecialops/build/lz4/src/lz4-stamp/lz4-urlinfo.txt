@@ -1,0 +1,3 @@
+repository='external project URL'
+module='https://github.com/lz4/lz4/archive/r131.tar.gz'
+tag=''

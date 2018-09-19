@@ -668,6 +668,81 @@ class DispNetCSRes(nn.Module):
 
         # dispnetres
         dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows])
+        index = 0
+        #print('Index: ', index)
+        dispnetres_final_flow = dispnetres_flows[index]
+        
+
+        if self.training:
+            return dispnetc_flows, dispnetres_flows
+        else:
+            return dispnetc_final_flow, dispnetres_final_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
+
+
+    def weight_parameters(self):
+	return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+	return [param for name, param in self.named_parameters() if 'bias' in name]
+
+class DispNetCSResWithMono(nn.Module):
+
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False, input_channel=3):
+        super(DispNetCSResWithMono, self).__init__()
+        self.input_channel = input_channel
+        self.batchNorm = batchNorm
+        self.lastRelu = lastRelu
+
+        # First Block (DispNetC)
+        self.dispnetc = DispNetC(ngpus, self.batchNorm, input_channel=input_channel, with_mono = True)
+
+        # warp layer and channelnorm layer
+        self.channelnorm = ChannelNorm()
+        self.resample1 = Resample2d()
+
+        # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
+        self.dispnetres = DispNetRes(ngpus, self.input_channel, self.batchNorm, lastRelu=self.lastRelu, input_channel=input_channel)
+
+        self.relu = nn.ReLU(inplace=False)
+
+        # # parameter initialization
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         if m.bias is not None:
+        #             init.uniform(m.bias)
+        #         init.xavier_uniform(m.weight)
+
+        #     if isinstance(m, nn.ConvTranspose2d):
+        #         if m.bias is not None:
+        #             init.uniform(m.bias)
+        #         init.xavier_uniform(m.weight)
+
+    def forward(self, inputs):
+
+        # split left image and right image
+        # inputs = inputs_target[0]
+        # target = inputs_target[1]
+        imgs = torch.chunk(inputs, 2, dim = 1)
+        img_left = imgs[0]
+        img_right = imgs[1]
+
+        # dispnetc
+        dispnetc_flows = self.dispnetc(inputs)
+        dispnetc_final_flow = dispnetc_flows[0]
+
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
+        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
+        dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
+        resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
+        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
+        norm_diff_img0 = self.channelnorm(diff_img0)
+
+        # concat img0, img1, img1->img0, flow, diff-mag
+        inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
+
+        # dispnetres
+        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows[:-1]])
         dispnetres_final_flow = dispnetres_flows[0]
         
 
@@ -759,6 +834,7 @@ class DispNetCSResWithMono(nn.Module):
 
 
 
+
 class ReverseLayerF(Function):
     @staticmethod
     def forward(ctx, x, alpha):
@@ -829,9 +905,10 @@ class DispNetCSResWithDomainTransfer(nn.Module):
         dispnetres_final_flow = dispnetres_flows[0]
         #feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
         #print('size; ', dispnetres_flows[-1].size())
-        feature = dispnetres_flows[-1].view(-1, 256*256*32)
-        reverse_feature = ReverseLayerF.apply(feature, alpha)
-        domain_output = self.domain_classifier(reverse_feature)
+        if self.training:
+            feature = dispnetres_flows[-1].view(-1, 256*256*32)
+            reverse_feature = ReverseLayerF.apply(feature, alpha)
+            domain_output = self.domain_classifier(reverse_feature)
 
         if self.training:
             return dispnetc_flows, dispnetres_flows[0:-1], domain_output

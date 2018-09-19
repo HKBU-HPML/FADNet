@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from skimage.transform import *
 import numpy as np
+from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
 from layers_package.layers import ResBlock
@@ -13,6 +14,7 @@ from layers_package.resample2d_package.modules.resample2d import Resample2d
 from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
 from layers_package.submodules import *
 
+from correlation_package.modules.corr import Correlation1d # from PWC-Net
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
     if batchNorm:
@@ -33,7 +35,7 @@ def predict_flow(in_planes):
 
 def deconv(in_planes, out_planes):
     return nn.Sequential(
-            nn.ConvTranspose2d(in_planes, out_planes, kernel_size=3, stride=2, padding=1, output_padding=1, bias=False),
+            nn.ConvTranspose2d(in_planes, out_planes, kernel_size=4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.1, inplace=True)
     )
 
@@ -71,32 +73,32 @@ class DispNet(nn.Module):
 
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
-        self.upflow6to5 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.iconv5 = nn.ConvTranspose2d(1025, 512, 3, 1, 1)
         self.pred_flow5 = predict_flow(512)
 
         self.upconv4 = deconv(512, 256)
-        self.upflow5to4 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow5to4 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.iconv4 = nn.ConvTranspose2d(769, 256, 3, 1, 1)
         self.pred_flow4 = predict_flow(256)
 
         self.upconv3 = deconv(256, 128)
-        self.upflow4to3 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow4to3 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.pred_flow3 = predict_flow(128)
 
         self.upconv2 = deconv(128, 64)
-        self.upflow3to2 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow3to2 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.pred_flow2 = predict_flow(64)
 
         self.upconv1 = deconv(64, 32)
-        self.upflow2to1 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow2to1 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
         self.pred_flow1 = predict_flow(32)
 
         self.upconv0 = deconv(32, 16)
-        self.upflow1to0 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
         self.pred_flow0 = predict_flow(16)
 
@@ -118,8 +120,6 @@ class DispNet(nn.Module):
 
         # split left image and right image
         # print(input.size())
-        # img_left = torch.index_select(input, 1, torch.cuda.LongTensor([0, 1, 2]))
-        # img_right = torch.index_select(input, 1, torch.cuda.LongTensor[3, 4, 5])
         imgs = torch.chunk(input, 2, dim = 1)
         img_left = imgs[0]
         img_right = imgs[1]
@@ -193,23 +193,24 @@ class DispNet(nn.Module):
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=False):
+    def __init__(self, ngpu, batchNorm=False, input_channel=3):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
+        self.input_channel = input_channel
 
         # shrink and extract features
-        self.conv1   = conv(self.batchNorm, 3, 64, 7, 2)
+        self.conv1   = conv(self.batchNorm, self.input_channel, 64, 7, 2)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
 
-	# start corr from conv3, output channel is 32 + 21*21 = 473
+	# start corr from conv3, output channel is 32 + (max_disp * 2+1) = , max_disp = 40
 	self.conv_redir = ResBlock(256, 32, stride=1)
-	self.corr = Correlation(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
+	self.corr = Correlation1d(pad_size=40, kernel_size=3, max_displacement=40, stride1=1, stride2=1, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
-        self.conv3_1 = ResBlock(473, 256)
+        self.conv3_1 = ResBlock(113, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
         self.conv4_1 = ResBlock(512, 512)
         self.conv5   = ResBlock(512, 512, stride=2)
@@ -241,7 +242,7 @@ class DispNetC(nn.Module):
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
+        self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
 
         # # original iconv with conv
         # self.iconv5 = conv(self.batchNorm, 1025, 512, 3, 1)
@@ -253,27 +254,27 @@ class DispNetC(nn.Module):
         
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
-        self.upflow6to5 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow5 = predict_flow(512)
 
         self.upconv4 = deconv(512, 256)
-        self.upflow5to4 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow5to4 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow4 = predict_flow(256)
 
         self.upconv3 = deconv(256, 128)
-        self.upflow4to3 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow4to3 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow3 = predict_flow(128)
 
         self.upconv2 = deconv(128, 64)
-        self.upflow3to2 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow3to2 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow2 = predict_flow(64)
 
         self.upconv1 = deconv(64, 32)
-        self.upflow2to1 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow2to1 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow1 = predict_flow(32)
 
         self.upconv0 = deconv(32, 16)
-        self.upflow1to0 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow0 = predict_flow(16)
 
 
@@ -310,6 +311,7 @@ class DispNetC(nn.Module):
         out_corr = self.corr_activation(out_corr)
 	out_conv3a_redir = self.conv_redir(conv3a_l)
 	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
+
 
         conv3b = self.conv3_1(in_conv3b)
         conv4a = self.conv4(conv3b)
@@ -386,15 +388,17 @@ class DispNetC(nn.Module):
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False):
+    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False, input_channel=3):
         super(DispNetRes, self).__init__()
         
         self.ngpu = ngpu
+        self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu 
         self.res_scale = 7  # number of residuals
 
         # improved with shrink res-block layers
+        in_planes = input_channel * 3 + 2
         self.conv1   = conv(self.batchNorm, in_planes, 64, 7, 2)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
@@ -425,31 +429,31 @@ class DispNetRes(nn.Module):
         self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
+        self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
 
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
-        self.upflow6to5 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res5 = predict_flow(512)
 
         self.upconv4 = deconv(512, 256)
-        self.upflow5to4 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow5to4 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res4 = predict_flow(256)
 
         self.upconv3 = deconv(256, 128)
-        self.upflow4to3 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow4to3 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res3 = predict_flow(128)
 
         self.upconv2 = deconv(128, 64)
-        self.upflow3to2 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow3to2 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res2 = predict_flow(64)
 
         self.upconv1 = deconv(64, 32)
-        self.upflow2to1 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow2to1 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res1 = predict_flow(32)
 
         self.upconv0 = deconv(32, 16)
-        self.upflow1to0 = nn.ConvTranspose2d(1, 1, 3, 2, 1, 1, bias=False)
+        self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res0 = predict_flow(16)
 
         self.relu = nn.ReLU(inplace=False) 
@@ -467,7 +471,7 @@ class DispNetRes(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
         
-    def forward(self, inputs):
+    def forward(self, inputs, get_feature=False):
 
         input = inputs[0]
         base_flow = inputs[1]
@@ -528,7 +532,7 @@ class DispNetRes(nn.Module):
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
-        concat0 = torch.cat((upconv0, upflow1, input[:, :3, :, :]), 1)
+        concat0 = torch.cat((upconv0, upflow1, input[:, :self.input_channel, :, :]), 1)
         iconv0 = self.iconv0(concat0)
 
         # predict flow residual
@@ -545,9 +549,12 @@ class DispNetRes(nn.Module):
         # pr0_res = self.pred_res0(F.dropout2d(iconv0))
 
         if self.lastRelu:
-             return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
-        # else:
-        #     return pr0
+            if get_feature:
+                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1
+            else:
+                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
+        if get_feature:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6, iconv0
 
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
@@ -559,20 +566,22 @@ class DispNetRes(nn.Module):
 
 class DispNetCSRes(nn.Module):
 
-    def __init__(self, ngpus, batchNorm=True, lastRelu=False):
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False, input_channel=3):
         super(DispNetCSRes, self).__init__()
+        self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(ngpus, self.batchNorm)
+        self.dispnetc = DispNetC(ngpus, self.batchNorm, input_channel=input_channel)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()
         self.resample1 = Resample2d()
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
-        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm, lastRelu=self.lastRelu)
+        self.dispnetres = DispNetRes(ngpus, self.input_channel, self.batchNorm, lastRelu=self.lastRelu, input_channel=input_channel)
+
         self.relu = nn.ReLU(inplace=False)
 
         # # parameter initialization
@@ -598,7 +607,90 @@ class DispNetCSRes(nn.Module):
 
         # dispnetc
         dispnetc_flows = self.dispnetc(inputs)
-        # print("First network finished.")
+        dispnetc_final_flow = dispnetc_flows[0]
+
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
+        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
+        dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
+        resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
+        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
+        norm_diff_img0 = self.channelnorm(diff_img0)
+
+        # concat img0, img1, img1->img0, flow, diff-mag
+        inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
+
+        # dispnetres
+        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows])
+        index = 0
+        #print('Index: ', index)
+        dispnetres_final_flow = dispnetres_flows[index]
+        
+
+        if self.training:
+            return dispnetc_flows, dispnetres_flows
+        else:
+            return dispnetc_final_flow, dispnetres_final_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
+
+
+    def weight_parameters(self):
+	return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+	return [param for name, param in self.named_parameters() if 'bias' in name]
+
+
+
+class ReverseLayerF(Function):
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.alpha
+        return output, None
+
+
+class DispNetCSResWithDomainTransfer(nn.Module):
+
+    def __init__(self, ngpus, batchNorm=True, lastRelu=False):
+        super(DispNetCSResWithDomainTransfer, self).__init__()
+        self.batchNorm = batchNorm
+        self.lastRelu = lastRelu
+
+        # First Block (DispNetC)
+        self.dispnetc = DispNetC(ngpus, self.batchNorm)
+
+        # warp layer and channelnorm layer
+        self.channelnorm = ChannelNorm()
+        self.resample1 = Resample2d()
+
+        # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
+        self.dispnetres = DispNetRes(ngpus, 11, self.batchNorm, lastRelu=self.lastRelu)
+        self.relu = nn.ReLU(inplace=False)
+
+        self.domain_classifier = nn.Sequential()
+        #self.domain_classifier.add_module('d_fc1', nn.Linear(512*512*2, 100))
+        self.domain_classifier.add_module('d_fc1', nn.Linear(256*256*32, 50))
+        self.domain_classifier.add_module('d_sigmoid', nn.Sigmoid())
+        self.domain_classifier.add_module('d_fc2', nn.Linear(50, 2))
+        
+        self.domain_classifier.add_module('d_softmax', nn.LogSoftmax())
+
+
+    def forward(self, inputs, alpha):
+
+        # split left image and right image
+        # inputs = inputs_target[0]
+        # target = inputs_target[1]
+        imgs = torch.chunk(inputs, 2, dim = 1)
+        img_left = imgs[0]
+        img_right = imgs[1]
+
+        # dispnetc
+        dispnetc_flows = self.dispnetc(inputs)
         dispnetc_final_flow = dispnetc_flows[0]
 
         # warp img1 to img0; magnitude of diff between img0 and warped_img1,
@@ -613,11 +705,17 @@ class DispNetCSRes(nn.Module):
         inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
 
         # dispnetres
-        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows])
+        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows], get_feature=True)
         dispnetres_final_flow = dispnetres_flows[0]
+        #feature = dispnetc_final_flow_2d.view(-1, 512*512*2)
+        #print('size; ', dispnetres_flows[-1].size())
+        if self.training:
+            feature = dispnetres_flows[-1].view(-1, 256*256*32)
+            reverse_feature = ReverseLayerF.apply(feature, alpha)
+            domain_output = self.domain_classifier(reverse_feature)
 
         if self.training:
-            return dispnetc_flows, dispnetres_flows
+            return dispnetc_flows, dispnetres_flows[0:-1], domain_output
         else:
             return dispnetc_final_flow, dispnetres_final_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
 
@@ -627,5 +725,4 @@ class DispNetCSRes(nn.Module):
 
     def bias_parameters(self):
 	return [param for name, param in self.named_parameters() if 'bias' in name]
-
 
