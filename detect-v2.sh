@@ -35,7 +35,8 @@
 #python detecter.py --model ./models/girl-models-dispCSRes-finetune-crop-3nd/dispS_epoch_40.pth --rp ./detect_result/girl-crop-noscale-3nd-epe0.152 --filepath /home/datasets/imagenet/dispnet/virtual --filelist ./lists/girl05.list
 #CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/real-dispCSR/model_best.pth --rp ./detect_results/real --filelist ./lists/real_release.list --filepath /media/external/data/virtual
 #CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/cleandata-models-dispCSRes-exp/model_best.pth --rp ./detect_results/real --filelist ./lists/real_release.list --filepath /media/external/data/virtual
-CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/real-dispCSR/dispS_epoch_77.pth --rp ./detect_results/real-monodepth --filelist ./lists/real_release.list --filepath /media/external/data/virtual
+CUDA_VISIBLE_DEVICES=0 python detecter.py --model ./models/dispCSRes-corr-20-r4/model_best.pth --rp ./detect_results/real-dispnet3 --filelist ./lists/real_release.list --filepath /home/vradmin/dispflownet-release/data
+#CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/dispCSRes-corr-20-r4/model_best.pth --rp ./detect_results/flying-dispnet3 --filelist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list --filepath /home/vradmin/dispflownet-release/data
 #CUDA_VISIBLE_DEVICES=1 python detecter.py --model ./models/real-dispCSR/model_best.pth --rp ./detect_results/real-monodepth --filelist ./lists/real_release.list --filepath /media/external/data/virtual
 
 # moto 
