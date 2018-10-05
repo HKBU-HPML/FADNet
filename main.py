@@ -120,6 +120,7 @@ ngpu = len(devices)
 #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 net = DispNetCSRes(ngpu, False, True, input_channel=3)
 #mono_decoder = resnet50_decoder()
+print(net)
 
 ## Shaohuai
 #if opt.domain_transfer:
@@ -599,6 +600,9 @@ for epoch in range(start_epoch, end_epoch):
     #    train_loss, train_EPE = train_with_domain_transfer(train_loader, td_loader, net, optimizer, epoch)
     #else:
     #    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
     train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
     #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)

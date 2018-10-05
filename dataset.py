@@ -322,6 +322,10 @@ class DispDataset(Dataset):
 
         if self.phase == 'test':
             #scale = RandomRescale((512, 512))
+            #scale = RandomRescale((384, 768))
+            #scale = RandomRescale((512, 512))
+            #scale = RandomRescale((1024, 1024))
+            #scale = RandomRescale((1024+256, 1024+256))
             #scale = RandomRescale((1024+128, 1024+128))
             #scale = RandomRescale((1024-128,1024-128))
             scale = RandomRescale((768, 1280)) # Flying things
