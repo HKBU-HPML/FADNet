@@ -6,7 +6,8 @@ import time
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
-from dispnet import *
+#from dispnet import *
+from dispnet_v2 import *
 from multiscaleloss import multiscaleloss
 import torch.nn.functional as F
 from dataset import DispDataset, save_pfm, RandomRescale
@@ -51,13 +52,14 @@ def detect(opt, model, result_path, file_list, filepath):
     s = time.time()
     high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
+    epes = []
     for i, sample_batched in enumerate(test_loader):
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
         # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
         target = sample_batched['gt_disp']
 
-        print('disp Shape: {}'.format(target.size()))
+        #print('disp Shape: {}'.format(target.size()))
         original_size = (1, target.size()[2], target.size()[3])
 
         target = target.cuda()
@@ -65,21 +67,23 @@ def detect(opt, model, result_path, file_list, filepath):
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
         # output = net(input_var)[1]
-        output = net(input_var)[1]
+        output = net(input_var)[1] 
 
         for j in range(num_of_samples):
             # scale back depth
             np_depth = output[j].data.cpu().numpy()
-            print(np.min(np_depth), np.max(np_depth))
+            #print(np.min(np_depth), np.max(np_depth))
             np_depth = RandomRescale.scale_back(np_depth, original_size)
             net_out_np_depth = np_depth
             cuda_depth = torch.from_numpy(np_depth).cuda()
             cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
             # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
-            #flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
+            flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
             #print('Shape: {}'.format(output[j].size()))
             print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, j, flow2_EPE.data.cpu().numpy()))
+            epes.append(flow2_EPE.data.cpu().numpy())
+            print('Average: {}'.format(np.mean(epes)))
             #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
 
             name_items = sample_batched['img_names'][0][j].split('/')

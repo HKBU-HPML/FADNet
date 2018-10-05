@@ -321,10 +321,10 @@ class DispDataset(Dataset):
                  }
 
         if self.phase == 'test':
-            #scale = RandomRescale((384, 768))
+            #scale = RandomRescale((512, 512))
             #scale = RandomRescale((1024+128, 1024+128))
             #scale = RandomRescale((1024-128,1024-128))
-            #scale = RandomRescale((768, 1536)) # Flying things
+            scale = RandomRescale((768, 1280)) # Flying things
             #scale = RandomRescale((256, 768)) # KITTI
             #scale = RandomRescale((256, 512)) # KITTI
             #scale = RandomRescale((512, 512)) # girl
@@ -335,7 +335,8 @@ class DispDataset(Dataset):
             #scale = RandomRescale((1536, 1536)) # real data
             #scale = RandomRescale((2048, 3072)) # moto
             #scale = RandomRescale((512, 512))
-            #sample = scale(sample)
+            
+            sample = scale(sample)
             pass
 
         tt = ToTensor()

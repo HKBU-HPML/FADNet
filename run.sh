@@ -13,7 +13,7 @@
 #python main.py --cuda --outf ./models-dispCSRes --lr 0.0001 --logFile train-dispCSRes.log --showFreq 1 --devices 0,1,2,3
 
 #test 4: dispnetC with shrink resnet + clean data
-python main.py --cuda --outf ./models/dispCSRes-r3 --lr 0.0001 --logFile dispCSRes-r3.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TRAIN.list --vallist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list --model models/dispCSRes-r3/dispS_epoch_25.pth --startEpoch 26 --endEpoch 70 --batchSize 32
+python main.py --cuda --outf ./models/dispCSRes-corr-20-r4 --lr 0.0001 --logFile dispCSRes-corr-20-r4.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TRAIN.list --vallist ./lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list --startEpoch 0 --endEpoch 100 --batchSize 32 --model models/dispCSRes-corr-20-r3/model_best.pth
 
 #test 4-1: dispnetC with shrink resnet + clean data, finetune girl data
 #python main.py --cuda --outf ./girl-models-dispCSRes-finetune --lr 0.001 --logFile girl-train-dispCSRes-finetune.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl.list --vallist ./lists/girl_TEST.list --model ./cleandata-dispCSRes-model_best.pth --startEpoch 1 --datapath /home/datasets/imagenet/dispnet/virtual/girl --batchSize 8

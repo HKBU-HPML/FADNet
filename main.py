@@ -106,7 +106,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = 8, \
+test_loader = DataLoader(test_dataset, batch_size = 4, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -584,6 +584,7 @@ best_EPE = -1
 #        if best_EPE < 0:
 #            best_EPE = EPE
 
+# if have model, record the best EPE
 if opt.model != '':
     EPE = validate(test_loader, net, criterion, high_res_EPE)
     if best_EPE < 0:
