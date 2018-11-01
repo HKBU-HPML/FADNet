@@ -1,4 +1,4 @@
-img=img00019
+img=img00077
 inv_baseline=0.0038
 focal=1800
 maxdisp=200
