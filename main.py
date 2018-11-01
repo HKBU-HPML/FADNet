@@ -106,7 +106,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = 8, \
+test_loader = DataLoader(test_dataset, batch_size = 4, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -120,6 +120,7 @@ ngpu = len(devices)
 #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 net = DispNetCSRes(ngpu, False, True, input_channel=3)
 #mono_decoder = resnet50_decoder()
+print(net)
 
 ## Shaohuai
 #if opt.domain_transfer:
@@ -584,6 +585,7 @@ best_EPE = -1
 #        if best_EPE < 0:
 #            best_EPE = EPE
 
+# if have model, record the best EPE
 if opt.model != '':
     EPE = validate(test_loader, net, criterion, high_res_EPE)
     if best_EPE < 0:
@@ -598,6 +600,9 @@ for epoch in range(start_epoch, end_epoch):
     #    train_loss, train_EPE = train_with_domain_transfer(train_loader, td_loader, net, optimizer, epoch)
     #else:
     #    train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
+    #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
     train_loss, train_EPE = train(train_loader, net, optimizer, epoch)
     #train_loss, train_EPE = train_with_monodepth(train_loader, net, mono_decoder, optimizer, epoch)
     #train_loss, train_EPE = train_with_monodepth(train_loader, net, optimizer, epoch)
