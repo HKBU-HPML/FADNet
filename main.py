@@ -106,7 +106,7 @@ if opt.domain_transfer:
                         pin_memory = True)
 
 
-test_loader = DataLoader(test_dataset, batch_size = 4, \
+test_loader = DataLoader(test_dataset, batch_size = 16, \
                         shuffle = False, num_workers = opt.workers, \
                         pin_memory = True)
 
@@ -163,17 +163,19 @@ else:
 net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 #mono_decoder = torch.nn.DataParallel(mono_decoder, device_ids=devices).cuda()
 
-#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32)
-#loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)
+#loss_weights = (0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32) # r1 weight
+#loss_weights = (0.32, 0.16, 0.08, 0.04, 0.02, 0.01, 0.005)  # r2 weight
 
 # qiang
-#loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005)
-#loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025)
+#loss_weights = (0.6, 0.32, 0.08, 0.04, 0.02, 0.01, 0.005) # r3 weight
+loss_weights = (0.8, 0.16, 0.04, 0.02, 0.01, 0.005, 0.0025) # r4 weight
+#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025) # r5 weight
+#loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005) # r6 weight
 #loss_weights = (1, 0, 0, 0, 0, 0, 0)
 
 # shaohuai for girl data
 #loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
-loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
+#loss_weights = (0.9, 0.05, 0.02, 0.02, 0.01, 0.005, 0.0025)
 #loss_weights = (0.99, 0.005, 0.002, 0.002, 0.001, 0.001, 0.0005)
 
 # shaohuai for kitti data
