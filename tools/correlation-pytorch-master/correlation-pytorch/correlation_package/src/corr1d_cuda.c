@@ -31,8 +31,8 @@ int corr1d_cuda_forward(THCudaTensor *input1,
     long kernel_radius_ = (kernel_size - 1) / 2;
     long border_size_ = max_displacement + kernel_radius_; // size of unreachable border region (on each side)
 
-    long paddedbottomheight = nInputRows + 2 * kernel_radius_;
-    long paddedbottomwidth = nInputCols + 2 * pad_size + 2 * kernel_radius_;
+    long paddedbottomheight = nInputRows;
+    long paddedbottomwidth = nInputCols + 2 * pad_size;
 
     long nOutputCols = ceil((float)(paddedbottomwidth - border_size_ * 2) / (float)stride1);
     long nOutputRows = ceil((float)(paddedbottomheight - kernel_radius_ * 2) / (float)stride1);

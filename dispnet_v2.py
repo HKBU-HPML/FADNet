@@ -208,6 +208,7 @@ class DispNetC(nn.Module):
         # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
 	self.conv_redir = ResBlock(256, 32, stride=1)
 	self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
+	#self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         self.conv3_1 = ResBlock(53, 256)
