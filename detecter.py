@@ -33,8 +33,8 @@ def detect(opt, model, result_path, file_list, filepath):
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
     #net = DispNetC(ngpu, True)
-    #net = DispNetCSRes(ngpu, False, True)
-    net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
+    net = DispNetCSRes(ngpu, False, True)
+    #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 
     model_data = torch.load(model)
     print(model_data.keys())
