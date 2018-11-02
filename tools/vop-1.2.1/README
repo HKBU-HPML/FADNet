@@ -1,0 +1,14 @@
+Prerequisites:
+    gcc
+    a CPU that supports SSE3
+
+Install by doing (as root):
+    python setup.py install
+
+Run the unit test:
+    python setup.py test
+
+To test the performance of vop:
+    python try.py
+should pause for a moment, then print something like:
+    300000000 operations took 0.406161s, 738.623227 megaflops
