@@ -1,3 +1,4 @@
+import json, yaml
 from netdef_slim.utils.io import read 
 import sys, os
 import numpy as np
@@ -31,6 +32,13 @@ def save_pfm(filename, image, scale = 1):
 
   image.tofile(file) 
   file.close()
+
+def load_loss_scheme(loss_config):
+
+    with open(job_config, 'r') as f:
+        loss_json = yaml.safe_load(f)
+
+    return loss_json
 
 
 left_img = sys.argv[1]

@@ -106,3 +106,38 @@ disp=${disp_root}/real_release_frames_cleanpass_left_${img}.bmp.pfm
 ##cp test.obj /media/sf_Shared_Data/dispnet/test2.obj
 #cp test.obj /media/sf_Shared_Data/dispnet/
 
+# original 3d fusion
+img=img00003
+
+python fusion.py ${img}
+jview ./test.pfm 
+pfm_viewer ./test.pfm ./real_detect_result_s1.5/predict_${img}.exr
+DisparityTo3D ./real_detect_result_s1.5/predict_${img}.exr ./real_obj/${img}.obj ./data_local/dispnet/real_release/frames_cleanpass/left/${img}.bmp
+cd ./real_obj
+meshlab ${img}.obj
+cd ..
+
+# img=img00000
+# 
+# # pfm_viewer ./real_detect_result_s1.4/predict_${img}.pfm ./real_detect_result_s1.4/predict_${img}.exr
+# pfm_viewer /media/sf_Shared_Data/gpuhome/pytorch-dispnet/data/dispnet/real_release/sgm_disp/left/${img}.pfm ./real_detect_result_s1.4/predict_${img}.exr
+# DisparityTo3D ./real_detect_result_s1.4/predict_${img}.exr ./${img}.obj ./data/dispnet/real_release/frames_cleanpass/left/${img}.bmp
+# meshlab ${img}.obj
+# girl
+directory=ep0010
+no=0015
+cam=camera2_R
+left_rgb_root=/media/sf_Shared_Data/gpuhomedataset/dispnet/virtual/ep0010
+left_dis_root=./detect_results/virtual
+img=XNCG_${directory}_cam01_rd_lgt.${no}.png
+disp=${cam}/XNCG_${directory}_cam01_rd_lgt.${no}.png.pfm
+inv_baseline=0.05
+focal=1050
+maxdisp=480
+mindisp=0
+jview ${left_rgb_root}/${cam}/${img}
+jview ${left_dis_root}/${disp}
+./tools/pfm_viewer ${left_dis_root}/${disp} test.exr
+./tools/DisparityTo3D test.exr test.obj ${left_rgb_root}/${cam}/${img} ${inv_baseline} ${focal} ${maxdisp} ${mindisp}
+cp test.obj /media/sf_Shared_Data/dispnet/${img}.obj
+
