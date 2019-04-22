@@ -2,14 +2,12 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from skimage.transform import *
+#from skimage.transform import *
 import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-from layers_package.layers import ResBlock
-from layers_package.layers import ResBlock
-from layers_package.correlation_package.modules.correlation import Correlation
+#from layers_package.correlation_package.modules.correlation import Correlation
 from layers_package.resample2d_package.modules.resample2d import Resample2d
 from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
 from layers_package.submodules import *

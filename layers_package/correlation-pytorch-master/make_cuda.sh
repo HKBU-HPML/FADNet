@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CUDA_PATH=/usr/local/cuda-8.0
+CUDA_PATH=/usr/local/cuda
 
 cd correlation-pytorch/correlation_package/src
 echo "Compiling correlation layer kernels by nvcc..."
