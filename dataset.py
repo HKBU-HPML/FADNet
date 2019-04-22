@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image, ImageOps
-from preprocess import ColorJitter, pca_param 
+from utils.preprocess import ColorJitter, pca_param 
 '''
 Load a PFM file into a Numpy array. Note that it will have
 a shape of H x W, not W x H. Returns a tuple containing the

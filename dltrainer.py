@@ -10,7 +10,7 @@ from net_builder import build_net
 from dataset import DispDataset
 from utils.AverageMeter import AverageMeter
 from settings import logger
-
+from losses.multiscaleloss import EPE
 
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, trainlist, vallist, datapath, batch_size, pretrain):
@@ -26,11 +26,11 @@ class DisparityTrainer(object):
         self.vallist = vallist
         self.datapath = datapath
         self.batch_size = batch_size
-        self.epe = epe
         self.pretrain = pretrain 
 
         #self.criterion = criterion
         self.criterion = None
+        self.epe = EPE
         self.initialize()
 
     def _prepare_dataset(self):
@@ -111,7 +111,9 @@ class DisparityTrainer(object):
         end = time.time()
         self.adjust_learning_rate(epoch)
         for i_batch, sample_batched in enumerate(self.train_loader):
-            
+         
+            if i_batch > 30:
+                break   
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
             input = torch.cat((left_input, right_input), 1)
@@ -123,14 +125,22 @@ class DisparityTrainer(object):
             target_var = torch.autograd.Variable(target, requires_grad=False)
             data_time.update(time.time() - end)
 
-            output = self.net(input_var)
-            loss = self.criterion(output, target_var)
-            if type(loss) is list:
-                loss = np.sum(loss)
-            if type(output) is list:
-                flow2_EPE = self.epe(output[0], target_var)
+            if self.net_name == "dispnetcres":
+                output_net1, output_net2 = self.net(input_var)
+                loss_net1 = self.criterion(output_net1, target_var)
+                loss_net2 = self.criterion(output_net2, target_var)
+                loss = loss_net1 + loss_net2
+                output_net2_final = output_net2[0]
+                flow2_EPE = self.epe(output_net2_final, target_var)
             else:
-                flow2_EPE = self.epe(output, target_var)
+                output = self.net(input_var)
+                loss = self.criterion(output, target_var)
+                if type(loss) is list:
+                    loss = np.sum(loss)
+                if type(output) is list:
+                    flow2_EPE = self.epe(output[0], target_var)
+                else:
+                    flow2_EPE = self.epe(output, target_var)
 
             # record loss and EPE
             losses.update(loss.data.item(), target.size(0))
@@ -172,16 +182,23 @@ class DisparityTrainer(object):
             target = target.cuda()
             input_var = torch.autograd.Variable(input, requires_grad=False)
             target_var = torch.autograd.Variable(target, requires_grad=False)
-    
-            output = self.net(input_var)
-            loss = self.criterion(output, target_var)
 
-            if type(loss) is list:
-                loss = loss[0]
-            if type(output) is list:
-                flow2_EPE = self.epe(output[0], target_var)
+            if self.net_name == 'dispnetcres':
+                output_net1, output_net2 = self.net(input_var)
+                loss_net1 = self.epe(output_net1, target_var)
+                loss_net2 = self.epe(output_net2, target_var)
+                loss = loss_net1 + loss_net2
+                flow2_EPE = self.epe(output_net2, target_var)
             else:
-                flow2_EPE = self.epe(output, target_var)
+                output = self.net(input_var)
+                loss = self.criterion(output, target_var)
+
+                if type(loss) is list:
+                    loss = loss[0]
+                if type(output) is list:
+                    flow2_EPE = self.epe(output[0], target_var)
+                else:
+                    flow2_EPE = self.epe(output, target_var)
 
             # record loss and EPE
             losses.update(loss.data.item(), target.size(0))

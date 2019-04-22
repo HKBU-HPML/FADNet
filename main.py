@@ -6,7 +6,6 @@ import random
 import torch
 import logging
 import shutil
-from utils import *
 
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
@@ -17,10 +16,10 @@ from settings import logger, formatter
 #from dataset import DispDataset
 #from dispnet_v2 import DispNetCSRes
 #from dispnet_v2 import DispNetC
+from utils.common import *
 from dltrainer import DisparityTrainer
 from net_builder import SUPPORT_NETS
-from multiscaleloss import multiscaleloss
-
+from losses.multiscaleloss import multiscaleloss
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
     torch.save(state, os.path.join(opt.outf,filename))
@@ -50,8 +49,9 @@ def main(opt):
         end_epoch = opt.endEpoch
 
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=False)
+        trainer.set_criterion(criterion)
 
-        logger.info('round %d:' % r, loss_weights[r])
+        logger.info('round %d: %s' % (r, str(loss_weights[r])))
         logger.info('\t'.join(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE', 'lr']))
         for i in range(start_epoch, end_epoch):
             avg_loss, avg_EPE = trainer.train_one_epoch(i)
@@ -66,7 +66,7 @@ def main(opt):
                 'arch': 'dispnet',
                 'state_dict': trainer.get_model(),
                 'best_EPE': best_EPE,    
-            }, is_best, '%s_%d.pth' % (opt.net, i))
+            }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
         
             logger.info('Validation[epoch:%d]: '%i+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(avg_EPE), str(val_EPE), str(trainer.current_lr)]))
 
