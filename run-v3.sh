@@ -13,3 +13,6 @@ python main.py --cuda --outf ./models/girl-domain-transfer-models-dispCSRes --lr
 # Finetune with weight: loss_weights = (0.8, 0.1, 0.04, 0.04, 0.02, 0.01, 0.005)
 #python main.py --cuda --outf ./models/girl-domain-transfer-models-dispCSRes-finetune2 --lr 0.0001 --logFile girl-domain-transfer-train-dispCSRes-finetune2.log --model ./models/girl-domain-transfer-models-dispCSRes-finetune1/model_best.pth --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl09.list --vallist ./lists/girl09_TEST.list --startEpoch 0 --datapath ~/dispflownet-release/data/girl --batchSize 8 --endEpoch 200 --domain_transfer 1 --tdlist lists/real_release.list
 
+
+# From zero to train girl data, with data augment
+python main.py --cuda --outf ./models/girl-models-dispCSRes-crop-1nd --lr 0.0001 --logFile girl-train-dispCSRes-crop-1nd.log --showFreq 1 --devices 0,1,2,3 --trainlist ./lists/girl20_TRAIN.list --vallist ./lists/girl20_TEST.list --startEpoch 0 --datapath /home/datasets/imagenet/dispnet/virtual --batchSize 8 --endEpoch 200 --augment 1
