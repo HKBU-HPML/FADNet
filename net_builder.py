@@ -2,7 +2,8 @@ from __future__ import print_function
 
 from networks.simple_net import SimpleNet
 from networks.dispnet_corr2 import DispNetCorr2
-from networks.dispnet_v2 import DispNetCSRes, DispNetC
+from networks.DispNetC import DispNetC
+from networks.DispNetCSRes import DispNetCSRes
 
 from settings import logger
 
