@@ -5,7 +5,7 @@ from networks.dispnet_corr2 import DispNetCorr2
 from networks.DispNetC import DispNetC
 from networks.DispNetCSRes import DispNetCSRes
 
-from settings import logger
+from utils.common import logger
 
 SUPPORT_NETS = {'simplenet': SimpleNet,
         'dispnetcres': DispNetCSRes,

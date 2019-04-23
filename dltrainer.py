@@ -7,13 +7,14 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from net_builder import build_net
-from dataset import DispDataset
+#from dataset import DispDataset
+from dataloader.SceneFlowLoader import DispDataset
 from utils.AverageMeter import AverageMeter
-from settings import logger
+from utils.common import logger
 from losses.multiscaleloss import EPE
 
 class DisparityTrainer(object):
-    def __init__(self, net_name, lr, devices, trainlist, vallist, datapath, batch_size, pretrain):
+    def __init__(self, net_name, lr, devices, trainlist, vallist, datapath, batch_size, pretrain=None):
         super(DisparityTrainer, self).__init__()
         self.net_name = net_name
         self.lr = lr
@@ -112,8 +113,6 @@ class DisparityTrainer(object):
         self.adjust_learning_rate(epoch)
         for i_batch, sample_batched in enumerate(self.train_loader):
          
-            if i_batch > 30:
-                break   
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
             input = torch.cat((left_input, right_input), 1)

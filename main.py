@@ -9,17 +9,13 @@ import shutil
 
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-cudnn.benchmark = True
 
-from settings import logger, formatter
-
-#from dataset import DispDataset
-#from dispnet_v2 import DispNetCSRes
-#from dispnet_v2 import DispNetC
 from utils.common import *
 from dltrainer import DisparityTrainer
 from net_builder import SUPPORT_NETS
 from losses.multiscaleloss import multiscaleloss
+
+cudnn.benchmark = True
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
     torch.save(state, os.path.join(opt.outf,filename))
@@ -43,7 +39,7 @@ def main(opt):
     best_EPE = -1
     if trainer.is_pretrain:
         best_EPE = trainer.validate()
-    for r in range(train_round):
+    for r in range(opt.startRound, train_round):
 
         start_epoch = opt.startEpoch
         end_epoch = opt.endEpoch
@@ -89,6 +85,7 @@ if __name__ == '__main__':
     parser.add_argument('--outf', default='.', help='folder to output images and model checkpoints')
     parser.add_argument('--manualSeed', type=int, help='manual seed')
     parser.add_argument('--model', type=str, help='model for finetuning', default='')
+    parser.add_argument('--startRound', type=int, help='the round number to start training, useful of lr scheduler', default='0')
     parser.add_argument('--startEpoch', type=int, help='the epoch number to start training, useful of lr scheduler', default='0')
     parser.add_argument('--endEpoch', type=int, help='the epoch number to end training', default='50')
     parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
