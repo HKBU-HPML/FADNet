@@ -6,21 +6,6 @@ import numpy as np
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-class disparityregression(nn.Module):
-    def __init__(self, maxdisp, scale):
-        super(disparityregression, self).__init__()
-        self.maxdisp = maxdisp / scale
-        self.disp = Variable(torch.Tensor(np.reshape(np.array(range(self.maxdisp)),[1,self.maxdisp,1,1])).cuda(), requires_grad=False)
-
-    def forward(self, x):
-        cost = F.upsample(x, [self.maxdisp,x.size()[2],x.size()[3]], mode='trilinear')
-        cost = torch.squeeze(cost,1)
-        pred = F.softmax(cost)
-
-        disp = self.disp.repeat(pred.size()[0],1,pred.size()[2],pred.size()[3])
-        out = torch.sum(pred*disp,1)
-        return out
-
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
         super(ResBlock, self).__init__()
@@ -77,6 +62,7 @@ def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = Tru
 
 def predict_flow(in_planes):
     return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
+           
 
 def deconv(in_planes, out_planes):
     return nn.Sequential(

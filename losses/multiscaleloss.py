@@ -48,6 +48,8 @@ class MultiScaleLoss(nn.Module):
             out = 0
             for i, input_ in enumerate(input):
                 target_ = self.multiScales[i](target)
+                ## consider the scale effects
+                #target_ = self.multiScales[i](target) / (2**i)
                 EPE_ = EPE(input_, target_)
                 out += self.weights[i] * EPE_
         else:

@@ -7,8 +7,9 @@ import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
 #from dispnet import *
-from dispnet_v2 import *
-from multiscaleloss import multiscaleloss
+#from networks.dispnet_v2 import *
+from networks.DispNetCSRes import DispNetCSRes
+from losses.multiscaleloss import multiscaleloss
 import torch.nn.functional as F
 from dataset import DispDataset, save_pfm, RandomRescale
 from torch.utils.data import DataLoader
@@ -28,7 +29,7 @@ target_transform = transforms.Compose([
 
 def detect(opt, model, result_path, file_list, filepath):
     if not os.path.exists(result_path):
-        os.mkdir(result_path)
+        os.makedirs(result_path)
 
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)

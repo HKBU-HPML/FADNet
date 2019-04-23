@@ -83,7 +83,6 @@ class DispNetRes(nn.Module):
         self.pred_res0 = predict_flow(16)
 
         self.relu = nn.ReLU(inplace=False) 
-        self.disp_regrs = [disparityregression(192, 2**i) for i in range(7)]
 
         # weight initialization
         for m in self.modules():
@@ -116,7 +115,6 @@ class DispNetRes(nn.Module):
 
         pr6_res = self.pred_res6(conv6b)
         pr6 = pr6_res + base_flow[6]
-        pr6 = self.disp_regrs[6](pr6)
 
         upconv5 = self.upconv5(conv6b)
         upflow6 = self.upflow6to5(pr6)
@@ -125,7 +123,6 @@ class DispNetRes(nn.Module):
 
         pr5_res = self.pred_res5(iconv5)
         pr5 = pr5_res + base_flow[5]
-        pr5 = self.disp_regrs[5](pr5)
 
         upconv4 = self.upconv4(iconv5)
         upflow5 = self.upflow5to4(pr5)
@@ -134,7 +131,6 @@ class DispNetRes(nn.Module):
 
         pr4_res = self.pred_res4(iconv4)
         pr4 = pr4_res + base_flow[4]
-        pr4 = self.disp_regrs[4](pr4)
         
         upconv3 = self.upconv3(iconv4)
         upflow4 = self.upflow4to3(pr4)
@@ -143,7 +139,6 @@ class DispNetRes(nn.Module):
 
         pr3_res = self.pred_res3(iconv3)
         pr3 = pr3_res + base_flow[3]
-        pr3 = self.disp_regrs[3](pr3)
 
         upconv2 = self.upconv2(iconv3)
         upflow3 = self.upflow3to2(pr3)
@@ -152,7 +147,6 @@ class DispNetRes(nn.Module):
 
         pr2_res = self.pred_res2(iconv2)
         pr2 = pr2_res + base_flow[2]
-        pr2 = self.disp_regrs[2](pr2)
 
         upconv1 = self.upconv1(iconv2)
         upflow2 = self.upflow2to1(pr2)
@@ -161,7 +155,6 @@ class DispNetRes(nn.Module):
 
         pr1_res = self.pred_res1(iconv1)
         pr1 = pr1_res + base_flow[1]
-        pr1 = self.disp_regrs[1](pr1)
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
@@ -171,7 +164,6 @@ class DispNetRes(nn.Module):
         # predict flow residual
         pr0_res = self.pred_res0(iconv0)
         pr0 = pr0_res + base_flow[0]
-        pr0 = self.disp_regrs[0](pr0)
 
         # # predict flow residual with dropout output
         # pr6_res = self.pred_res6(F.dropout2d(conv6b))

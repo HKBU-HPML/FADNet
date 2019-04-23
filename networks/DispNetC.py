@@ -98,8 +98,6 @@ class DispNetC(nn.Module):
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow0 = predict_flow(16)
 
-        self.disp_regrs = [disparityregression(192, 2**i) for i in range(7)]
-
         # weight initialization
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -134,7 +132,6 @@ class DispNetC(nn.Module):
 	out_conv3a_redir = self.conv_redir(conv3a_l)
 	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
 
-
         conv3b = self.conv3_1(in_conv3b)
         conv4a = self.conv4(conv3b)
         conv4b = self.conv4_1(conv4a)
@@ -144,42 +141,36 @@ class DispNetC(nn.Module):
         conv6b = self.conv6_1(conv6a)
 
         pr6 = self.pred_flow6(conv6b)
-        pr6 = self.disp_regrs[6](pr6)
         upconv5 = self.upconv5(conv6b)
         upflow6 = self.upflow6to5(pr6)
         concat5 = torch.cat((upconv5, upflow6, conv5b), 1)
         iconv5 = self.iconv5(concat5)
 
         pr5 = self.pred_flow5(iconv5)
-        pr5 = self.disp_regrs[5](pr5)
         upconv4 = self.upconv4(iconv5)
         upflow5 = self.upflow5to4(pr5)
         concat4 = torch.cat((upconv4, upflow5, conv4b), 1)
         iconv4 = self.iconv4(concat4)
         
         pr4 = self.pred_flow4(iconv4)
-        pr4 = self.disp_regrs[4](pr4)
         upconv3 = self.upconv3(iconv4)
         upflow4 = self.upflow4to3(pr4)
         concat3 = torch.cat((upconv3, upflow4, conv3b), 1)
         iconv3 = self.iconv3(concat3)
 
         pr3 = self.pred_flow3(iconv3)
-        pr3 = self.disp_regrs[3](pr3)
         upconv2 = self.upconv2(iconv3)
         upflow3 = self.upflow3to2(pr3)
         concat2 = torch.cat((upconv2, upflow3, conv2_l), 1)
         iconv2 = self.iconv2(concat2)
 
         pr2 = self.pred_flow2(iconv2)
-        pr2 = self.disp_regrs[2](pr2)
         upconv1 = self.upconv1(iconv2)
         upflow2 = self.upflow2to1(pr2)
         concat1 = torch.cat((upconv1, upflow2, conv1_l), 1)
         iconv1 = self.iconv1(concat1)
 
         pr1 = self.pred_flow1(iconv1)
-        pr1 = self.disp_regrs[1](pr1)
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
         concat0 = torch.cat((upconv0, upflow1, img_left), 1)
@@ -187,7 +178,6 @@ class DispNetC(nn.Module):
 
         # predict flow
         pr0 = self.pred_flow0(iconv0)
-        pr0 = self.disp_regrs[0](pr0)
 
         # predict flow from dropout output
         # pr6 = self.pred_flow6(F.dropout2d(conv6b))
