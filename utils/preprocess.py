@@ -8,6 +8,9 @@ import numpy as np
 __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                    'std': [0.229, 0.224, 0.225]}
 
+#__imagenet_stats = {'mean': [0., 0., 0.],
+#                   'std': [255, 255, 255]}
+
 #__imagenet_stats = {'mean': [0.5, 0.5, 0.5],
 #                   'std': [0.5, 0.5, 0.5]}
 
@@ -88,7 +91,21 @@ def get_transform(name='imagenet', input_size=None,
             return scale_crop(input_size=input_size,
                               scale_size=scale_size, normalize=normalize)
 
+def default_transform(input_size=None, 
+                  scale_size=None, normalize=None, augment=True):
 
+    normalize = __imagenet_stats
+
+    rgb_list = [
+        transforms.ToTensor(),
+        transforms.Normalize(**normalize),
+    ]
+
+    disp_list = [
+        transforms.ToTensor(),
+    ]
+
+    return transforms.Compose(rgb_list)
 
 
 class Lighting(object):

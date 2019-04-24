@@ -8,10 +8,9 @@ from torch.nn import init
 from torch.nn.init import kaiming_normal
 from layers_package.resample2d_package.modules.resample2d import Resample2d
 from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
-from layers_package.submodules import *
-from correlation_package.modules.corr import Correlation1d # from PWC-Net
 from networks.DispNetC import DispNetC
 from networks.DispNetRes import DispNetRes
+from networks.submodules import *
 
 class DispNetCSRes(nn.Module):
 

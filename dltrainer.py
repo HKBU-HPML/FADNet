@@ -35,18 +35,9 @@ class DisparityTrainer(object):
         self.initialize()
 
     def _prepare_dataset(self):
-        # input transform, normalize with 255, 
-        #TODO stastic the mean of the dataset
-        input_transform = transforms.Compose([
-            transforms.Normalize(mean=[0 for i in range(3)], std=[255 for i in range(3)]),
-                ])
-        
-        target_transform = transforms.Compose([
-                transforms.Normalize(mean=[0],std=[1.])
-                ])
-        augment= True
-        train_dataset = DispDataset(txt_file = self.trainlist, root_dir = self.datapath, transform=[input_transform, target_transform], phase='train', augment=augment)
-        test_dataset = DispDataset(txt_file = self.vallist, root_dir = self.datapath, transform=[input_transform, target_transform], phase='val', center_crop = True, augment=False)
+
+        train_dataset = DispDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
+        test_dataset = DispDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
         self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
                                 shuffle = True, num_workers = 16, \
