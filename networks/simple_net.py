@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from torch.nn.init import kaiming_normal
 from correlation_package.modules.corr import Correlation1d # from PWC-Net
-from layers_package.submodules import ResBlock, conv, predict_flow, deconv
+from networks.submodules import ResBlock, conv, predict_flow, deconv
 
 class SimpleNet(nn.Module):
     def __init__(self):

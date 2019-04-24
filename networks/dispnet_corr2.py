@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from torch.nn.init import kaiming_normal
 from correlation_package.modules.corr import Correlation1d # from PWC-Net
-from layers_package.submodules import conv, predict_flow, deconv, ResBlock
+from networks.submodules import conv, predict_flow, deconv, ResBlock
 
 
 class DispNetCorr2(nn.Module):
