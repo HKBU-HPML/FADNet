@@ -2,11 +2,12 @@ from __future__ import print_function, division
 import os
 import torch
 import pandas as pd
-from skimage import io
+from skimage import io, transform
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
+from torchvision import transforms
 
 class DispDataset(Dataset):
 
@@ -22,13 +23,16 @@ class DispDataset(Dataset):
         self.root_dir = root_dir
         #self.transform = transform
         self.phase = phase
+        self.scale_size = (576, 960)
         #self.augment = augment 
         #self.center_crop = center_crop
+        
 
     def __len__(self):
         return len(self.imgPairs)
 
     def __getitem__(self, idx):
+
         img_names = self.imgPairs[idx].rstrip().split()
 
         img_left_name = os.path.join(self.root_dir, img_names[0])
@@ -62,10 +66,20 @@ class DispDataset(Dataset):
         img_right = load_rgb(img_right_name)
         gt_disp = load_disp(gt_disp_name)
 
+        if self.phase == 'detect' or self.phase == 'test':
+            img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
+            img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
+
+            # change image pixel value type ot float32
+            img_left = img_left.astype(np.float32)
+            img_right = img_right.astype(np.float32)
+            #scale = RandomRescale((1024, 1024))
+            #sample = scale(sample)
+
         rgb_transform = default_transform()
         img_left = rgb_transform(img_left)
         img_right = rgb_transform(img_right)
-        #gt_disp = disp_transform(gt_disp)
+
         gt_disp = gt_disp[np.newaxis, :]
         gt_disp = torch.from_numpy(gt_disp.copy()).float()
 
@@ -80,21 +94,19 @@ class DispDataset(Dataset):
             img_right = img_right[:, top: top + th, left: left + tw]
             gt_disp = gt_disp[:, top: top + th, left: left + tw]
 
-        elif self.phase == 'test':
+        #elif self.phase == 'test':
 
-            img_left = img_left[:, :512, :]
-            img_right = img_right[:, :512, :]
-            gt_disp = gt_disp[:, :512, :]
+        #    img_left = img_left[:, :512, :]
+        #    img_right = img_right[:, :512, :]
+        #    gt_disp = gt_disp[:, :512, :]
 
-        elif self.phase == 'detect':
-            scale = RandomRescale((1024, 1024))
-            sample = scale(sample)
-            pass
 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
                   'gt_disp' : gt_disp,   
+                  'img_names': img_names
                  }
+
 
         return sample
 

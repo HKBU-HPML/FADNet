@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import time
 import torch
+import torch.nn.functional as F
 import numpy as np
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -12,6 +13,7 @@ from dataloader.SceneFlowLoader import DispDataset
 from utils.AverageMeter import AverageMeter
 from utils.common import logger
 from losses.multiscaleloss import EPE
+from utils.preprocess import scale_disp
 
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, trainlist, vallist, datapath, batch_size, pretrain=None):
@@ -50,8 +52,14 @@ class DisparityTrainer(object):
 
     def _build_net(self):
         #self.net = build_net(self.net_name)(batchNorm=True, using_resblock=True)
-        self.net = build_net(self.net_name)(len(self.devices), batchNorm=True)
+        #self.net = build_net(self.net_name)(len(self.devices), batchNorm=True)
+        self.net = build_net(self.net_name)(len(self.devices), False, True)
         self.is_pretrain = False
+
+        if self.ngpu > 1:
+            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
+        else:
+            self.net.cuda()
 
         if self.pretrain == '':
             logger.info('Initial a new model...')
@@ -67,10 +75,6 @@ class DisparityTrainer(object):
             else:
                 logger.warning('Can not find the specific model %s, initial a new model...', self.pretrain)
 
-        if self.ngpu > 1:
-            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
-        else:
-            self.net.cuda()
 
     def _build_optimizer(self):
         beta = 0.999
@@ -175,6 +179,14 @@ class DisparityTrainer(object):
 
             if self.net_name == 'dispnetcres':
                 output_net1, output_net2 = self.net(input_var)
+
+                output_net1 = output_net1.squeeze(1)
+                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], 540, 960))
+                output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
+                output_net2 = output_net2.squeeze(1)
+                output_net2 = scale_disp(output_net2.data.cpu().numpy(), (output_net2.size()[0], 540, 960))
+                output_net2 = torch.from_numpy(output_net2).unsqueeze(1).cuda()
+
                 loss_net1 = self.epe(output_net1, target_var)
                 loss_net2 = self.epe(output_net2, target_var)
                 loss = loss_net1 + loss_net2

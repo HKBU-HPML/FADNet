@@ -9,6 +9,9 @@ __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                    'std': [0.229, 0.224, 0.225]}
 
 #__imagenet_stats = {'mean': [0., 0., 0.],
+#                   'std': [1, 1, 1]}
+
+#__imagenet_stats = {'mean': [0., 0., 0.],
 #                   'std': [255, 255, 255]}
 
 #__imagenet_stats = {'mean': [0.5, 0.5, 0.5],
@@ -207,10 +210,12 @@ class RandomRescale(object):
         self.output_size = output_size
 
     def __call__(self, sample):
+
         image_left, image_right, gt_disp = sample['img_left'], sample['img_right'], sample['gt_disp']
-        h, w = image_left.shape[:2]
+
+        #h, w = image_left.shape[:2]
         #if isinstance(self.output_size, int):
-        out_h, out_w = self.output_size
+        #out_h, out_w = self.output_size
         #    if h > w:
         #        new_h, new_w = self.output_size * h / w, self.output_size
         #    else:
@@ -233,15 +238,14 @@ class RandomRescale(object):
                       'gt_disp': gt_disp})
         return new_sample
 
-    @staticmethod
-    def scale_back(disp, original_size=(1, 540, 960)):
-        # print('current shape:', disp.shape)
-        o_w = original_size[2]
-        s_w = disp.shape[2]
-        trans_disp = transform.resize(disp, original_size, preserve_range=True)
-        trans_disp = trans_disp * (o_w * 1.0 / s_w)
-        # print('trans shape:', trans_disp.shape)
-        return trans_disp.astype(np.float32)
+def scale_disp(disp, output_size=(1, 540, 960)):
+    # print('current shape:', disp.shape)
+    i_w = disp.shape[2]
+    o_w = output_size[2]
+    trans_disp = transform.resize(disp, output_size, preserve_range=True)
+    trans_disp = trans_disp * (o_w * 1.0 / i_w)
+    # print('trans shape:', trans_disp.shape)
+    return trans_disp.astype(np.float32)
 
 
 class RandomCrop(object):
