@@ -22,3 +22,4 @@ data
 ./detect_results
 ./tools/FusionPortal/lib
 core
+trained/
