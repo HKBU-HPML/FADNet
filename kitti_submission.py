@@ -97,7 +97,7 @@ def test(imgL,imgR):
         imgL = F.pad(imgL, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
         imgR = F.pad(imgR, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
 
-        print(imgL.size(), imgR.size())
+        #print(imgL.size(), imgR.size())
         with torch.no_grad():
             #output = model(imgL,imgR)
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
