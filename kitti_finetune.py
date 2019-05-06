@@ -72,13 +72,13 @@ if args.model == 'dispnetcres':
 else:
     print('no model')
 
-if args.cuda:
-    model = nn.DataParallel(model, device_ids=devices)
-    model.cuda()
-
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
     model.load_state_dict(state_dict['state_dict'])
+
+if args.cuda:
+    model = nn.DataParallel(model, device_ids=devices)
+    model.cuda()
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
@@ -129,8 +129,8 @@ def test(imgL,imgR,disp_true):
             imgL, imgR = imgL.cuda(), imgR.cuda()
 
         #print(imgL.size())
-        imgL = F.pad(imgL, (0, 48, 0, 16), "constant", 0)
-        imgR = F.pad(imgR, (0, 48, 0, 16), "constant", 0)
+        #imgL = F.pad(imgL, (0, 48, 0, 16), "constant", 0)
+        #imgR = F.pad(imgR, (0, 48, 0, 16), "constant", 0)
         #print(imgL.size())
 
         with torch.no_grad():
@@ -138,7 +138,7 @@ def test(imgL,imgR,disp_true):
 
         pred_disp = output_net2.squeeze(1)
         pred_disp = pred_disp.data.cpu()
-        pred_disp = pred_disp[:, :368, :1232]
+        #pred_disp = pred_disp[:, :368, :1232]
 
         #computing 3-px error#
         true_disp = disp_true
@@ -150,8 +150,8 @@ def test(imgL,imgR,disp_true):
         return 1-(float(torch.sum(correct))/float(len(index[0])))
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch <= 200:
-       lr = 1e-5
+    if epoch <= 600:
+       lr = 1e-4
     else:
        lr = 1e-5
     print(lr)
@@ -163,6 +163,15 @@ def main():
 	min_acc=1000
 	min_epo=0
 	start_full_time = time.time()
+
+        # test on the loaded model
+	total_test_loss = 0
+        for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
+            test_loss = test(imgL,imgR, disp_L)
+            print('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
+            total_test_loss += test_loss
+        min_acc=total_test_loss/len(TestImgLoader)*100
+	print('MIN epoch %d total test error = %.3f' %(min_epo, min_acc))
 
 	for epoch in range(1, args.epochs+1):
 	   total_train_loss = 0
@@ -190,16 +199,24 @@ def main():
 	   if total_test_loss/len(TestImgLoader)*100 < min_acc:
 		min_acc = total_test_loss/len(TestImgLoader)*100
 		min_epo = epoch
+	        savefilename = args.savemodel+'best.tar'
+	        torch.save({
+	              'epoch': epoch,
+	              'state_dict': model.state_dict(),
+	              'train_loss': total_train_loss/len(TrainImgLoader),
+	              'test_loss': total_test_loss/len(TestImgLoader)*100,
+	          }, savefilename)
 	   print('MIN epoch %d total test error = %.3f' %(min_epo, min_acc))
 
 	   #SAVE
-	   savefilename = args.savemodel+'finetune_'+str(epoch)+'.tar'
-	   torch.save({
-	         'epoch': epoch,
-	         'state_dict': model.state_dict(),
-	         'train_loss': total_train_loss/len(TrainImgLoader),
-	         'test_loss': total_test_loss/len(TestImgLoader)*100,
-	     }, savefilename)
+           if epoch % 10 == 0:
+	       savefilename = args.savemodel+'finetune_'+str(epoch)+'.tar'
+	       torch.save({
+	             'epoch': epoch,
+	             'state_dict': model.state_dict(),
+	             'train_loss': total_train_loss/len(TrainImgLoader),
+	             'test_loss': total_test_loss/len(TestImgLoader)*100,
+	         }, savefilename)
 	
         print('full finetune time = %.2f HR' %((time.time() - start_full_time)/3600))
 	print(min_epo)
