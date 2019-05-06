@@ -45,7 +45,7 @@ class DisparityTrainer(object):
                                 shuffle = True, num_workers = 16, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = 4, \
+        self.test_loader = DataLoader(test_dataset, batch_size = 8, \
                                 shuffle = False, num_workers = 4, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
@@ -53,7 +53,7 @@ class DisparityTrainer(object):
     def _build_net(self):
         #self.net = build_net(self.net_name)(batchNorm=True, using_resblock=True)
         #self.net = build_net(self.net_name)(len(self.devices), batchNorm=True)
-        self.net = build_net(self.net_name)(len(self.devices), False, True)
+        self.net = build_net(self.net_name)(len(self.devices), batchNorm=False, lastRelu=True)
         self.is_pretrain = False
 
         if self.ngpu > 1:
@@ -80,7 +80,7 @@ class DisparityTrainer(object):
         beta = 0.999
         momentum = 0.9
         self.optimizer = torch.optim.Adam(self.net.parameters(), self.lr,
-                                        betas=(momentum, beta))
+                                        betas=(momentum, beta), amsgrad=True)
 
     def initialize(self):
         self._build_net()
@@ -88,7 +88,13 @@ class DisparityTrainer(object):
         self._build_optimizer()
 
     def adjust_learning_rate(self, epoch):
-        cur_lr = self.lr / (2**(epoch // 10))
+        #if epoch < 10:
+        #    cur_lr = 0.001
+        #elif epoch < 20:
+        #    cur_lr = 0.0001
+        #else:
+        #    cur_lr = 0.0001 / (2**((epoch - 20)// 10))
+        cur_lr = self.lr / (2**(epoch// 10))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
