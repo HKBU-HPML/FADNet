@@ -48,8 +48,8 @@ class myImageFloder(data.Dataset):
         right_img = self.loader(right)
         dataL = self.dploader(disp_L)
 
-        origin_width, origin_height = left_img.size
-        scale_width = self.scale_size[0]
+        #origin_width, origin_height = left_img.size
+        #scale_width = self.scale_size[0]
         #print("ori_w: %d, sca_w: %d" % (origin_width, scale_width))
  
         #left_img = left_img.resize(self.scale_size, Image.BILINEAR)
@@ -61,7 +61,7 @@ class myImageFloder(data.Dataset):
 
         if self.training:  
            w, h = left_img.size
-           th, tw = 320, 768
+           th, tw = 256, 512
            #th, tw = 384, 768
  
            x1 = random.randint(0, w - tw)
