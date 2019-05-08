@@ -17,6 +17,7 @@ import skimage.transform
 import numpy as np
 import time
 import math
+from utils.common import load_loss_scheme
 from dataloader import KITTIloader2015 as ls
 from dataloader import KITTILoader as DA
 
@@ -43,7 +44,12 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--devices', type=str, help='indicates CUDA devices, e.g. 0,1,2', default='0')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
+parser.add_argument('--loss', type=str, help='indicates the loss scheme', default='simplenet_flying')
 args = parser.parse_args()
+
+if not os.path.exists(args.savemodel):
+    os.makedirs(args.savemodel)
+
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 torch.manual_seed(args.seed)
 if args.cuda:
@@ -58,11 +64,11 @@ all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
-         batch_size= 24, shuffle= True, num_workers= 8, drop_last=False)
+         batch_size= 32, shuffle= True, num_workers= 8, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 24, shuffle= False, num_workers= 4, drop_last=False)
+         batch_size= 32, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
@@ -72,17 +78,23 @@ if args.model == 'dispnetcres':
 else:
     print('no model')
 
-if args.loadmodel is not None:
-    state_dict = torch.load(args.loadmodel)
-    model.load_state_dict(state_dict['state_dict'])
-
 if args.cuda:
     model = nn.DataParallel(model, device_ids=devices)
     model.cuda()
 
+if args.loadmodel is not None:
+    state_dict = torch.load(args.loadmodel)
+    model.load_state_dict(state_dict['state_dict'])
+
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 optimizer = optim.Adam(model.parameters(), lr=0.1, betas=(0.9, 0.999))
+
+loss_json = load_loss_scheme(args.loss)
+train_round = loss_json["round"]
+loss_scale = loss_json["loss_scale"]
+loss_weights = loss_json["loss_weights"]
+criterion = multiscaleloss(loss_scale, 1, loss_weights[train_round-1], loss='L1', sparse=False, mask=True)
 
 def train(imgL,imgR,disp_L):
         model.train()
@@ -112,9 +124,13 @@ def train(imgL,imgR,disp_L):
             loss = F.smooth_l1_loss(output3[mask], disp_true[mask], size_average=True)
         elif args.model == 'dispnetcres':
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
-            output1 = output_net1[0].squeeze(1)
-            output2 = output_net2[0].squeeze(1)
-            loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
+            disp_true = disp_true.unsqueeze(1)
+            loss_net1 = criterion(output_net1, disp_true)
+            loss_net2 = criterion(output_net2, disp_true)
+            loss = loss_net1 + loss_net2 
+            #output1 = output_net1[0].squeeze(1)
+            #output2 = output_net2[0].squeeze(1)
+            #loss = 0.3*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
 
         loss.backward()
         optimizer.step()

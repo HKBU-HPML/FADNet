@@ -105,7 +105,7 @@ def test(imgL,imgR):
         #output = output_net2
         pred_disp = output.data.cpu().numpy()
         pred_disp = pred_disp[:imgsize[0], :imgsize[1]]
-        print(pred_disp.shape)
+        #print(pred_disp.shape)
         #pred_disp = scale_disp(pred_disp, (1, 375, 1242))
         #pred_disp = np.flip(pred_disp[0], axis=0)
 
