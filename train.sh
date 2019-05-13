@@ -15,6 +15,7 @@ batchSize=8
 model=none
 #model=models/dispCSRes-1/dispnetcres_0_19.pth
 #model=models/dispCSRes/model_best.pth
+#model=models/model_best.pth
 python main.py --cuda --net $net --loss $loss --lr $lr \
                --outf $outf_model --logFile $logf \
                --devices $devices --batch_size $batchSize \

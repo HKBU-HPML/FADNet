@@ -24,6 +24,8 @@ class DispDataset(Dataset):
         #self.transform = transform
         self.phase = phase
         self.scale_size = (576, 960)
+        #self.scale_size = (640, 1024)
+        #self.scale_size = (768, 1280)
         #self.augment = augment 
         #self.center_crop = center_crop
         
