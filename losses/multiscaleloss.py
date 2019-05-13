@@ -17,7 +17,8 @@ def EPE(input_flow, target_flow):
     #hist = np.histogram(EPE_map.data.cpu().numpy(), bins=10)
     #print(hist)
     # print(input_flow.sum())
-    return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
+    target_valid = target_flow < 192
+    return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
     #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
     #return EPE_map.mean()
@@ -43,7 +44,9 @@ class MultiScaleLoss(nn.Module):
                 self.loss = MAPELoss()
         else:
             self.loss = loss
-        self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        #self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        print('self.multiScales: ', self.multiScales, ' self.downscale: ', self.downscale)
         # self.multiScales = [nn.functional.adaptive_avg_pool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
 
     def forward(self, input, target):
@@ -56,8 +59,10 @@ class MultiScaleLoss(nn.Module):
                 #print('target shape: ', target_.shape, ' input shape: ', input_.shape)
                 if self.mask:
                     mask = target_ > 0
+                    mask.detach_()
                     input_ = input_[mask]
                     target_ = target_[mask]
+
                 EPE_ = EPE(input_, target_)
                 out += self.weights[i] * EPE_
         else:
