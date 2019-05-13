@@ -35,7 +35,7 @@ parser.add_argument('--datapath', default='/media/jiaren/ImageNet/data_scene_flo
                     help='datapath')
 parser.add_argument('--epochs', type=int, default=300,
                     help='number of epochs to train')
-parser.add_argument('--loadmodel', default='./trained/submission_model.tar',
+parser.add_argument('--loadmodel', default=None,
                     help='load model')
 parser.add_argument('--savemodel', default='./',
                     help='save model')
@@ -64,7 +64,7 @@ all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
-         batch_size= 32, shuffle= True, num_workers= 8, drop_last=False)
+         batch_size= 8, shuffle= True, num_workers= 8, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
@@ -94,7 +94,7 @@ loss_json = load_loss_scheme(args.loss)
 train_round = loss_json["round"]
 loss_scale = loss_json["loss_scale"]
 loss_weights = loss_json["loss_weights"]
-criterion = multiscaleloss(loss_scale, 1, loss_weights[train_round-1], loss='L1', sparse=False, mask=True)
+criterion = multiscaleloss(loss_scale, 1, loss_weights[0], loss='L1', sparse=False, mask=True)
 
 def train(imgL,imgR,disp_L):
         model.train()
@@ -124,13 +124,17 @@ def train(imgL,imgR,disp_L):
             loss = F.smooth_l1_loss(output3[mask], disp_true[mask], size_average=True)
         elif args.model == 'dispnetcres':
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
-            disp_true = disp_true.unsqueeze(1)
-            loss_net1 = criterion(output_net1, disp_true)
-            loss_net2 = criterion(output_net2, disp_true)
-            loss = loss_net1 + loss_net2 
-            #output1 = output_net1[0].squeeze(1)
-            #output2 = output_net2[0].squeeze(1)
-            #loss = 0.3*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
+
+            # multi-scale loss
+            #disp_true = disp_true.unsqueeze(1)
+            #loss_net1 = criterion(output_net1, disp_true)
+            #loss_net2 = criterion(output_net2, disp_true)
+            #loss = loss_net1 + loss_net2 
+
+            # only the last scale
+            output1 = output_net1[0].squeeze(1)
+            output2 = output_net2[0].squeeze(1)
+            loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
 
         loss.backward()
         optimizer.step()
@@ -157,7 +161,7 @@ def test(imgL,imgR,disp_true):
         #pred_disp = pred_disp[:, :368, :1232]
 
         #computing 3-px error#
-        true_disp = disp_true
+        true_disp = disp_true.clone()
         index = np.argwhere(true_disp>0)
         disp_true[index[0][:], index[1][:], index[2][:]] = np.abs(true_disp[index[0][:], index[1][:], index[2][:]]-pred_disp[index[0][:], index[1][:], index[2][:]])
         correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3)|(disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[index[0][:], index[1][:], index[2][:]]*0.05)      
@@ -167,9 +171,11 @@ def test(imgL,imgR,disp_true):
 
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= 600:
-       lr = 1e-4
+       #lr = 5e-6
+       lr = 1e-6
     else:
-       lr = 1e-5
+       #lr = 2e-6
+       lr = 1e-6
     print(lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
@@ -225,7 +231,7 @@ def main():
 	   print('MIN epoch %d total test error = %.3f' %(min_epo, min_acc))
 
 	   #SAVE
-           if epoch % 10 == 0:
+           if epoch % 100 == 0:
 	       savefilename = args.savemodel+'finetune_'+str(epoch)+'.tar'
 	       torch.save({
 	             'epoch': epoch,

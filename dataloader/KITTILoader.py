@@ -74,7 +74,8 @@ class myImageFloder(data.Dataset):
            #dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256 * 1.0 * scale_width / origin_width
            dataL = dataL[y1:y1 + th, x1:x1 + tw]
 
-           processed = preprocess.get_transform(augment=False)  
+           #processed = preprocess.get_transform(augment=False)  
+           processed = preprocess.get_transform(augment=True)  
            left_img   = processed(left_img)
            right_img  = processed(right_img)
 

@@ -11,51 +11,28 @@ from torch.nn.init import kaiming_normal
 from correlation_package.modules.corr import Correlation1d # from PWC-Net
 from networks.submodules import *
 
-class DispNetC(nn.Module):
+class MultiCorrNet(nn.Module):
 
     def __init__(self, ngpu, batchNorm=False, input_channel=3):
-        super(DispNetC, self).__init__()
+        super(MultiCorrNet, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
         self.input_channel = input_channel
 
         # shrink and extract features
-        self.conv1   = conv(self.batchNorm, self.input_channel, 64, 7, 2)
-        self.conv2   = ResBlock(64, 128, 2)
-        self.conv3   = ResBlock(128, 256, 2)
+        self.conv1   = ResBlock(self.input_channel, 64, 2) # S/2
+        self.conv2   = ResBlock(64, 128, 2) # S/4
+        self.conv3   = ResBlock(128, 256, 2) # S/8
+        self.conv4   = ResBlock(256, 512, stride=2) # S/16
+        self.conv5   = ResBlock(512, 1024, stride=2) # S/32
 
-        # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
-	self.conv_redir = ResBlock(256, 32, stride=1)
-	self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
-	#self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
+        ## start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
+	self.conv_redir = ResBlock(64, 64, stride=1)
+	self.corr = Correlation1d(pad_size=40, kernel_size=1, max_displacement=40, stride1=1, stride2=2, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
-        self.conv3_1 = ResBlock(53, 256)
-        self.conv4   = ResBlock(256, 512, stride=2)
-        self.conv4_1 = ResBlock(512, 512)
-        self.conv5   = ResBlock(512, 512, stride=2)
-        self.conv5_1 = ResBlock(512, 512)
-        self.conv6   = ResBlock(512, 1024, stride=2)
-        self.conv6_1 = ResBlock(1024, 1024)
-
-        #self.conv3_1 = conv(self.batchNorm, 256, 256)
-        #self.conv4   = conv(self.batchNorm, 256, 512, stride=2)
-        #self.conv4_1 = conv(self.batchNorm, 512, 512)
-        #self.conv5   = conv(self.batchNorm, 512, 512, stride=2)
-        #self.conv5_1 = conv(self.batchNorm, 512, 512)
-        #self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
-        #self.conv6_1 = conv(self.batchNorm, 1024, 1024)
-
         self.pred_flow6 = predict_flow(1024)
-
-        # # iconv with resblock
-        # self.iconv5 = ResBlock(1025, 512, 1)
-        # self.iconv4 = ResBlock(769, 256, 1)
-        # self.iconv3 = ResBlock(385, 128, 1)
-        # self.iconv2 = ResBlock(193, 64, 1)
-        # self.iconv1 = ResBlock(97, 32, 1)
-        # self.iconv0 = ResBlock(20, 16, 1)
 
         # iconv with deconv
         self.iconv5 = nn.ConvTranspose2d(1025, 512, 3, 1, 1)
@@ -64,14 +41,6 @@ class DispNetC(nn.Module):
         self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
         self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
         self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
-
-        # # original iconv with conv
-        # self.iconv5 = conv(self.batchNorm, 1025, 512, 3, 1)
-        # self.iconv4 = conv(self.batchNorm, 769, 256, 3, 1)
-        # self.iconv3 = conv(self.batchNorm, 385, 128, 3, 1)
-        # self.iconv2 = conv(self.batchNorm, 193, 64, 3, 1)
-        # self.iconv1 = conv(self.batchNorm, 97, 32, 3, 1)
-        # self.iconv0 = conv(self.batchNorm, 20, 16, 3, 1)
         
         # expand and produce disparity
         self.upconv5 = deconv(1024, 512)
@@ -96,8 +65,7 @@ class DispNetC(nn.Module):
 
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.disp_expand = ResBlock(16, 192)
-        #self.pred_flow0 = predict_flow(16)
+        self.pred_flow0 = predict_flow(16)
 
         # weight initialization
         for m in self.modules():
@@ -178,10 +146,7 @@ class DispNetC(nn.Module):
         iconv0 = self.iconv0(concat0)
 
         # predict flow
-        #pr0 = self.pred_flow0(iconv0)
-        pr0 = self.disp_expand(iconv0)
-        pr0 = F.softmax(pr0, dim=1)
-        pr0 = disparity_regression(pr0, 192)
+        pr0 = self.pred_flow0(iconv0)
 
         # predict flow from dropout output
         # pr6 = self.pred_flow6(F.dropout2d(conv6b))

@@ -81,7 +81,7 @@ if args.loadmodel is not None:
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
-def test(imgL,imgR):
+def test(imgL,imgR, imgsize):
         model.eval()
         imgL = imgL.unsqueeze(0)
         imgR = imgR.unsqueeze(0)
@@ -93,7 +93,6 @@ def test(imgL,imgR):
            imgR = imgR.cuda()     
 
         imgL, imgR= Variable(imgL), Variable(imgR)
-        imgsize = imgL.size()[2:]
         imgL = F.pad(imgL, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
         imgR = F.pad(imgR, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
 
@@ -104,9 +103,11 @@ def test(imgL,imgR):
         output = torch.squeeze(output_net2)
         #output = output_net2
         pred_disp = output.data.cpu().numpy()
+
         pred_disp = pred_disp[:imgsize[0], :imgsize[1]]
+        #pred_disp = scale_disp(pred_disp[np.newaxis, :], (1, img_size[0], imgsize[1]))[0]
         #print(pred_disp.shape)
-        #pred_disp = scale_disp(pred_disp, (1, 375, 1242))
+
         #pred_disp = np.flip(pred_disp[0], axis=0)
 
         return pred_disp
@@ -121,6 +122,7 @@ def main():
        imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
 
        # resize
+       imgsize = imgL_o.shape[:2]
        #imgL_o = skimage.transform.resize(imgL_o, (384, 1280), preserve_range=True)
        #imgR_o = skimage.transform.resize(imgR_o, (384, 1280), preserve_range=True)
 
@@ -140,7 +142,7 @@ def main():
        #imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
 
        start_time = time.time()
-       pred_disp = test(imgL,imgR)
+       pred_disp = test(imgL,imgR,imgsize)
        print('time = %.2f' %(time.time() - start_time))
 
        #top_pad   = 384-imgL_o.shape[0]
