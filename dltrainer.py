@@ -56,11 +56,6 @@ class DisparityTrainer(object):
         self.net = build_net(self.net_name)(len(self.devices), batchNorm=False, lastRelu=True)
         self.is_pretrain = False
 
-        if self.ngpu > 1:
-            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
-        else:
-            self.net.cuda()
-
         if self.pretrain == '':
             logger.info('Initial a new model...')
         else:
@@ -74,6 +69,11 @@ class DisparityTrainer(object):
                 self.is_pretrain = True
             else:
                 logger.warning('Can not find the specific model %s, initial a new model...', self.pretrain)
+
+        if self.ngpu > 1:
+            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
+        else:
+            self.net.cuda()
 
 
     def _build_optimizer(self):
