@@ -45,7 +45,7 @@ class DisparityTrainer(object):
                                 shuffle = True, num_workers = 16, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = 2, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 2, \
                                 shuffle = False, num_workers = 4, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
@@ -55,6 +55,11 @@ class DisparityTrainer(object):
         #self.net = build_net(self.net_name)(len(self.devices), batchNorm=True)
         self.net = build_net(self.net_name)(len(self.devices), batchNorm=False, lastRelu=True)
         self.is_pretrain = False
+
+        if self.ngpu > 1:
+            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
+        else:
+            self.net.cuda()
 
         if self.pretrain == '':
             logger.info('Initial a new model...')
@@ -69,11 +74,6 @@ class DisparityTrainer(object):
                 self.is_pretrain = True
             else:
                 logger.warning('Can not find the specific model %s, initial a new model...', self.pretrain)
-
-        if self.ngpu > 1:
-            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
-        else:
-            self.net.cuda()
 
 
     def _build_optimizer(self):
@@ -135,9 +135,9 @@ class DisparityTrainer(object):
             else:
                 output = self.net(input_var)
                 loss = self.criterion(output, target_var)
-                if type(loss) is list:
+                if type(loss) is list or type(loss) is tuple:
                     loss = np.sum(loss)
-                if type(output) is list:
+                if type(output) is list or type(output) is tuple:
                     flow2_EPE = self.epe(output[0], target_var)
                 else:
                     flow2_EPE = self.epe(output, target_var)
@@ -174,6 +174,7 @@ class DisparityTrainer(object):
         self.net.eval()
         end = time.time()
         for i, sample_batched in enumerate(self.test_loader):
+
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
             input = torch.cat((left_input, right_input), 1)
@@ -185,7 +186,6 @@ class DisparityTrainer(object):
 
             if self.net_name == 'dispnetcres':
                 output_net1, output_net2 = self.net(input_var)
-
                 output_net1 = output_net1.squeeze(1)
                 output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], 540, 960))
                 output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
@@ -199,14 +199,19 @@ class DisparityTrainer(object):
                 flow2_EPE = self.epe(output_net2, target_var)
             else:
                 output = self.net(input_var)
-                loss = self.criterion(output, target_var)
+                output_net1 = output[0]
+                output_net1 = output_net1.squeeze(1)
+                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], 540, 960))
+                output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
+                loss = self.epe(output_net1, target_var)
+                flow2_EPE = self.epe(output_net1, target_var)
 
-                if type(loss) is list:
-                    loss = loss[0]
-                if type(output) is list:
-                    flow2_EPE = self.epe(output[0], target_var)
-                else:
-                    flow2_EPE = self.epe(output, target_var)
+                #if type(loss) is list or type(loss) is tuple:
+                #    loss = loss[0]
+                #if type(output) is list or type(output_net1) :
+                #    flow2_EPE = self.epe(output[0], target_var)
+                #else:
+                #    flow2_EPE = self.epe(output, target_var)
 
             # record loss and EPE
             losses.update(loss.data.item(), target.size(0))

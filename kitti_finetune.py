@@ -94,7 +94,7 @@ loss_json = load_loss_scheme(args.loss)
 train_round = loss_json["round"]
 loss_scale = loss_json["loss_scale"]
 loss_weights = loss_json["loss_weights"]
-criterion = multiscaleloss(loss_scale, 1, loss_weights[0], loss='L1', sparse=False, mask=True)
+criterion = multiscaleloss(loss_scale, 1, loss_weights[0], loss='L1', mask=True)
 
 def train(imgL,imgR,disp_L):
         model.train()
@@ -126,15 +126,15 @@ def train(imgL,imgR,disp_L):
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
 
             # multi-scale loss
-            #disp_true = disp_true.unsqueeze(1)
-            #loss_net1 = criterion(output_net1, disp_true)
-            #loss_net2 = criterion(output_net2, disp_true)
-            #loss = loss_net1 + loss_net2 
+            disp_true = disp_true.unsqueeze(1)
+            loss_net1 = criterion(output_net1, disp_true)
+            loss_net2 = criterion(output_net2, disp_true)
+            loss = loss_net1 + loss_net2 
 
             # only the last scale
-            output1 = output_net1[0].squeeze(1)
-            output2 = output_net2[0].squeeze(1)
-            loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
+            #output1 = output_net1[0].squeeze(1)
+            #output2 = output_net2[0].squeeze(1)
+            #loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
 
         loss.backward()
         optimizer.step()
@@ -171,10 +171,9 @@ def test(imgL,imgR,disp_true):
 
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= 600:
-       #lr = 5e-6
-       lr = 1e-6
+       lr = 5e-6
+       #lr = 1e-4
     else:
-       #lr = 2e-6
        lr = 1e-6
     print(lr)
     for param_group in optimizer.param_groups:
