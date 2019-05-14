@@ -96,8 +96,8 @@ class DispNetC(nn.Module):
 
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.disp_expand = ResBlock(16, 192)
-        #self.pred_flow0 = predict_flow(16)
+        #self.disp_expand = ResBlock(16, 192)
+        self.pred_flow0 = predict_flow(16)
 
         # weight initialization
         for m in self.modules():
@@ -178,10 +178,10 @@ class DispNetC(nn.Module):
         iconv0 = self.iconv0(concat0)
 
         # predict flow
-        #pr0 = self.pred_flow0(iconv0)
-        pr0 = self.disp_expand(iconv0)
-        pr0 = F.softmax(pr0, dim=1)
-        pr0 = disparity_regression(pr0, 192)
+        pr0 = self.pred_flow0(iconv0)
+        #pr0 = self.disp_expand(iconv0)
+        #pr0 = F.softmax(pr0, dim=1)
+        #pr0 = disparity_regression(pr0, 192)
 
         # predict flow from dropout output
         # pr6 = self.pred_flow6(F.dropout2d(conv6b))

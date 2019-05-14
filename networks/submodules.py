@@ -5,6 +5,7 @@ import torch
 import numpy as np 
 from torch.autograd import Variable
 import torch.nn.functional as F
+from correlation_package.modules.corr import Correlation1d # from PWC-Net
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
@@ -63,6 +64,8 @@ def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = Tru
 def predict_flow(in_planes):
     return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
            
+def corr(in_planes, max_disp=40):
+    return Correlation1d(pad_size=max_disp, kernel_size=1, max_displacement=max_disp, stride1=1, stride2=2, corr_multiply=1)
 
 def deconv(in_planes, out_planes):
     return nn.Sequential(

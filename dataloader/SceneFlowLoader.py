@@ -78,8 +78,11 @@ class DispDataset(Dataset):
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
 
-        #rgb_transform = default_transform()
-        rgb_transform = inception_color_preproccess()
+        if self.phase == 'detect' or self.phase == 'test':
+            rgb_transform = default_transform()
+        else:
+            rgb_transform = inception_color_preproccess()
+
         img_left = rgb_transform(img_left)
         img_right = rgb_transform(img_right)
 
