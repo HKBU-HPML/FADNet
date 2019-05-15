@@ -35,12 +35,12 @@ class MultiCorrNet(nn.Module):
         self.conv6_a = ResBlock(1024, 1024, stride=1) # S/64
 
         ## start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
-        self.corr1 = corr(64, max_disp=96)
-        self.corr2 = corr(128, max_disp=48)
-        self.corr3 = corr(256, max_disp=24)
-        self.corr4 = corr(512, max_disp=12)
-        self.corr5 = corr(1024, max_disp=6)
-        self.corr6 = corr(2048, max_disp=3)
+        #self.corr1 = corr(64, max_disp=96)
+        #self.corr2 = corr(128, max_disp=48)
+        #self.corr3 = corr(256, max_disp=24)
+        #self.corr4 = corr(512, max_disp=12)
+        #self.corr5 = corr(1024, max_disp=6)
+        #self.corr6 = corr(2048, max_disp=3)
         self.corr_act = nn.LeakyReLU(0.1, inplace=True)
 
         # predict flow layer
@@ -110,12 +110,18 @@ class MultiCorrNet(nn.Module):
         conv5_r = self.conv5(conv4_r)
         conv6_r = self.conv6(conv5_r)
 
-        out_corr1 = self.corr_act(self.corr1(conv1_l, conv1_r)) # 97
-        out_corr2 = self.corr_act(self.corr2(conv2_l, conv2_r)) # 49
-        out_corr3 = self.corr_act(self.corr3(conv3_l, conv3_r)) # 25
-        out_corr4 = self.corr_act(self.corr4(conv4_l, conv4_r)) # 13
-        out_corr5 = self.corr_act(self.corr5(conv5_l, conv5_r)) # 7
-        out_corr6 = self.corr_act(self.corr6(conv6_l, conv6_r)) # 3
+        #out_corr1 = self.corr_act(self.corr1(conv1_l, conv1_r)) # 97
+        #out_corr2 = self.corr_act(self.corr2(conv2_l, conv2_r)) # 49
+        #out_corr3 = self.corr_act(self.corr3(conv3_l, conv3_r)) # 25
+        #out_corr4 = self.corr_act(self.corr4(conv4_l, conv4_r)) # 13
+        #out_corr5 = self.corr_act(self.corr5(conv5_l, conv5_r)) # 7
+        #out_corr6 = self.corr_act(self.corr6(conv6_l, conv6_r)) # 3
+        out_corr1 = self.corr_act(build_corr(conv1_l, conv1_r, 97)) # 97
+        out_corr2 = self.corr_act(build_corr(conv2_l, conv2_r, 49)) # 49
+        out_corr3 = self.corr_act(build_corr(conv3_l, conv3_r, 25)) # 25
+        out_corr4 = self.corr_act(build_corr(conv4_l, conv4_r, 13)) # 13
+        out_corr5 = self.corr_act(build_corr(conv5_l, conv5_r, 7)) # 7
+        out_corr6 = self.corr_act(build_corr(conv6_l, conv6_r, 3)) # 3
 
         in_conv6a = torch.cat((self.conv6_a(conv6_l), out_corr6), 1) # 1024 + 3
         in_conv5a = torch.cat((self.conv5_a(conv5_l), out_corr5), 1) # 512 + 7

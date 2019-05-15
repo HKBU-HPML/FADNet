@@ -5,7 +5,7 @@ import torch
 import numpy as np 
 from torch.autograd import Variable
 import torch.nn.functional as F
-from correlation_package.modules.corr import Correlation1d # from PWC-Net
+#from correlation_package.modules.corr import Correlation1d # from PWC-Net
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
@@ -64,8 +64,20 @@ def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = Tru
 def predict_flow(in_planes):
     return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
            
-def corr(in_planes, max_disp=40):
-    return Correlation1d(pad_size=max_disp, kernel_size=1, max_displacement=max_disp, stride1=1, stride2=2, corr_multiply=1)
+#def corr(in_planes, max_disp=40):
+#    return Correlation1d(pad_size=max_disp, kernel_size=1, max_displacement=max_disp, stride1=1, stride2=2, corr_multiply=1)
+
+def build_corr(img_left, img_right, max_disp=40):
+    B, C, H, W = refimg_fea.shape
+    volume = refimg_fea.new_zeros([B, max_disp, H, W])
+    for i in range(max_disp):
+        if i > 0:
+            volume[:, i, :, i:] = (img_left[:, :, :, i:] * img_right[:, :, :, :-i]).mean(dim=1)
+        else:
+            volume[:, i, :, :] = (img_left[:, :, :, :] * img_right[:, :, :, :]).mean(dim=1)
+
+    volume = volume.contiguous()
+    return volume
 
 def deconv(in_planes, out_planes):
     return nn.Sequential(
@@ -117,16 +129,6 @@ class matchshifted(nn.Module):
         shifted_left  = F.pad(torch.index_select(left,  3, Variable(torch.LongTensor([i for i in range(shift,width)])).cuda()),(shift,0,0,0))
         shifted_right = F.pad(torch.index_select(right, 3, Variable(torch.LongTensor([i for i in range(width-shift)])).cuda()),(shift,0,0,0))
         out = torch.cat((shifted_left,shifted_right),1).view(batch,filters*2,1,height,width)
-        return out
-
-class disparityregression(nn.Module):
-    def __init__(self, maxdisp):
-        super(disparityregression, self).__init__()
-        self.disp = Variable(torch.Tensor(np.reshape(np.array(range(maxdisp)),[1,maxdisp,1,1])).cuda(), requires_grad=False)
-
-    def forward(self, x):
-        disp = self.disp.repeat(x.size()[0],1,x.size()[2],x.size()[3])
-        out = torch.sum(x*disp,1)
         return out
 
 class feature_extraction(nn.Module):
