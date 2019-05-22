@@ -214,8 +214,10 @@ class DisparityTrainer(object):
                 #    flow2_EPE = self.epe(output, target_var)
 
             # record loss and EPE
-            losses.update(loss.data.item(), target.size(0))
-            flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
+            if loss.data.item() == loss.data.item():
+                losses.update(loss.data.item(), target.size(0))
+            if flow2_EPE.data.item() == flow2_EPE.data.item():
+                flow2_EPEs.update(flow2_EPE.data.item(), target.size(0))
             
             # measure elapsed time
             batch_time.update(time.time() - end)
