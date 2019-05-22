@@ -6,9 +6,7 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-#from layers_package.resample2d_package.modules.resample2d import Resample2d
-#from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
-from correlation_package.modules.corr import Correlation1d # from PWC-Net
+#from correlation_package.modules.corr import Correlation1d # from PWC-Net
 from networks.submodules import *
 
 class DispNetC(nn.Module):
@@ -27,11 +25,11 @@ class DispNetC(nn.Module):
 
         # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
 	self.conv_redir = ResBlock(256, 32, stride=1)
-	self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
+	#self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
 	#self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
-        self.conv3_1 = ResBlock(53, 256)
+        self.conv3_1 = ResBlock(72, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
         self.conv4_1 = ResBlock(512, 512)
         self.conv5   = ResBlock(512, 512, stride=2)
@@ -128,7 +126,8 @@ class DispNetC(nn.Module):
         conv3a_r = self.conv3(conv2_r)
 
         # Correlate corr3a_l and corr3a_r
-        out_corr = self.corr(conv3a_l, conv3a_r)
+        #out_corr = self.corr(conv3a_l, conv3a_r)
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
         out_corr = self.corr_activation(out_corr)
 	out_conv3a_redir = self.conv_redir(conv3a_l)
 	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)

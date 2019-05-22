@@ -1,8 +1,8 @@
 #!/bin/bash
-#cd ./correlation_package
-#./make.sh
-cd ./resample2d_package 
-./make.sh
+cd ./correlation_package
+python setup.py install 
+cd ../resample2d_package 
+python setup.py install 
 cd ../channelnorm_package 
-./make.sh
+python setup.py install 
 cd ..
