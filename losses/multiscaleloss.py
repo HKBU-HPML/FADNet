@@ -17,16 +17,15 @@ def EPE(input_flow, target_flow):
     #hist = np.histogram(EPE_map.data.cpu().numpy(), bins=10)
     #print(hist)
     # print(input_flow.sum())
-    thres = 20
-    bg_valid = target_flow <= thres
-    fg_valid = (target_flow > thres) & (target_flow < 192)
+    #thres = 20
+    #bg_valid = target_flow <= thres
+    #fg_valid = (target_flow > thres) & (target_flow < 192)
 
-    return 1.0 * F.smooth_l1_loss(input_flow[bg_valid], target_flow[bg_valid], size_average=True) + 0.3 * F.smooth_l1_loss(input_flow[fg_valid], target_flow[fg_valid], size_average=True)
+    #return 1.0 * F.smooth_l1_loss(input_flow[bg_valid], target_flow[bg_valid], size_average=True) + 0.3 * F.smooth_l1_loss(input_flow[fg_valid], target_flow[fg_valid], size_average=True)
     
-    #target_valid = target_flow < 192
-    #return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
+    target_valid = target_flow < 192
+    return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
-    #return F.smooth_l1_loss(input_flow[target_valid]/target_flow[target_valid], target_flow[target_valid]/target_flow[target_valid], size_average=True)
     #return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
 
     #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
@@ -53,8 +52,8 @@ class MultiScaleLoss(nn.Module):
                 self.loss = MAPELoss()
         else:
             self.loss = loss
-        #self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
-        self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        #self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
         print('self.multiScales: ', self.multiScales, ' self.downscale: ', self.downscale)
         # self.multiScales = [nn.functional.adaptive_avg_pool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
 

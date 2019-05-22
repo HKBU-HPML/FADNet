@@ -2,18 +2,19 @@ from __future__ import print_function
 
 #from networks.simple_net import SimpleNet
 #from networks.dispnet_corr2 import DispNetCorr2
-#from networks.DispNetC import DispNetC
-#from networks.DispNetCSRes import DispNetCSRes
+from networks.DispNetC import DispNetC
+from networks.DispNetCSRes import DispNetCSRes
 from networks.MultiCorrNet import MultiCorrNet
 
 from utils.common import logger
 
-#SUPPORT_NETS = {'simplenet': SimpleNet,
-#        'dispnetcres': DispNetCSRes,
-#        'dispnetc': DispNetC,
-#        'multicorrnet': MultiCorrNet,
-#        'dispnetcorr2': DispNetCorr2,}
-SUPPORT_NETS = {'multicorrnet': MultiCorrNet}
+SUPPORT_NETS = {
+        #'simplenet': SimpleNet,
+        'dispnetcres': DispNetCSRes,
+        'dispnetc': DispNetC,
+        'multicorrnet': MultiCorrNet,
+        #'dispnetcorr2': DispNetCorr2,
+        }
 
 def build_net(net_name):
     net  = SUPPORT_NETS.get(net_name, None)

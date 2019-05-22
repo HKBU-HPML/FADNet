@@ -68,8 +68,8 @@ def predict_flow(in_planes):
 #    return Correlation1d(pad_size=max_disp, kernel_size=1, max_displacement=max_disp, stride1=1, stride2=2, corr_multiply=1)
 
 def build_corr(img_left, img_right, max_disp=40):
-    B, C, H, W = refimg_fea.shape
-    volume = refimg_fea.new_zeros([B, max_disp, H, W])
+    B, C, H, W = img_left.shape
+    volume = img_left.new_zeros([B, max_disp, H, W])
     for i in range(max_disp):
         if i > 0:
             volume[:, i, :, i:] = (img_left[:, :, :, i:] * img_right[:, :, :, :-i]).mean(dim=1)
