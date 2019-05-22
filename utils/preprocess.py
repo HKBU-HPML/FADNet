@@ -70,7 +70,7 @@ def inception_preproccess(input_size, normalize=__imagenet_stats):
         transforms.Normalize(**normalize)
     ])
 
-def inception_color_preproccess(input_size, normalize=__imagenet_stats):
+def inception_color_preproccess(input_size=256, normalize=__imagenet_stats):
     return transforms.Compose([
         #transforms.RandomSizedCrop(input_size),
         #transforms.RandomHorizontalFlip(),
