@@ -24,3 +24,5 @@ data
 core
 trained/
 submit_results/
+models
+trained
