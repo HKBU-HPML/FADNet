@@ -11,7 +11,7 @@ from networks.submodules import *
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=False, input_channel=3):
+    def __init__(self, ngpu, batchNorm=False, lastRelu=True, input_channel=3):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu

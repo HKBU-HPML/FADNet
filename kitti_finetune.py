@@ -21,7 +21,7 @@ from utils.common import load_loss_scheme
 from dataloader import KITTIloader2015 as ls
 from dataloader import KITTILoader as DA
 
-from networks.DispNetCSRes import DispNetCSRes
+from networks.DispNetCSRes import DispNetCSRes, DispNetC
 from losses.multiscaleloss import multiscaleloss
 
 parser = argparse.ArgumentParser(description='PSMNet')
@@ -64,7 +64,7 @@ all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
-         batch_size= 8, shuffle= True, num_workers= 8, drop_last=False)
+         batch_size= 32, shuffle= True, num_workers= 8, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
@@ -75,6 +75,8 @@ ngpus = len(devices)
 
 if args.model == 'dispnetcres':
     model = DispNetCSRes(ngpus, False, True)
+elif args.model == 'dispnetc':
+    model = DispNetC(ngpus, False, True)
 else:
     print('no model')
 
@@ -129,17 +131,24 @@ def train(imgL,imgR,disp_L):
             disp_true = disp_true.unsqueeze(1)
             loss_net1 = criterion(output_net1, disp_true)
             loss_net2 = criterion(output_net2, disp_true)
-            loss = loss_net1 + loss_net2 
+            loss = 0.5 * loss_net1 + loss_net2 
 
             # only the last scale
             #output1 = output_net1[0].squeeze(1)
             #output2 = output_net2[0].squeeze(1)
             #loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
 
+        elif args.model == 'dispnetc':
+            output_net = model(torch.cat((imgL, imgR), 1))
+
+            # multi-scale loss
+            disp_true = disp_true.unsqueeze(1)
+            loss = criterion(output_net, disp_true)
+
         loss.backward()
         optimizer.step()
 
-        return loss.data[0]
+        return loss.data.item()
 
 def test(imgL,imgR,disp_true):
         model.eval()
@@ -154,7 +163,8 @@ def test(imgL,imgR,disp_true):
         #print(imgL.size())
 
         with torch.no_grad():
-            output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
+            #output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
+            output_net2 = model(torch.cat((imgL, imgR), 1))[0]
 
         pred_disp = output_net2.squeeze(1)
         pred_disp = pred_disp.data.cpu()
@@ -165,16 +175,15 @@ def test(imgL,imgR,disp_true):
         index = np.argwhere(true_disp>0)
         disp_true[index[0][:], index[1][:], index[2][:]] = np.abs(true_disp[index[0][:], index[1][:], index[2][:]]-pred_disp[index[0][:], index[1][:], index[2][:]])
         correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3)|(disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[index[0][:], index[1][:], index[2][:]]*0.05)      
-        torch.cuda.empty_cache()
+        #torch.cuda.empty_cache()
 
         return 1-(float(torch.sum(correct))/float(len(index[0])))
 
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= 600:
-       lr = 5e-6
-       #lr = 1e-4
+       lr = 1e-4
     else:
-       lr = 1e-6
+       lr = 1e-5
     print(lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
