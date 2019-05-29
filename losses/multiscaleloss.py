@@ -23,10 +23,10 @@ def EPE(input_flow, target_flow):
 
     #return 1.0 * F.smooth_l1_loss(input_flow[bg_valid], target_flow[bg_valid], size_average=True) + 0.3 * F.smooth_l1_loss(input_flow[fg_valid], target_flow[fg_valid], size_average=True)
     
-    target_valid = target_flow < 192
-    return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
+    #target_valid = target_flow < 192
+    #return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
-    #return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
+    return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
 
     #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
     #return EPE_map.mean()
@@ -66,7 +66,7 @@ class MultiScaleLoss(nn.Module):
                 #target_ = self.multiScales[i](target) / (2**i)
                 #print('target shape: ', target_.shape, ' input shape: ', input_.shape)
                 if self.mask:
-                    mask = target_ > 0
+                    mask = (target_ > 0) & (target_ < 192)
                     mask.detach_()
                     input_ = input_[mask]
                     target_ = target_[mask]

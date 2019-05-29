@@ -93,8 +93,10 @@ def test(imgL,imgR, imgsize):
            imgR = imgR.cuda()     
 
         imgL, imgR= Variable(imgL), Variable(imgR)
-        imgL = F.pad(imgL, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
-        imgR = F.pad(imgR, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
+        #imgL = F.pad(imgL, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
+        #imgR = F.pad(imgR, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
+        imgL = F.pad(imgL, (0, 1280 - imgsize[1], 384 - imgsize[0],0), "constant", 0)
+        imgR = F.pad(imgR, (0, 1280 - imgsize[1], 384 - imgsize[0],0), "constant", 0)
 
         #print(imgL.size(), imgR.size())
         with torch.no_grad():
@@ -104,9 +106,13 @@ def test(imgL,imgR, imgsize):
         #output = output_net2
         pred_disp = output.data.cpu().numpy()
 
-        pred_disp = pred_disp[:imgsize[0], :imgsize[1]]
+        #pred_disp = pred_disp[:imgsize[0], :imgsize[1]]
+        pred_disp = pred_disp[384-imgsize[0]:, :imgsize[1]]
+        #pred_disp[pred_disp > 0.75] = 0.0
         #pred_disp = scale_disp(pred_disp[np.newaxis, :], (1, img_size[0], imgsize[1]))[0]
-        #print(pred_disp.shape)
+        print(pred_disp.shape)
+        #print('larger than 192: %s' % pred_disp[pred_disp>0.75].shape)
+        print('min: %f, max: %f, mean: %f' % (np.min(pred_disp), np.max(pred_disp), np.mean(pred_disp)))
 
         #pred_disp = np.flip(pred_disp[0], axis=0)
 
@@ -149,8 +155,9 @@ def main():
        #left_pad  = 1280-imgL_o.shape[1]
        #img = pred_disp[top_pad:,:-left_pad]
        img = pred_disp
+       round_img = np.round(img*256)
 
-       skimage.io.imsave(os.path.join(args.savepath, test_left_img[inx].split('/')[-1]),(img*256).astype('uint16'))
+       skimage.io.imsave(os.path.join(args.savepath, test_left_img[inx].split('/')[-1]),round_img.astype('uint16'))
 
 if __name__ == '__main__':
    main()

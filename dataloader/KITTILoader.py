@@ -78,6 +78,7 @@ class myImageFloder(data.Dataset):
            processed = preprocess.get_transform(augment=True)  
            left_img   = processed(left_img)
            right_img  = processed(right_img)
+           #print('[index:%d]left: %s, rect(%d,%d,%d,%d)'%(index, self.left[index], x1,y1,x1+tw,y1+th))
 
            return left_img, right_img, dataL
         else:
