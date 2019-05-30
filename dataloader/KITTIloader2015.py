@@ -27,6 +27,8 @@ def dataloader(filepath):
   train_idx = [i for i in range(200) if i not in val_idx]
   train = [image[i] for i in train_idx]
   val   = [image[i] for i in val_idx]
+  #train = image
+  #val = image
 
   left_train  = [filepath+left_fold+img for img in train]
   right_train = [filepath+right_fold+img for img in train]
