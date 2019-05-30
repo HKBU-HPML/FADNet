@@ -4,7 +4,7 @@ python kitti_finetune.py --maxdisp 192 \
                    --devices 0,1,2,3 \
                    --datatype 2015 \
                    --datapath data/kitti/training/ \
-                   --epochs 900 \
+                   --epochs 0 \
                    --loss loss_configs/dispnetcres_kitti.json \
                    --savemodel ./trained/dispCSRes-snd/ \
                    --loadmodel ./trained/dispCSRes-snd/best.tar \
@@ -12,8 +12,8 @@ python kitti_finetune.py --maxdisp 192 \
                    #--loadmodel ./trained/dispnetc-regression-snd/best.tar \
 
 #python kitti_submission.py --maxdisp 192 \
-#                     --model dispnetc \
+#                     --model dispnetcres \
 #                     --KITTI 2015 \
 #                     --datapath data/kitti/testing/ \
-#                     --savepath submit_results/dispnetc-regression-snd/ \
-#                     --loadmodel trained/dispnetc-regression-snd/best.tar \
+#                     --savepath submit_results/dispCSRes-snd/ \
+#                     --loadmodel trained/dispCSRes-snd/best.tar \

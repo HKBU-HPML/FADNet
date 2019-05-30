@@ -102,8 +102,8 @@ def test(imgL,imgR, imgsize):
         #print(imgL.size(), imgR.size())
         with torch.no_grad():
             #output = model(imgL,imgR)
-            #output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
-            output_net2 = model(torch.cat((imgL, imgR), 1))[0]
+            output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
+            #output_net2 = model(torch.cat((imgL, imgR), 1))[0]
         output = torch.squeeze(output_net2)
         #output = output_net2
         pred_disp = output.data.cpu().numpy()
