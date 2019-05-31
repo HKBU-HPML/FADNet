@@ -20,6 +20,7 @@ from utils.preprocess import scale_disp, default_transform
 #from models import *
 
 from networks.DispNetCSRes import DispNetCSRes
+from networks.DispNetC import DispNetC
 from losses.multiscaleloss import multiscaleloss
 
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
@@ -69,6 +70,8 @@ elif args.model == 'basic':
     model = basic(args.maxdisp)
 elif args.model == 'dispnetcres':
     model = DispNetCSRes(ngpus, False, True)
+elif args.model == 'dispnetc':
+    model = DispNetC(ngpus, False, True)
 else:
     print('no model')
 
@@ -83,32 +86,39 @@ print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in mo
 
 def test(imgL,imgR, imgsize):
         model.eval()
-        imgL = imgL.unsqueeze(0)
-        imgR = imgR.unsqueeze(0)
+        #imgL = imgL.unsqueeze(0)
+        #imgR = imgR.unsqueeze(0)
 
         if args.cuda:
-           #imgL = torch.FloatTensor(imgL).cuda()
-           #imgR = torch.FloatTensor(imgR).cuda()     
-           imgL = imgL.cuda()
-           imgR = imgR.cuda()     
+           imgL = torch.FloatTensor(imgL).cuda()
+           imgR = torch.FloatTensor(imgR).cuda()     
+           #imgL = imgL.cuda()
+           #imgR = imgR.cuda()     
 
         imgL, imgR= Variable(imgL), Variable(imgR)
         #imgL = F.pad(imgL, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
         #imgR = F.pad(imgR, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
+<<<<<<< HEAD
         imgL = F.pad(imgL, (0, 1280 - imgsize[1], 384 - imgsize[0],0), "constant", 0)
         imgR = F.pad(imgR, (0, 1280 - imgsize[1], 384 - imgsize[0],0), "constant", 0)
+=======
+>>>>>>> ebd65d6d3847f2907bd3da92c5634f9dc429bdc1
 
         #print(imgL.size(), imgR.size())
         with torch.no_grad():
             #output = model(imgL,imgR)
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
+            #output_net2 = model(torch.cat((imgL, imgR), 1))[0]
         output = torch.squeeze(output_net2)
         #output = output_net2
         pred_disp = output.data.cpu().numpy()
 
         #pred_disp = pred_disp[:imgsize[0], :imgsize[1]]
+<<<<<<< HEAD
         pred_disp = pred_disp[384-imgsize[0]:, :imgsize[1]]
         #pred_disp[pred_disp > 0.75] = 0.0
+=======
+>>>>>>> ebd65d6d3847f2907bd3da92c5634f9dc429bdc1
         #pred_disp = scale_disp(pred_disp[np.newaxis, :], (1, img_size[0], imgsize[1]))[0]
         print(pred_disp.shape)
         #print('larger than 192: %s' % pred_disp[pred_disp>0.75].shape)
@@ -136,17 +146,17 @@ def main():
        #imgL = processed(imgL_o).numpy()
        #imgR = processed(imgR_o).numpy()
        rgb_transform = default_transform()
-       imgL = rgb_transform(imgL_o)
-       imgR = rgb_transform(imgR_o)
+       imgL = rgb_transform(imgL_o).numpy()
+       imgR = rgb_transform(imgR_o).numpy()
 
-       #imgL = np.reshape(imgL,[1,3,imgL.shape[1],imgL.shape[2]])
-       #imgR = np.reshape(imgR,[1,3,imgR.shape[1],imgR.shape[2]])
+       imgL = np.reshape(imgL,[1,3,imgL.shape[1],imgL.shape[2]])
+       imgR = np.reshape(imgR,[1,3,imgR.shape[1],imgR.shape[2]])
 
-       # pad to (384, 1248)
-       #top_pad = 384-imgL.shape[2]
-       #left_pad = 1280-imgL.shape[3]
-       #imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
-       #imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
+       # pad to (384, 1280)
+       top_pad = 384-imgL.shape[2]
+       left_pad = 1280-imgL.shape[3]
+       imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
+       imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
 
        start_time = time.time()
        pred_disp = test(imgL,imgR,imgsize)

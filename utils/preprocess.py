@@ -5,11 +5,11 @@ from skimage import transform
 import random
 import numpy as np
 
-#__imagenet_stats = {'mean': [0.485, 0.456, 0.406],
-#                   'std': [0.229, 0.224, 0.225]}
+__imagenet_stats = {'mean': [0.485, 0.456, 0.406],
+                   'std': [0.229, 0.224, 0.225]}
 
-__imagenet_stats = {'mean': [0., 0., 0.],
-                   'std': [1, 1, 1]}
+#__imagenet_stats = {'mean': [0., 0., 0.],
+#                   'std': [1, 1, 1]}
 
 #__imagenet_stats = {'mean': [0., 0., 0.],
 #                   'std': [255, 255, 255]}

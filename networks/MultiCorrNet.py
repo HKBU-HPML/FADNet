@@ -64,8 +64,8 @@ class MultiCorrNet(nn.Module):
         self.iconv5 = nn.ConvTranspose2d(1032, 512, 3, 1, 1)
         self.iconv4 = nn.ConvTranspose2d(526, 256, 3, 1, 1)
         self.iconv3 = nn.ConvTranspose2d(282, 128, 3, 1, 1)
-        self.iconv2 = nn.ConvTranspose2d(178, 64, 3, 1, 1)
-        self.iconv1 = nn.ConvTranspose2d(162, 32, 3, 1, 1)
+        self.iconv2 = nn.ConvTranspose2d(129, 64, 3, 1, 1)
+        self.iconv1 = nn.ConvTranspose2d(65, 32, 3, 1, 1)
         self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
         
         # deconv concat feature before produce disparity
@@ -116,8 +116,8 @@ class MultiCorrNet(nn.Module):
         #out_corr4 = self.corr_act(self.corr4(conv4_l, conv4_r)) # 13
         #out_corr5 = self.corr_act(self.corr5(conv5_l, conv5_r)) # 7
         #out_corr6 = self.corr_act(self.corr6(conv6_l, conv6_r)) # 3
-        out_corr1 = self.corr_act(build_corr(conv1_l, conv1_r, 97)) # 97
-        out_corr2 = self.corr_act(build_corr(conv2_l, conv2_r, 49)) # 49
+        #out_corr1 = self.corr_act(build_corr(conv1_l, conv1_r, 97)) # 97
+        #out_corr2 = self.corr_act(build_corr(conv2_l, conv2_r, 49)) # 49
         out_corr3 = self.corr_act(build_corr(conv3_l, conv3_r, 25)) # 25
         out_corr4 = self.corr_act(build_corr(conv4_l, conv4_r, 13)) # 13
         out_corr5 = self.corr_act(build_corr(conv5_l, conv5_r, 7)) # 7
@@ -127,8 +127,8 @@ class MultiCorrNet(nn.Module):
         in_conv5a = torch.cat((self.conv5_a(conv5_l), out_corr5), 1) # 512 + 7
         in_conv4a = torch.cat((self.conv4_a(conv4_l), out_corr4), 1) # 256 + 13 
         in_conv3a = torch.cat((self.conv3_a(conv3_l), out_corr3), 1) # 128 + 25
-        in_conv2a = torch.cat((self.conv2_a(conv2_l), out_corr2), 1) # 64 + 49
-        in_conv1a = torch.cat((self.conv1_a(conv1_l), out_corr1), 1) # 32 + 97
+        #in_conv2a = torch.cat((self.conv2_a(conv2_l), out_corr2), 1) # 64 + 49
+        #in_conv1a = torch.cat((self.conv1_a(conv1_l), out_corr1), 1) # 32 + 97
 
         pr6 = self.pred_flow6(in_conv6a)
         upconv5 = self.upconv5(in_conv6a)
@@ -151,13 +151,13 @@ class MultiCorrNet(nn.Module):
         pr3 = self.pred_flow3(iconv3)
         upconv2 = self.upconv2(iconv3)
         upflow3 = self.upflow3to2(pr3)
-        concat2 = torch.cat((upconv2, upflow3, in_conv2a), 1) # 64 + 1 + (64 + 49)
+        concat2 = torch.cat((upconv2, upflow3, conv2_l), 1) # 64 + 1 + (64)
         iconv2 = self.iconv2(concat2)
 
         pr2 = self.pred_flow2(iconv2)
         upconv1 = self.upconv1(iconv2)
         upflow2 = self.upflow2to1(pr2)
-        concat1 = torch.cat((upconv1, upflow2, in_conv1a), 1) # 32 + 1 + (32 + 97)
+        concat1 = torch.cat((upconv1, upflow2, conv1_l), 1) # 32 + 1 + (32)
         iconv1 = self.iconv1(concat1)
 
         pr1 = self.pred_flow1(iconv1)
