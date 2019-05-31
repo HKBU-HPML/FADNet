@@ -10,9 +10,3 @@ python kitti_finetune.py --maxdisp 192 \
                    --loadmodel  ./models/ShDispCSRes/model_best.pth
                    #--loadmodel /datasets/sh_kittis/ShKittiTrained/dispnet-imagenet-argument/best.tar 
 
-#python kitti_submission.py --maxdisp 192 \
-#                     --model dispnetcres \
-#                     --KITTI 2015 \
-#                     --datapath /datasets/kitti/testing/ \
-#                     --savepath /datasets/sh_kittis/submit_results/dispnetcres_imagenet_argument-pad_KITTI2015/ \
-#                     --loadmodel /datasets/sh_kittis/ShKittiTrained/dispnet-imagenet-argument/best.tar \
