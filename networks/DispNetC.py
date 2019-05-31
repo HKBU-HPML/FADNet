@@ -30,6 +30,7 @@ class DispNetC(nn.Module):
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         self.conv3_1 = ResBlock(72, 256)
+        #self.conv3_1 = ResBlock(44, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
         self.conv4_1 = ResBlock(512, 512)
         self.conv5   = ResBlock(512, 512, stride=2)

@@ -65,7 +65,7 @@ all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
-         batch_size= 32, shuffle= True, num_workers= 16, drop_last=False)
+         batch_size= 8, shuffle= True, num_workers= 16, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
@@ -173,14 +173,18 @@ def test(imgL,imgR,disp_true):
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= 600:
        #lr = 5e-6
-       lr = 1e-4*2
-    elif epoch <= 1000:
-       lr = 1e-5*5
-    elif epoch <= 1500:
-       lr = 1e-5*2
-    elif epoch <= 2000:
+       lr = 1e-4
+    elif epoch <= 800:
        lr = 1e-5
-    logger.info(lr)
+    elif epoch <= 1000:
+       lr = 1e-5/2
+    elif epoch <= 1300:
+       lr = 1e-5/4
+    elif epoch <= 1600:
+       lr = 1e-5/5
+    elif epoch <= 2000:
+       lr = 1e-6
+    logger.info('epoch: %d, lr: %f', epoch, lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
@@ -250,7 +254,7 @@ def main():
 
 
 if __name__ == '__main__':
-   hdlr = logging.FileHandler('logs/kitti_finetune.log')
+   hdlr = logging.FileHandler('logs/kitti_finetune2.log')
    hdlr.setFormatter(formatter)
    logger.addHandler(hdlr) 
    main()

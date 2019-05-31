@@ -123,6 +123,7 @@ def main():
    #processed = preprocess.get_transform(augment=False)
 
    for inx in range(len(test_left_img)):
+       print('image: %s'%test_left_img[inx])
 
        imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
        imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))

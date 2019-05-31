@@ -18,13 +18,13 @@ lr=1e-4
 trainlist=lists/FlyingThings3D_release_TRAIN.list
 vallist=lists/FlyingThings3D_release_TEST.list
 devices=0,1,2,3
-startR=2
+startR=1
 startE=1
 endE=50
 batchSize=32
 #model=none
 #model=models/dispCSRes/dispnetcres_1_29.pth
-model=/datasets/sh_kittis/models/ShDispCSRes/model_best.pth
+#model=/datasets/sh_kittis/models/ShDispCSRes/model_best.pth
 #model=models/dispnetc/dispnetc_0_9.pth
 #model=models/model_best.pth
 #model=models/dispCSRes-regression/dispnetcres_1_16.pth
@@ -34,6 +34,6 @@ python main.py --cuda --net $net --loss $loss --lr $lr \
                --devices $devices --batch_size $batchSize \
                --trainlist $trainlist --vallist $vallist \
                --startRound $startR --startEpoch $startE --endEpoch $endE \
-               --datapath /datasets \
-               --model $model
+               --datapath /datasets 
+#               --model $model
 
