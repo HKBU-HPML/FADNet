@@ -98,11 +98,6 @@ def test(imgL,imgR, imgsize):
         imgL, imgR= Variable(imgL), Variable(imgR)
         #imgL = F.pad(imgL, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
         #imgR = F.pad(imgR, (0, 1280 - imgsize[1], 0, 384 - imgsize[0]), "constant", 0)
-<<<<<<< HEAD
-        imgL = F.pad(imgL, (0, 1280 - imgsize[1], 384 - imgsize[0],0), "constant", 0)
-        imgR = F.pad(imgR, (0, 1280 - imgsize[1], 384 - imgsize[0],0), "constant", 0)
-=======
->>>>>>> ebd65d6d3847f2907bd3da92c5634f9dc429bdc1
 
         #print(imgL.size(), imgR.size())
         with torch.no_grad():
@@ -114,11 +109,7 @@ def test(imgL,imgR, imgsize):
         pred_disp = output.data.cpu().numpy()
 
         #pred_disp = pred_disp[:imgsize[0], :imgsize[1]]
-<<<<<<< HEAD
-        pred_disp = pred_disp[384-imgsize[0]:, :imgsize[1]]
-        #pred_disp[pred_disp > 0.75] = 0.0
-=======
->>>>>>> ebd65d6d3847f2907bd3da92c5634f9dc429bdc1
+        #pred_disp = pred_disp[384-imgsize[0]:, :imgsize[1]]
         #pred_disp = scale_disp(pred_disp[np.newaxis, :], (1, img_size[0], imgsize[1]))[0]
         print(pred_disp.shape)
         #print('larger than 192: %s' % pred_disp[pred_disp>0.75].shape)

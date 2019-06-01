@@ -39,10 +39,10 @@ def main(opt):
     best_EPE = -1
     if trainer.is_pretrain:
         best_EPE = trainer.validate()
-    for r in range(opt.startRound, train_round):
 
-        start_epoch = opt.startEpoch
-        end_epoch = opt.endEpoch
+    start_epoch = opt.startEpoch
+    end_epoch = opt.endEpoch
+    for r in range(opt.startRound, train_round):
 
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=False)
         trainer.set_criterion(criterion)
@@ -65,6 +65,7 @@ def main(opt):
             }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
         
             logger.info('Validation[epoch:%d]: '%i+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(avg_EPE), str(val_EPE), str(trainer.current_lr)]))
+        start_epoch = 0
 
 
 if __name__ == '__main__':
