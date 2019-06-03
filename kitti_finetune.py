@@ -1,4 +1,4 @@
-from __future__ import logger.info_function 
+from __future__ import print_function 
 import argparse
 import os
 import random
@@ -19,7 +19,8 @@ import time
 import math
 import logging
 from utils.common import load_loss_scheme, logger, formatter
-from dataloader import KITTIloader2015 as ls
+from dataloader import KITTIloader2012 as ls2012
+from dataloader import KITTIloader2015 as ls2015
 from dataloader import KITTILoader as DA
 
 from networks.DispNetCSRes import DispNetCSRes
@@ -56,12 +57,14 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-if args.datatype == '2015':
-   from dataloader import KITTIloader2015 as ls
-elif args.datatype == '2012':
-   from dataloader import KITTIloader2012 as ls
+#if args.datatype == '2015':
+#   from dataloader import KITTIloader2015 as ls
+#elif args.datatype == '2012':
+#   from dataloader import KITTIloader2012 as ls
 
-all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls.dataloader(args.datapath)
+#all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls.dataloader(args.datapath)
+all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls2015.dataloader(args.datapath)
+all_left_12, all_right_12, all_left_disp_12, test_left_12, test_right_12, test_left_disp_12 = ls2012.dataloader("/datasets/kitti2012/training/")
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
@@ -69,6 +72,10 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
+         batch_size= 100, shuffle= False, num_workers= 4, drop_last=False)
+
+TestImgLoader12 = torch.utils.data.DataLoader(
+         DA.myImageFloder(all_left_12,all_right_12,all_left_disp_12, False), 
          batch_size= 100, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
@@ -205,6 +212,12 @@ def main():
 
         # test on the loaded model
 	total_test_loss = 0
+        for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader12):
+            test_loss = test(imgL,imgR, disp_L)
+            logger.info('KITTI2012 Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
+            total_test_loss += test_loss
+        min_acc=total_test_loss/len(TestImgLoader)*100
+	total_test_loss = 0
         for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
             test_loss = test(imgL,imgR, disp_L)
             logger.info('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
@@ -213,13 +226,13 @@ def main():
 	logger.info('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
 
         start_round = 3
+        start_epoch = 501
         for r in range(start_round, train_round):
             criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
             logger.info(loss_weights[r])
 
-	    for epoch in range(1, args.epochs+1):
+	    for epoch in range(start_epoch, args.epochs+1):
 	       total_train_loss = 0
-	       total_test_loss = 0
 	       adjust_learning_rate(optimizer,epoch)
                
                    ## training ##
@@ -234,11 +247,16 @@ def main():
 	       
                    ## Test ##
 
+	       total_test_loss = 0
+               for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader12):
+                   test_loss = test(imgL,imgR, disp_L)
+                   logger.info('KITTI2012 Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
+                   total_test_loss += test_loss
+	       total_test_loss = 0
                for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
                    test_loss = test(imgL,imgR, disp_L)
                    logger.info('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
                    total_test_loss += test_loss
-
 
 	       logger.info('epoch %d of round %d total 3-px error in val = %.3f' %(epoch, r, total_test_loss/len(TestImgLoader)*100))
 	       if total_test_loss/len(TestImgLoader)*100 < min_acc:
@@ -265,7 +283,6 @@ def main():
 	                 'train_loss': total_train_loss/len(TrainImgLoader),
 	                 'test_loss': total_test_loss/len(TestImgLoader)*100,
 	             }, savefilename)
-	
         logger.info('full finetune time = %.2f HR' %((time.time() - start_full_time)/3600))
 	logger.info(min_epo)
         logger.info(min_round)
