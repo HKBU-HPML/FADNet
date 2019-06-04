@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 net=dispnetcres
 loss=loss_configs/dispnetcres_flying.json
-outf_model=/datasets/sh_kittis/models/ShDispCSRes
-logf=logs/dispCSRes.log
+outf_model=models/dispCSRes-imn
+logf=logs/dispCSRes-imn.log
 #net=multicorrnet
 #loss=loss_configs/dispnetc_flying.json
 #outf_model=models/multicorrnet
@@ -20,11 +20,11 @@ trainlist=lists/SceneFlow.list
 vallist=lists/FlyingThings3D_release_TEST.list
 devices=0,1,2,3
 startR=1
-startE=1
-endE=50
+startE=47
+endE=60
 batchSize=32
 #model=none
-#model=models/dispCSRes/dispnetcres_1_29.pth
+model=models/dispCSRes-imn/dispnetcres_1_46.pth
 #model=/datasets/sh_kittis/models/ShDispCSRes/model_best.pth
 #model=models/dispnetc/dispnetc_0_9.pth
 #model=models/model_best.pth
@@ -35,6 +35,6 @@ python main.py --cuda --net $net --loss $loss --lr $lr \
                --devices $devices --batch_size $batchSize \
                --trainlist $trainlist --vallist $vallist \
                --startRound $startR --startEpoch $startE --endEpoch $endE \
-               --datapath /datasets 
-#               --model $model
+               --datapath /datasets \
+               --model $model
 

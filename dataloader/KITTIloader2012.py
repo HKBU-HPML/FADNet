@@ -23,7 +23,8 @@ def dataloader(filepath):
   image = [img for img in os.listdir(filepath+left_fold) if img.find('_10') > -1]
 
   train = image[:]
-  val   = image[160:]
+  #val   = image[160:]
+  val   = image[:]
 
   left_train  = [filepath+left_fold+img for img in train]
   right_train = [filepath+right_fold+img for img in train]
