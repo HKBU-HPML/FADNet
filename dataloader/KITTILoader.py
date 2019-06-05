@@ -65,7 +65,8 @@ class myImageFloder(data.Dataset):
            #th, tw = 384, 768
  
            x1 = random.randint(0, w - tw)
-           y1 = random.randint((h-th)/2, h - th)
+           #y1 = random.randint((h-th)/2, h - th)
+           y1 = h - th
 
            left_img = left_img.crop((x1, y1, x1 + tw, y1 + th))
            right_img = right_img.crop((x1, y1, x1 + tw, y1 + th))
@@ -74,8 +75,8 @@ class myImageFloder(data.Dataset):
            #dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256 * 1.0 * scale_width / origin_width
            dataL = dataL[y1:y1 + th, x1:x1 + tw]
 
-           #processed = preprocess.get_transform(augment=False)  
-           processed = preprocess.get_transform(augment=True)  
+           processed = preprocess.get_transform(augment=False)  
+           #processed = preprocess.get_transform(augment=True)  
            left_img   = processed(left_img)
            right_img  = processed(right_img)
            #print('[index:%d]left: %s, rect(%d,%d,%d,%d)'%(index, self.left[index], x1,y1,x1+tw,y1+th))
