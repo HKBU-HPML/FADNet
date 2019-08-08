@@ -23,7 +23,8 @@ class DispDataset(Dataset):
         self.root_dir = root_dir
         #self.transform = transform
         self.phase = phase
-        self.scale_size = (576, 960)
+        #self.scale_size = (576, 960)
+        self.scale_size = (512, 1792) # apollo data
         #self.scale_size = (640, 1024)
         #self.scale_size = (768, 1280)
         #self.augment = augment 
@@ -92,7 +93,8 @@ class DispDataset(Dataset):
         if self.phase == 'train':
 
             h, w = img_left.shape[1:3]
-            th, tw = 384, 768
+            #th, tw = 384, 768
+            th, tw = 512, 1792
             top = random.randint(0, h - th)
             left = random.randint(0, w - tw)
 

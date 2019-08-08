@@ -25,6 +25,7 @@ from dataloader import KITTILoader as DA
 
 from networks.DispNetCSRes import DispNetCSRes
 from losses.multiscaleloss import multiscaleloss
+from losses.balanceloss import MyLoss2
 
 parser = argparse.ArgumentParser(description='PSMNet')
 parser.add_argument('--maxdisp', type=int ,default=192,
@@ -64,7 +65,15 @@ if args.cuda:
 
 #all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls.dataloader(args.datapath)
 all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls2015.dataloader(args.datapath)
-all_left_12, all_right_12, all_left_disp_12, test_left_12, test_right_12, test_left_disp_12 = ls2012.dataloader("/datasets/kitti2012/training/")
+#all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls2012.dataloader("/datasets/kitti2012/training/")
+#all_left_12, all_right_12, all_left_disp_12, test_left_12, test_right_12, test_left_disp_12 = ls2012.dataloader("/datasets/kitti2012/training/")
+
+#all_left_img.extend(all_left_12)
+#all_right_img.extend(all_right_12)
+#all_left_disp.extend(all_left_disp_12)
+#test_left_img.extend(test_left_12)
+#test_right_img.extend(test_right_12)
+#test_left_disp.extend(test_left_disp_12)
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
@@ -72,10 +81,6 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 100, shuffle= False, num_workers= 4, drop_last=False)
-
-TestImgLoader12 = torch.utils.data.DataLoader(
-         DA.myImageFloder(all_left_12,all_right_12,all_left_disp_12, False), 
          batch_size= 100, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
@@ -103,6 +108,8 @@ train_round = loss_json["round"]
 loss_scale = loss_json["loss_scale"]
 loss_weights = loss_json["loss_weights"]
 
+myCriterion = MyLoss2(thresh=3, alpha=2)
+
 def train(imgL,imgR,disp_L, criterion):
         model.train()
         imgL   = Variable(torch.FloatTensor(imgL))
@@ -113,8 +120,9 @@ def train(imgL,imgR,disp_L, criterion):
             imgL, imgR, disp_true = imgL.cuda(), imgR.cuda(), disp_L.cuda()
 
         #---------
-        mask = (disp_true > 0)
+        mask = (disp_true > 0) & (disp_true < 192)
         mask.detach_()
+        mask = torch.unsqueeze(mask, 1)
         #----
 
         optimizer.zero_grad()
@@ -135,8 +143,9 @@ def train(imgL,imgR,disp_L, criterion):
             # multi-scale loss
             disp_true = disp_true.unsqueeze(1)
             loss_net1 = criterion(output_net1, disp_true)
-            loss_net2 = criterion(output_net2, disp_true)
-            loss = 0.5 * loss_net1 + loss_net2 
+            #loss_net2 = criterion(output_net2, disp_true)
+            #loss = 0.5 * loss_net1 + loss_net2 + myCriterion(output_net2[0][mask], disp_true[mask])
+            loss = 0.5 * loss_net1 + myCriterion(output_net2[0][mask], disp_true[mask])
 
             # only the last scale
             #output1 = output_net1[0].squeeze(1)
@@ -180,7 +189,7 @@ def test(imgL,imgR,disp_true):
         fg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] >  25) & correct
         bg_val_err = 1 - (float(torch.sum(bg_correct))/float(len(small_idx[0])))
         fg_val_err = 1 - (float(torch.sum(fg_correct))/float(len(large_idx[0])))
-        logger.info("bg err: %f, fg err: %f. %f/%f." % (bg_val_err*100.0, fg_val_err*100.0, float(len(small_idx[0])), float(len(large_idx[0]))))
+        logger.info("bg err: %f, fg err: %f." % (bg_val_err*100.0, fg_val_err*100.0))
 
         return 1-(float(torch.sum(correct))/float(len(index[0])))
 
@@ -212,12 +221,6 @@ def main():
 
         # test on the loaded model
 	total_test_loss = 0
-        for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader12):
-            test_loss = test(imgL,imgR, disp_L)
-            logger.info('KITTI2012 Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
-            total_test_loss += test_loss
-        min_acc=total_test_loss/len(TestImgLoader)*100
-	total_test_loss = 0
         for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
             test_loss = test(imgL,imgR, disp_L)
             logger.info('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
@@ -225,8 +228,8 @@ def main():
         min_acc=total_test_loss/len(TestImgLoader)*100
 	logger.info('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
 
-        start_round = 3
-        start_epoch = 501
+        start_round = 0
+        start_epoch = 0
         for r in range(start_round, train_round):
             criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
             logger.info(loss_weights[r])
@@ -247,11 +250,6 @@ def main():
 	       
                    ## Test ##
 
-	       total_test_loss = 0
-               for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader12):
-                   test_loss = test(imgL,imgR, disp_L)
-                   logger.info('KITTI2012 Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
-                   total_test_loss += test_loss
 	       total_test_loss = 0
                for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
                    test_loss = test(imgL,imgR, disp_L)
