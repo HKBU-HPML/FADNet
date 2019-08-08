@@ -173,6 +173,10 @@ class DisparityTrainer(object):
         # switch to evaluate mode
         self.net.eval()
         end = time.time()
+        #scale_width = 960
+        #scale_height = 540
+        scale_width = 3130
+        scale_height = 960
         for i, sample_batched in enumerate(self.test_loader):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -187,10 +191,10 @@ class DisparityTrainer(object):
             if self.net_name == 'dispnetcres':
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = output_net1.squeeze(1)
-                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], 540, 960))
+                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], scale_height, scale_width))
                 output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
                 output_net2 = output_net2.squeeze(1)
-                output_net2 = scale_disp(output_net2.data.cpu().numpy(), (output_net2.size()[0], 540, 960))
+                output_net2 = scale_disp(output_net2.data.cpu().numpy(), (output_net2.size()[0], scale_height, scale_width))
                 output_net2 = torch.from_numpy(output_net2).unsqueeze(1).cuda()
 
                 loss_net1 = self.epe(output_net1, target_var)
