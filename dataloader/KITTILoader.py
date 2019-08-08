@@ -68,6 +68,7 @@ class myImageFloder(data.Dataset):
            x1 = random.randint(0, w - tw)
            y1 = random.randint(h / 4, h - th)
            #y1 = h - th
+           #y1 = random.randint((h-th)/2, h - th)
 
            left_img = left_img.crop((x1, y1, x1 + tw, y1 + th))
            right_img = right_img.crop((x1, y1, x1 + tw, y1 + th))

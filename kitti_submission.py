@@ -131,8 +131,15 @@ def main():
 
        # resize
        imgsize = imgL_o.shape[:2]
+       #target_size = (512, 1792)
+       target_size = (384, 1344)
+       scale_h = imgsize[0]*1.0/target_size[0]
+       scale_w = imgsize[1]*1.0/target_size[1]
+
        #imgL_o = skimage.transform.resize(imgL_o, (384, 1280), preserve_range=True)
        #imgR_o = skimage.transform.resize(imgR_o, (384, 1280), preserve_range=True)
+       imgL_o = skimage.transform.resize(imgL_o, target_size, preserve_range=True)
+       imgR_o = skimage.transform.resize(imgR_o, target_size, preserve_range=True)
 
        #imgL = processed(imgL_o).numpy()
        #imgR = processed(imgR_o).numpy()
@@ -144,20 +151,23 @@ def main():
        imgR = np.reshape(imgR,[1,3,imgR.shape[1],imgR.shape[2]])
 
        # pad to (384, 1280)
-       top_pad = 384-imgL.shape[2]
-       left_pad = 1280-imgL.shape[3]
-       imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
-       imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
+       #top_pad = 384-imgL.shape[2]
+       #left_pad = 1280-imgL.shape[3]
+       #imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
+       #imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
 
        start_time = time.time()
-       pred_disp = test(imgL,imgR,imgsize)
+       pred_disp = test(imgL,imgR,target_size)
        print('time = %.2f' %(time.time() - start_time))
 
        top_pad   = 384-imgL_o.shape[0]
        left_pad  = 1280-imgL_o.shape[1]
        img = pred_disp[top_pad:,:-left_pad]
        #img = pred_disp
+       #img = scale_disp(img, (imgsize[0], imgsize[1]))
+       #print('out shape: ', img.shape)
        round_img = np.round(img*256)
+       #round_img = skimage.transform.resize(round_img, imgsize, preserve_range=True)
 
        skimage.io.imsave(os.path.join(args.savepath, test_left_img[inx].split('/')[-1]),round_img.astype('uint16'))
 
