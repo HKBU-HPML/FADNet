@@ -81,7 +81,11 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 100, shuffle= False, num_workers= 4, drop_last=False)
+         batch_size= 16, shuffle= False, num_workers= 4, drop_last=False)
+
+TestImgLoader12 = torch.utils.data.DataLoader(
+         DA.myImageFloder(all_left_12,all_right_12,all_left_disp_12, False), 
+         batch_size= 16, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
@@ -185,11 +189,19 @@ def test(imgL,imgR,disp_true):
         correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3)|(disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[index[0][:], index[1][:], index[2][:]]*0.05)      
         #torch.cuda.empty_cache()
         
+<<<<<<< HEAD
         bg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] <= 25) & correct
         fg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] >  25) & correct
         bg_val_err = 1 - (float(torch.sum(bg_correct))/float(len(small_idx[0])))
         fg_val_err = 1 - (float(torch.sum(fg_correct))/float(len(large_idx[0])))
         logger.info("bg err: %f, fg err: %f." % (bg_val_err*100.0, fg_val_err*100.0))
+=======
+        #bg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] <= 25) & correct
+        #fg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] >  25) & correct
+        #bg_val_err = 1 - (float(torch.sum(bg_correct))/float(len(small_idx[0])))
+        #fg_val_err = 1 - (float(torch.sum(fg_correct))/float(len(large_idx[0])))
+        #logger.info("bg err: %f, fg err: %f. %f/%f." % (bg_val_err*100.0, fg_val_err*100.0, float(len(small_idx[0])), float(len(large_idx[0]))))
+>>>>>>> ab585b4b47ebef45e16637e27cc1bac4119c99b5
 
         return 1-(float(torch.sum(correct))/float(len(index[0])))
 
@@ -282,13 +294,13 @@ def main():
 	                 'test_loss': total_test_loss/len(TestImgLoader)*100,
 	             }, savefilename)
         logger.info('full finetune time = %.2f HR' %((time.time() - start_full_time)/3600))
-	logger.info(min_epo)
-        logger.info(min_round)
-	logger.info(min_acc)
+	#logger.info(min_epo)
+    #    logger.info(min_round)
+	#logger.info(min_acc)
 
 
 if __name__ == '__main__':
-   hdlr = logging.FileHandler('logs/kitti_finetune2.log')
+   hdlr = logging.FileHandler('logs/kitti_finetune_notransfrom2.log')
    hdlr.setFormatter(formatter)
    logger.addHandler(hdlr) 
    main()
