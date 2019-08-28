@@ -3,8 +3,12 @@ from __future__ import print_function
 #from networks.simple_net import SimpleNet
 #from networks.dispnet_corr2 import DispNetCorr2
 from networks.DispNetC import DispNetC
+from networks.DispNetS import DispNetS
+from networks.DispNetCSS import DispNetCSS
 from networks.DispNetCSRes import DispNetCSRes
-from networks.MultiCorrNet import MultiCorrNet
+from networks.stackhourglass import PSMNet
+from networks.GANet_deep import GANet
+#from networks.MultiCorrNet import MultiCorrNet
 
 from utils.common import logger
 
@@ -12,7 +16,11 @@ SUPPORT_NETS = {
         #'simplenet': SimpleNet,
         'dispnetcres': DispNetCSRes,
         'dispnetc': DispNetC,
-        'multicorrnet': MultiCorrNet,
+        'dispnets': DispNetS,
+        'dispnetcss': DispNetCSS,
+        'psmnet': PSMNet,
+        'ganet':GANet,
+        #'multicorrnet': MultiCorrNet,
         #'dispnetcorr2': DispNetCorr2,
         }
 

@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from net_builder import build_net
 #from dataset import DispDataset
 from dataloader.SceneFlowLoader import DispDataset
+from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter
 from utils.common import logger
 from losses.multiscaleloss import EPE
@@ -30,6 +31,7 @@ class DisparityTrainer(object):
         self.datapath = datapath
         self.batch_size = batch_size
         self.pretrain = pretrain 
+        self.maxdisp = 192
 
         #self.criterion = criterion
         self.criterion = None
@@ -41,19 +43,40 @@ class DisparityTrainer(object):
         train_dataset = DispDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
         test_dataset = DispDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
+        datathread=4
+        if os.environ.get('datathread') is not None:
+            datathread = os.environ.get('datathread')
         self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
-                                shuffle = True, num_workers = 16, \
+                                shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 2, \
-                                shuffle = False, num_workers = 4, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 4, \
+                                shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
+
+        ## GANet loader
+        #print('===> Loading datasets')
+        #train_set = get_training_set(self.datapath, self.trainlist, [256, 576], False, False, False, 0)
+        #test_set = get_test_set(self.datapath, self.vallist, [576,960], False, False, False)
+        #self.train_loader = DataLoader(train_set, batch_size = self.batch_size, \
+        #                        shuffle = True, num_workers = 16, \
+        #                        pin_memory = True)
+        #
+        #self.test_loader = DataLoader(test_set, batch_size = self.batch_size / 2, \
+        #                        shuffle = False, num_workers = 4, \
+        #                        pin_memory = True)
+        #self.num_batches_per_epoch = len(self.train_loader)
+
 
     def _build_net(self):
         #self.net = build_net(self.net_name)(batchNorm=True, using_resblock=True)
         #self.net = build_net(self.net_name)(len(self.devices), batchNorm=True)
-        self.net = build_net(self.net_name)(len(self.devices), batchNorm=False, lastRelu=True)
+        if self.net_name == "psmnet" or self.net_name == "ganet":
+            self.net = build_net(self.net_name)(self.maxdisp)
+        else:
+            self.net = build_net(self.net_name)(len(self.devices), batchNorm=False, lastRelu=True)
+
         self.is_pretrain = False
 
         if self.ngpu > 1:
@@ -116,9 +139,12 @@ class DisparityTrainer(object):
          
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
-            input = torch.cat((left_input, right_input), 1)
-
             target = sample_batched['gt_disp']
+            #left_input = torch.autograd.Variable(sample_batched[0].cuda(), requires_grad=False)
+            #right_input = torch.autograd.Variable(sample_batched[1].cuda(), requires_grad=False)
+            #target = sample_batched[2]
+
+            input = torch.cat((left_input, right_input), 1)
             target = target.cuda()
 
             input_var = torch.autograd.Variable(input, requires_grad=False)
@@ -132,6 +158,24 @@ class DisparityTrainer(object):
                 loss = loss_net1 + loss_net2
                 output_net2_final = output_net2[0]
                 flow2_EPE = self.epe(output_net2_final, target_var)
+            elif self.net_name == "dispnetcss":
+                output_net1, output_net2, output_net3 = self.net(input_var)
+                loss_net1 = self.criterion(output_net1, target_var)
+                loss_net2 = self.criterion(output_net2, target_var)
+                loss_net3 = self.criterion(output_net3, target_var)
+                loss = loss_net1 + loss_net2 + loss_net3
+                output_net3_final = output_net3[0]
+                flow2_EPE = self.epe(output_net3_final, target_var)
+            elif self.net_name == "psmnet" or self.net_name == "ganet":
+                output1, output2, output3 = self.net(input_var)
+                output1 = torch.unsqueeze(output1,1)
+                output2 = torch.unsqueeze(output2,1)
+                output3 = torch.unsqueeze(output3,1)
+
+                mask = target_var < self.maxdisp
+                mask.detach_()
+                loss = 0.5*F.smooth_l1_loss(output1[mask], target_var[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_var[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_var[mask], size_average=True)
+                flow2_EPE = self.epe(output3, target_var)
             else:
                 output = self.net(input_var)
                 loss = self.criterion(output, target_var)
@@ -164,6 +208,8 @@ class DisparityTrainer(object):
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
                   data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
 
+            #if i_batch > 100:
+            #    break
         return losses.avg, flow2_EPEs.avg
 
     def validate(self):
@@ -175,15 +221,18 @@ class DisparityTrainer(object):
         end = time.time()
         #scale_width = 960
         #scale_height = 540
-        scale_width = 3130
-        scale_height = 960
+        #scale_width = 3130
+        #scale_height = 960
         for i, sample_batched in enumerate(self.test_loader):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
-            input = torch.cat((left_input, right_input), 1)
-    
             target = sample_batched['gt_disp']
+            #left_input = torch.autograd.Variable(sample_batched[0].cuda(), requires_grad=False)
+            #right_input = torch.autograd.Variable(sample_batched[1].cuda(), requires_grad=False)
+            #target = sample_batched[2]
+
+            input = torch.cat((left_input, right_input), 1)
             target = target.cuda()
             input_var = torch.autograd.Variable(input, requires_grad=False)
             target_var = torch.autograd.Variable(target, requires_grad=False)
@@ -191,16 +240,38 @@ class DisparityTrainer(object):
             if self.net_name == 'dispnetcres':
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = output_net1.squeeze(1)
-                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], scale_height, scale_width))
-                output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
+                output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
                 output_net2 = output_net2.squeeze(1)
-                output_net2 = scale_disp(output_net2.data.cpu().numpy(), (output_net2.size()[0], scale_height, scale_width))
-                output_net2 = torch.from_numpy(output_net2).unsqueeze(1).cuda()
+                output_net2 = scale_disp(output_net2, (output_net2.size()[0], 540, 960))
 
                 loss_net1 = self.epe(output_net1, target_var)
                 loss_net2 = self.epe(output_net2, target_var)
                 loss = loss_net1 + loss_net2
                 flow2_EPE = self.epe(output_net2, target_var)
+            elif self.net_name == "psmnet" or self.net_name == "ganet":
+                output_net3 = self.net(input_var)
+                output_net3 = output_net3.squeeze(1)
+                output_net3 = scale_disp(output_net3, (output_net3.size()[0], 540, 960))
+
+                loss = self.epe(output_net3, target_var)
+                flow2_EPE = loss
+            elif self.net_name == 'dispnetcss':
+                output_net1, output_net2, output_net3 = self.net(input_var)
+                output_net1 = output_net1.squeeze(1)
+                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], 540, 960))
+                output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
+                output_net2 = output_net2.squeeze(1)
+                output_net2 = scale_disp(output_net2.data.cpu().numpy(), (output_net2.size()[0], 540, 960))
+                output_net2 = torch.from_numpy(output_net2).unsqueeze(1).cuda()
+                output_net3 = output_net3.squeeze(1)
+                output_net3 = scale_disp(output_net3.data.cpu().numpy(), (output_net3.size()[0], 540, 960))
+                output_net3 = torch.from_numpy(output_net3).unsqueeze(1).cuda()
+
+                loss_net1 = self.epe(output_net1, target_var)
+                loss_net2 = self.epe(output_net2, target_var)
+                loss_net3 = self.epe(output_net3, target_var)
+                loss = loss_net1 + loss_net2 + loss_net3
+                flow2_EPE = self.epe(output_net3, target_var)
             else:
                 output = self.net(input_var)
                 output_net1 = output[0]

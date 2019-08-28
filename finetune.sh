@@ -5,9 +5,10 @@ python kitti_finetune.py --maxdisp 192 \
                    --datatype 2015 \
                    --datapath /datasets/kitti/training/ \
                    --epochs 2000 \
-                   --savemodel /datasets/sh_kittis/ShKittiTrained/dispnet-imagenet-argument-notranform2/ \
-                   --loss loss_configs/kitti-1r.json \
-                   --loadmodel /datasets/sh_kittis/ShKittiTrained/dispnet-imagenet-argument-notranform/best.tar
+                   --loss loss_configs/dispnetcres_kitti.json \
+                   --savemodel ./trained/dispCSRes-imn-KITTI2015-valavg-split/ \
+                   --loadmodel ./trained/dispCSRes-imn-KITTI2015-valavg-split/best.tar \
+                   #--loadmodel ./models/dispCSRes-imn/model_best.pth \
                    #--loadmodel  ./models/ShDispCSRes/model_best.pth
                    #--loadmodel /datasets/sh_kittis/ShKittiTrained/dispnet-imagenet-argument/best.tar 
 

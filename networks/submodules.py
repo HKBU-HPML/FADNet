@@ -37,7 +37,7 @@ class ResBlock(nn.Module):
         out = self.relu(out)
         return out
 
-def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
+def conv(in_planes, out_planes, kernel_size=3, stride=1, batchNorm=False):
     if batchNorm:
         return nn.Sequential(
             nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=False),
@@ -60,6 +60,17 @@ def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = Tru
         return nn.Sequential(
             nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=bias),
         )
+
+def convbn(in_planes, out_planes, kernel_size, stride, pad, dilation):
+
+    return nn.Sequential(nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=dilation if dilation > 1 else pad, dilation = dilation, bias=False),
+                         nn.BatchNorm2d(out_planes))
+
+
+def convbn_3d(in_planes, out_planes, kernel_size, stride, pad):
+
+    return nn.Sequential(nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size, padding=pad, stride=stride,bias=False),
+                         nn.BatchNorm3d(out_planes))
 
 def predict_flow(in_planes):
     return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
@@ -132,6 +143,22 @@ class matchshifted(nn.Module):
         shifted_right = F.pad(torch.index_select(right, 3, Variable(torch.LongTensor([i for i in range(width-shift)])).cuda()),(shift,0,0,0))
         out = torch.cat((shifted_left,shifted_right),1).view(batch,filters*2,1,height,width)
         return out
+
+class disparityregression(nn.Module):
+    def __init__(self, maxdisp):
+        super(disparityregression, self).__init__()
+        self.disp = Variable(torch.Tensor(np.reshape(np.array(range(maxdisp)),[1,maxdisp,1,1])).cuda(), requires_grad=False)
+
+    def forward(self, x):
+        disp = self.disp.repeat(x.size()[0],1,x.size()[2],x.size()[3])
+        out = torch.sum(x*disp,1)
+        return out
+
+def disparity_regression(x, maxdisp):
+    assert len(x.shape) == 4
+    disp_values = torch.arange(0, maxdisp, dtype=x.dtype, device=x.device)
+    disp_values = disp_values.view(1, maxdisp, 1, 1)
+    return torch.sum(x * disp_values, 1, keepdim=False)
 
 class feature_extraction(nn.Module):
     def __init__(self):
