@@ -25,7 +25,7 @@ class DispNetRes(nn.Module):
 
         # improved with shrink res-block layers
         in_planes = input_channel * 3 + 2
-        self.conv1   = conv(self.batchNorm, in_planes, 64, 7, 2)
+        self.conv1   = conv(in_planes, 64, 7, 2, batchNorm=self.batchNorm)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
         self.conv3_1 = ResBlock(256, 256)

@@ -83,9 +83,9 @@ TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
          batch_size= 16, shuffle= False, num_workers= 4, drop_last=False)
 
-TestImgLoader12 = torch.utils.data.DataLoader(
-         DA.myImageFloder(all_left_12,all_right_12,all_left_disp_12, False), 
-         batch_size= 16, shuffle= False, num_workers= 4, drop_last=False)
+#TestImgLoader12 = torch.utils.data.DataLoader(
+#         DA.myImageFloder(all_left_12,all_right_12,all_left_disp_12, False), 
+#         batch_size= 16, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
@@ -147,9 +147,10 @@ def train(imgL,imgR,disp_L, criterion):
             # multi-scale loss
             disp_true = disp_true.unsqueeze(1)
             loss_net1 = criterion(output_net1, disp_true)
-            #loss_net2 = criterion(output_net2, disp_true)
-            #loss = 0.5 * loss_net1 + loss_net2 + myCriterion(output_net2[0][mask], disp_true[mask])
-            loss = 0.5 * loss_net1 + myCriterion(output_net2[0][mask], disp_true[mask])
+            loss_net2 = criterion(output_net2, disp_true)
+            #loss = 0.3 * loss_net1 + 0.7 * loss_net2 + myCriterion(output_net2[0][mask], disp_true[mask])
+            loss = 0.5 * loss_net1 + loss_net2
+            #loss = 0.5 * loss_net1 + myCriterion(output_net2[0][mask], disp_true[mask])
 
             # only the last scale
             #output1 = output_net1[0].squeeze(1)
@@ -189,118 +190,7 @@ def test(imgL,imgR,disp_true):
         correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3)|(disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[index[0][:], index[1][:], index[2][:]]*0.05)      
         #torch.cuda.empty_cache()
         
-<<<<<<< HEAD
         bg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] <= 25) & correct
         fg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] >  25) & correct
         bg_val_err = 1 - (float(torch.sum(bg_correct))/float(len(small_idx[0])))
-        fg_val_err = 1 - (float(torch.sum(fg_correct))/float(len(large_idx[0])))
-        logger.info("bg err: %f, fg err: %f." % (bg_val_err*100.0, fg_val_err*100.0))
-=======
-        #bg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] <= 25) & correct
-        #fg_correct = (true_disp[index[0][:], index[1][:], index[2][:]] >  25) & correct
-        #bg_val_err = 1 - (float(torch.sum(bg_correct))/float(len(small_idx[0])))
-        #fg_val_err = 1 - (float(torch.sum(fg_correct))/float(len(large_idx[0])))
-        #logger.info("bg err: %f, fg err: %f. %f/%f." % (bg_val_err*100.0, fg_val_err*100.0, float(len(small_idx[0])), float(len(large_idx[0]))))
->>>>>>> ab585b4b47ebef45e16637e27cc1bac4119c99b5
-
-        return 1-(float(torch.sum(correct))/float(len(index[0])))
-
-def adjust_learning_rate(optimizer, epoch):
-    #if epoch <= 600:
-    #   #lr = 5e-6
-    #   lr = 1e-4
-    #elif epoch <= 800:
-    #   lr = 1e-5
-    #elif epoch <= 1000:
-    #   lr = 1e-5/2
-    #elif epoch <= 1300:
-    #   lr = 1e-5/4
-    #elif epoch <= 1600:
-    #   lr = 1e-5/5
-    #elif epoch <= 2000:
-    #   lr = 1e-6
-    lr = 1e-4 / (2**(epoch // 300))
-    logger.info('epoch: %d, lr: %f', epoch, lr)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-def main():
-	min_acc=1000
-	min_epo=0
-        min_round=0
-	start_full_time = time.time()
-
-        # test on the loaded model
-	total_test_loss = 0
-        for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
-            test_loss = test(imgL,imgR, disp_L)
-            logger.info('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
-            total_test_loss += test_loss
-        min_acc=total_test_loss/len(TestImgLoader)*100
-	logger.info('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
-
-        start_round = 0
-        start_epoch = 0
-        for r in range(start_round, train_round):
-            criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
-            logger.info(loss_weights[r])
-
-	    for epoch in range(start_epoch, args.epochs+1):
-	       total_train_loss = 0
-	       adjust_learning_rate(optimizer,epoch)
-               
-                   ## training ##
-               for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(TrainImgLoader):
-                   start_time = time.time() 
-
-                   loss = train(imgL_crop,imgR_crop, disp_crop_L, criterion)
-	           logger.info('Iter %d training loss = %.3f , time = %.2f' %(batch_idx, loss, time.time() - start_time))
-	           total_train_loss += loss
-
-	       logger.info('epoch %d of round %d total training loss = %.3f' %(epoch, r, total_train_loss/len(TrainImgLoader)))
-	       
-                   ## Test ##
-
-	       total_test_loss = 0
-               for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
-                   test_loss = test(imgL,imgR, disp_L)
-                   logger.info('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
-                   total_test_loss += test_loss
-
-	       logger.info('epoch %d of round %d total 3-px error in val = %.3f' %(epoch, r, total_test_loss/len(TestImgLoader)*100))
-	       if total_test_loss/len(TestImgLoader)*100 < min_acc:
-	    	min_acc = total_test_loss/len(TestImgLoader)*100
-	    	min_epo = epoch
-                min_round = r
-	        savefilename = args.savemodel+'best.tar'
-	        torch.save({
-	              'epoch': epoch,
-                      'round': r,
-	              'state_dict': model.state_dict(),
-	              'train_loss': total_train_loss/len(TrainImgLoader),
-	              'test_loss': total_test_loss/len(TestImgLoader)*100,
-	          }, savefilename)
-	       logger.info('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
-
-	       #SAVE
-               if epoch % 100 == 0:
-	           savefilename = args.savemodel+'finetune_%s_%s' % (str(r), str(epoch))+'.tar'
-	           torch.save({
-	                 'epoch': epoch,
-                         'round': r, 
-	                 'state_dict': model.state_dict(),
-	                 'train_loss': total_train_loss/len(TrainImgLoader),
-	                 'test_loss': total_test_loss/len(TestImgLoader)*100,
-	             }, savefilename)
-        logger.info('full finetune time = %.2f HR' %((time.time() - start_full_time)/3600))
-	#logger.info(min_epo)
-    #    logger.info(min_round)
-	#logger.info(min_acc)
-
-
-if __name__ == '__main__':
-   hdlr = logging.FileHandler('logs/kitti_finetune_notransfrom2.log')
-   hdlr.setFormatter(formatter)
-   logger.addHandler(hdlr) 
-   main()
+      

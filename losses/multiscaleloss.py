@@ -52,8 +52,9 @@ class MultiScaleLoss(nn.Module):
                 self.loss = MAPELoss()
         else:
             self.loss = loss
-        #self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
-        self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        #self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        #self.multiScales = [nn.Upsample(scale_factor=self.downscale*(2**i), mode='bilinear', align_corners=True) for i in range(scales)]
         print('self.multiScales: ', self.multiScales, ' self.downscale: ', self.downscale)
         # self.multiScales = [nn.functional.adaptive_avg_pool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
 
@@ -61,12 +62,26 @@ class MultiScaleLoss(nn.Module):
         if type(input) is tuple:
             out = 0
             for i, input_ in enumerate(input):
+                #target_ = target.clone()
+                #input_ = self.multiScales[i](input_)
                 target_ = self.multiScales[i](target)
+                
+                # work for sparse
+                mask = target > 0
+                mask.detach_()
+                
+                mask = mask.type(torch.cuda.FloatTensor)
+                pooling_mask = self.multiScales[i](mask) 
+
                 ## consider the scale effects
                 #target_ = self.multiScales[i](target) / (2**i)
                 #print('target shape: ', target_.shape, ' input shape: ', input_.shape)
                 if self.mask:
-                    mask = (target_ > 0) & (target_ < 192)
+
+                    # use unbalanced avg
+                    target_ = target_ / pooling_mask
+
+                    mask = target_ > 0
                     mask.detach_()
                     input_ = input_[mask]
                     target_ = target_[mask]

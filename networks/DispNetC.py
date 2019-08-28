@@ -11,7 +11,7 @@ from networks.submodules import *
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=False, lastRelu=True, input_channel=3):
+    def __init__(self, ngpu, batchNorm=False, lastRelu=True, resBlock=True, input_channel=3):
         super(DispNetC, self).__init__()
         
         self.ngpu = ngpu
@@ -19,9 +19,15 @@ class DispNetC(nn.Module):
         self.input_channel = input_channel
 
         # shrink and extract features
-        self.conv1   = conv(self.batchNorm, self.input_channel, 64, 7, 2)
-        self.conv2   = ResBlock(64, 128, 2)
-        self.conv3   = ResBlock(128, 256, 2)
+        self.conv1   = conv(self.input_channel, 64, 7, 2)
+        if resBlock:
+            self.conv2   = ResBlock(64, 128, 2)
+            self.conv3   = ResBlock(128, 256, 2)
+	    self.conv_redir = ResBlock(256, 32, stride=1)
+        else:
+            self.conv2   = conv(64, 128, 2)
+            self.conv3   = conv(128, 256, 2)
+	    self.conv_redir = conv(256, 32, stride=1)
 
         # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
 	self.conv_redir = ResBlock(256, 32, stride=1)
@@ -29,22 +35,22 @@ class DispNetC(nn.Module):
 	#self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
 	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
-        self.conv3_1 = ResBlock(72, 256)
-        #self.conv3_1 = ResBlock(44, 256)
-        self.conv4   = ResBlock(256, 512, stride=2)
-        self.conv4_1 = ResBlock(512, 512)
-        self.conv5   = ResBlock(512, 512, stride=2)
-        self.conv5_1 = ResBlock(512, 512)
-        self.conv6   = ResBlock(512, 1024, stride=2)
-        self.conv6_1 = ResBlock(1024, 1024)
-
-        #self.conv3_1 = conv(self.batchNorm, 256, 256)
-        #self.conv4   = conv(self.batchNorm, 256, 512, stride=2)
-        #self.conv4_1 = conv(self.batchNorm, 512, 512)
-        #self.conv5   = conv(self.batchNorm, 512, 512, stride=2)
-        #self.conv5_1 = conv(self.batchNorm, 512, 512)
-        #self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
-        #self.conv6_1 = conv(self.batchNorm, 1024, 1024)
+        if resBlock:
+            self.conv3_1 = ResBlock(72, 256)
+            self.conv4   = ResBlock(256, 512, stride=2)
+            self.conv4_1 = ResBlock(512, 512)
+            self.conv5   = ResBlock(512, 512, stride=2)
+            self.conv5_1 = ResBlock(512, 512)
+            self.conv6   = ResBlock(512, 1024, stride=2)
+            self.conv6_1 = ResBlock(1024, 1024)
+        else:
+            self.conv3_1 = conv(72, 256)
+            self.conv4   = conv(256, 512, stride=2)
+            self.conv4_1 = conv(512, 512)
+            self.conv5   = conv(512, 512, stride=2)
+            self.conv5_1 = conv(512, 512)
+            self.conv6   = conv(512, 1024, stride=2)
+            self.conv6_1 = conv(1024, 1024)
 
         self.pred_flow6 = predict_flow(1024)
 

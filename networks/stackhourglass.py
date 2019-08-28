@@ -5,7 +5,7 @@ import torch.utils.data
 from torch.autograd import Variable
 import torch.nn.functional as F
 import math
-from submodule import *
+from submodules import *
 
 class hourglass(nn.Module):
     def __init__(self, inplanes):
@@ -100,7 +100,11 @@ class PSMNet(nn.Module):
                 m.bias.data.zero_()
 
 
-    def forward(self, left, right):
+    def forward(self, input):
+
+        imgs = torch.chunk(input, 2, dim = 1)
+        left = imgs[0]
+        right = imgs[1]
 
         refimg_fea     = self.feature_extraction(left)
         targetimg_fea  = self.feature_extraction(right)

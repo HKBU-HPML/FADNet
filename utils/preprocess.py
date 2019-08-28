@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 from skimage import transform
 import random
 import numpy as np
+from torch import nn
 
 __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                    'std': [0.229, 0.224, 0.225]}
@@ -243,10 +244,17 @@ def scale_disp(disp, output_size=(1, 540, 960)):
     # print('current shape:', disp.shape)
     i_w = disp.shape[2]
     o_w = output_size[2]
-    trans_disp = transform.resize(disp, output_size, preserve_range=True)
+    #trans_disp = transform.resize(disp, output_size, preserve_range=True)
+    disp = torch.unsqueeze(disp, 1)
+    #print("gt:", torch.mean(disp))
+    m = nn.Upsample(size=(540, 960), mode="nearest")
+    trans_disp = m(disp)
+    #print("scale gt:", torch.mean(trans_disp))
     trans_disp = trans_disp * (o_w * 1.0 / i_w)
     # print('trans shape:', trans_disp.shape)
-    return trans_disp.astype(np.float32)
+    #trans_disp = torch.squeeze(trans_disp, 1)
+    return trans_disp
+    #return trans_disp.astype(np.float32)
 
 
 class RandomCrop(object):

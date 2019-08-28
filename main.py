@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
     parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
     parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
-    parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data')
+    parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data/')
     parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
     parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')
     parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')

@@ -6,40 +6,43 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-from layers_package.resample2d_package.modules.resample2d import Resample2d
-from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
-from layers_package.submodules import *
-from correlation_package.modules.corr import Correlation1d # from PWC-Net
+from networks.submodules import *
+from layers_package.resample2d_package.resample2d import Resample2d
+from layers_package.channelnorm_package.channelnorm import ChannelNorm
+#from correlation_package.modules.corr import Correlation1d # from PWC-Net
 
-class DispNet(nn.Module):
+class DispNetS(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=True):
-        super(DispNet, self).__init__()
+    def __init__(self, ngpu, batchNorm=True, resBlock=True, input_channel=6):
+        super(DispNetS, self).__init__()
         
         self.ngpu = ngpu
         self.batchNorm = batchNorm
+        self.input_channel=input_channel
 
         # shrink and extract features
-        self.conv1   = conv(self.batchNorm, 6, 64, 7, 2)
-        self.conv2   = ResBlock(64, 128, 2)
-        self.conv3   = ResBlock(128, 256, 2)
-        self.conv3_1 = ResBlock(256, 256)
-        self.conv4   = ResBlock(256, 512, stride=2)
-        self.conv4_1 = ResBlock(512, 512)
-        self.conv5   = ResBlock(512, 512, stride=2)
-        self.conv5_1 = ResBlock(512, 512)
-        self.conv6   = ResBlock(512, 1024, stride=2)
-        self.conv6_1 = ResBlock(1024, 1024)
+        self.conv1   = conv(self.input_channel, 64, 7, 2)
 
-        #self.conv2   = conv(self.batchNorm, 64, 128, 5, 2)
-        #self.conv3   = conv(self.batchNorm, 128, 256, 5, 2)
-        #self.conv3_1 = conv(self.batchNorm, 256, 256)
-        #self.conv4   = conv(self.batchNorm, 256, 512, stride=2)
-        #self.conv4_1 = conv(self.batchNorm, 512, 512)
-        #self.conv5   = conv(self.batchNorm, 512, 512, stride=2)
-        #self.conv5_1 = conv(self.batchNorm, 512, 512)
-        #self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
-        #self.conv6_1 = conv(self.batchNorm, 1024, 1024)
+        if resBlock:
+            self.conv2   = ResBlock(64, 128, 2)
+            self.conv3   = ResBlock(128, 256, 2)
+            self.conv3_1 = ResBlock(256, 256)
+            self.conv4   = ResBlock(256, 512, stride=2)
+            self.conv4_1 = ResBlock(512, 512)
+            self.conv5   = ResBlock(512, 512, stride=2)
+            self.conv5_1 = ResBlock(512, 512)
+            self.conv6   = ResBlock(512, 1024, stride=2)
+            self.conv6_1 = ResBlock(1024, 1024)
+        else:
+            self.conv2   = conv(64, 128, 2)
+            self.conv3   = conv(128, 256, 2)
+            self.conv3_1 = conv(256, 256)
+            self.conv4   = conv(256, 512, stride=2)
+            self.conv4_1 = conv(512, 512)
+            self.conv5   = conv(512, 512, stride=2)
+            self.conv5_1 = conv(512, 512)
+            self.conv6   = conv(512, 1024, stride=2)
+            self.conv6_1 = conv(1024, 1024)
 
         self.pred_flow6 = predict_flow(1024)
 
@@ -92,9 +95,7 @@ class DispNet(nn.Module):
 
         # split left image and right image
         # print(input.size())
-        imgs = torch.chunk(input, 2, dim = 1)
-        img_left = imgs[0]
-        img_right = imgs[1]
+        img_left = input[:, :3, :, :]
 
         conv1 = self.conv1(input)
         conv2 = self.conv2(conv1)
