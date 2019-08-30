@@ -14,18 +14,19 @@ from networks.submodules import *
 
 class DispNetCSS(nn.Module):
 
-    def __init__(self, ngpus, batchNorm=False, lastRelu=True, resBlock=True, input_channel=3):
+    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3):
         super(DispNetCSS, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.resBlock = resBlock
         self.lastRelu = lastRelu
+        self.maxdisp = maxdisp
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(ngpus, batchNorm=self.batchNorm, resBlock=self.resBlock, input_channel=input_channel)
+        self.dispnetc = DispNetC(batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=input_channel)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.dispnets1 = DispNetS(ngpus, batchNorm=self.batchNorm, resBlock=self.resBlock, input_channel=3+3+3+1+1)
-        self.dispnets2 = DispNetS(ngpus, batchNorm=self.batchNorm, resBlock=self.resBlock, input_channel=3+3+3+1+1)
+        self.dispnets1 = DispNetS(11, batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=3)
+        self.dispnets2 = DispNetS(11, batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=3)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()

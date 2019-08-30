@@ -14,17 +14,16 @@ from networks.submodules import *
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, ngpu, in_planes, batchNorm=True, lastRelu=False, input_channel=3):
+    def __init__(self, in_planes, batchNorm=True, lastRelu=False, maxdisp=-1, input_channel=3):
         super(DispNetRes, self).__init__()
         
-        self.ngpu = ngpu
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu 
+        self.maxdisp = maxdisp
         self.res_scale = 7  # number of residuals
 
         # improved with shrink res-block layers
-        in_planes = input_channel * 3 + 2
         self.conv1   = conv(in_planes, 64, 7, 2, batchNorm=self.batchNorm)
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
@@ -80,9 +79,12 @@ class DispNetRes(nn.Module):
 
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.pred_res0 = predict_flow(16)
 
-        self.relu = nn.ReLU(inplace=False) 
+        if self.maxdisp == -1:
+            self.pred_res0 = predict_flow(16)
+            self.relu = nn.ReLU(inplace=False) 
+        else:
+            self.disp_expand = ResBlock(16, self.maxdisp)
 
         # weight initialization
         for m in self.modules():
@@ -162,27 +164,27 @@ class DispNetRes(nn.Module):
         iconv0 = self.iconv0(concat0)
 
         # predict flow residual
-        pr0_res = self.pred_res0(iconv0)
-        pr0 = pr0_res + base_flow[0]
+        if self.maxdisp == -1:
+            pr0_res = self.pred_res0(iconv0)
+            pr0 = pr0_res + base_flow[0]
 
-        # # predict flow residual with dropout output
-        # pr6_res = self.pred_res6(F.dropout2d(conv6b))
-        # pr5_res = self.pred_res5(F.dropout2d(iconv5))
-        # pr4_res = self.pred_res4(F.dropout2d(iconv4))
-        # pr3_res = self.pred_res3(F.dropout2d(iconv3))
-        # pr2_res = self.pred_res2(F.dropout2d(iconv2))
-        # pr1_res = self.pred_res1(F.dropout2d(iconv1))
-        # pr0_res = self.pred_res0(F.dropout2d(iconv0))
+            if self.lastRelu:
+                pr0 = self.relu(pr0)
+                pr1 = self.relu(pr1)
+                pr2 = self.relu(pr2)
+                pr3 = self.relu(pr3)
+                pr4 = self.relu(pr4)
+                pr5 = self.relu(pr5)
+                pr6 = self.relu(pr6)
+        else:
+            pr0_res = self.disp_expand(iconv0)
+            pr0_res = F.softmax(pr0_res, dim=1)
+            pr0_res = disparity_regression(pr0_res, self.maxdisp)
 
-        if self.lastRelu:
-            if get_feature:
-                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6), iconv1
-            else:
-                return self.relu(pr0), self.relu(pr1), self.relu(pr2), self.relu(pr3), self.relu(pr4), self.relu(pr5), self.relu(pr6)
         if get_feature:
             return pr0, pr1, pr2, pr3, pr4, pr5, pr6, iconv0
-
-        return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        else:
+            return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
     def weight_parameters(self):
 	return [param for name, param in self.named_parameters() if 'weight' in name]

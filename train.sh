@@ -6,5 +6,6 @@ python main.py --cuda --net $net --loss $loss --lr $lr \
                --devices $devices --batch_size $batchSize \
                --trainlist $trainlist --vallist $vallist \
                --startRound $startR --startEpoch $startE --endEpoch $endE \
-               --model $model
+               --model $model \
+               --maxdisp $maxdisp
 

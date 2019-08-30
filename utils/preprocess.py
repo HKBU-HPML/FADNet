@@ -240,21 +240,23 @@ class RandomRescale(object):
                       'gt_disp': gt_disp})
         return new_sample
 
+# disp is 4D tensor
 def scale_disp(disp, output_size=(1, 540, 960)):
-    # print('current shape:', disp.shape)
-    i_w = disp.shape[2]
-    o_w = output_size[2]
-    #trans_disp = transform.resize(disp, output_size, preserve_range=True)
-    disp = torch.unsqueeze(disp, 1)
-    #print("gt:", torch.mean(disp))
-    m = nn.Upsample(size=(540, 960), mode="nearest")
+    #print('current shape:', disp.size())
+    i_w = disp.size()[-1]
+    o_w = output_size[-1]
+
+    ## Using sklearn.transform
+    #trans_disp = disp.squeeze(1).data.cpu().numpy()
+    #trans_disp = transform.resize(trans_disp, output_size, preserve_range=True).astype(np.float32)
+    #trans_disp = torch.from_numpy(trans_disp).unsqueeze(1).cuda()
+    
+    # Using nn.Upsample
+    m = nn.Upsample(size=(540, 960), mode="bilinear")
     trans_disp = m(disp)
-    #print("scale gt:", torch.mean(trans_disp))
+
     trans_disp = trans_disp * (o_w * 1.0 / i_w)
-    # print('trans shape:', trans_disp.shape)
-    #trans_disp = torch.squeeze(trans_disp, 1)
     return trans_disp
-    #return trans_disp.astype(np.float32)
 
 
 class RandomCrop(object):
