@@ -115,8 +115,7 @@ class DisparityTrainer(object):
         #    cur_lr = 0.0001
         #else:
         #    cur_lr = 0.0001 / (2**((epoch - 20)// 10))
-        #cur_lr = self.lr / (2**(epoch// 10))
-        cur_lr = self.lr / (10**(epoch// 10))
+        cur_lr = self.lr / (2**(epoch// 10))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
@@ -167,14 +166,14 @@ class DisparityTrainer(object):
                 output_net3_final = output_net3[0]
                 flow2_EPE = self.epe(output_net3_final, target_var)
             elif self.net_name == "psmnet" or self.net_name == "ganet":
-                mask = target_var < self.maxdisp
-                mask.detach_()
-
+                print(i_batch)
                 output1, output2, output3 = self.net(input_var)
                 output1 = torch.unsqueeze(output1,1)
                 output2 = torch.unsqueeze(output2,1)
                 output3 = torch.unsqueeze(output3,1)
 
+                mask = target_var < self.maxdisp
+                mask.detach_()
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_var[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_var[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_var[mask], size_average=True)
                 flow2_EPE = self.epe(output3, target_var)
             else:

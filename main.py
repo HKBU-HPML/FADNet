@@ -29,11 +29,12 @@ def main(opt):
     train_round = loss_json["round"]
     loss_scale = loss_json["loss_scale"]
     loss_weights = loss_json["loss_weights"]
+    epoches = loss_json["epoches"]
     logger.info(loss_weights)
 
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
     # initialize a trainer
-    trainer = DisparityTrainer(opt.net, opt.lr, opt.devices, opt.trainlist, opt.vallist, opt.datapath, opt.batch_size, opt.model)
+    trainer = DisparityTrainer(opt.net, opt.lr, opt.devices, opt.trainlist, opt.vallist, opt.datapath, opt.batch_size, opt.maxdisp, opt.model)
 
     # validate the pretrained model on test data
     best_EPE = -1
@@ -41,13 +42,14 @@ def main(opt):
         best_EPE = trainer.validate()
 
     start_epoch = opt.startEpoch
-    end_epoch = opt.endEpoch
     for r in range(opt.startRound, train_round):
 
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=False)
         trainer.set_criterion(criterion)
+        end_epoch = epoches[r]
 
         logger.info('round %d: %s' % (r, str(loss_weights[r])))
+        logger.info('num of epoches: %d' % end_epoch)
         logger.info('\t'.join(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE', 'lr']))
         for i in range(start_epoch, end_epoch):
             avg_loss, avg_EPE = trainer.train_one_epoch(i)
@@ -92,6 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
     parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
     parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
+    parser.add_argument('--maxdisp', type=int, help='disparity search range.', default='-1')
     parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data/')
     parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
     parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')

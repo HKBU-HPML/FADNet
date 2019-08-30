@@ -13,15 +13,16 @@ from layers_package.channelnorm_package.channelnorm import ChannelNorm
 
 class DispNetS(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=True, resBlock=True, input_channel=6):
+    def __init__(self, in_planes=6, batchNorm=True, resBlock=True, maxdisp=-1, input_channel=3):
         super(DispNetS, self).__init__()
         
-        self.ngpu = ngpu
         self.batchNorm = batchNorm
-        self.input_channel=input_channel
+        self.in_planes = in_planes
+        self.maxdisp = maxdisp
+        self.input_channel = input_channel
 
         # shrink and extract features
-        self.conv1   = conv(self.input_channel, 64, 7, 2)
+        self.conv1   = conv(self.in_planes, 64, 7, 2)
 
         if resBlock:
             self.conv2   = ResBlock(64, 128, 2)
@@ -74,8 +75,11 @@ class DispNetS(nn.Module):
 
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.iconv0 = nn.ConvTranspose2d(20, 16, 3, 1, 1)
-        self.pred_flow0 = predict_flow(16)
+        self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
+        if self.maxdisp == -1:
+            self.pred_flow0 = predict_flow(16)
+        else:
+            self.disp_expand = ResBlock(16, self.maxdisp)
 
 
         # weight initialization
@@ -144,7 +148,14 @@ class DispNetS(nn.Module):
         upflow1 = self.upflow1to0(pr1)
         concat0 = torch.cat((upconv0, upflow1, img_left), 1)
         iconv0 = self.iconv0(concat0)
-        pr0 = self.pred_flow0(iconv0)
+
+        # predict flow
+        if self.maxdisp == -1:
+            pr0 = self.pred_flow0(iconv0)
+        else:
+            pr0 = self.disp_expand(iconv0)
+            pr0 = F.softmax(pr0, dim=1)
+            pr0 = disparity_regression(pr0, self.maxdisp)
 
 	# img_right_rec = warp(img_left, pr0)
 

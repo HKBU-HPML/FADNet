@@ -11,12 +11,12 @@ from networks.submodules import *
 
 class DispNetC(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=False, lastRelu=True, resBlock=True, input_channel=3):
+    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3):
         super(DispNetC, self).__init__()
         
-        self.ngpu = ngpu
         self.batchNorm = batchNorm
         self.input_channel = input_channel
+        self.maxdisp = maxdisp
 
         # shrink and extract features
         self.conv1   = conv(self.input_channel, 64, 7, 2)
@@ -101,8 +101,10 @@ class DispNetC(nn.Module):
 
         self.upconv0 = deconv(32, 16)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        #self.disp_expand = ResBlock(16, 192)
-        self.pred_flow0 = predict_flow(16)
+        if self.maxdisp == -1:
+            self.pred_flow0 = predict_flow(16)
+        else:
+            self.disp_expand = ResBlock(16, self.maxdisp)
 
         # weight initialization
         for m in self.modules():
@@ -184,10 +186,12 @@ class DispNetC(nn.Module):
         iconv0 = self.iconv0(concat0)
 
         # predict flow
-        pr0 = self.pred_flow0(iconv0)
-        #pr0 = self.disp_expand(iconv0)
-        #pr0 = F.softmax(pr0, dim=1)
-        #pr0 = disparity_regression(pr0, 192)
+        if self.maxdisp == -1:
+            pr0 = self.pred_flow0(iconv0)
+        else:
+            pr0 = self.disp_expand(iconv0)
+            pr0 = F.softmax(pr0, dim=1)
+            pr0 = disparity_regression(pr0, self.maxdisp)
 
         # predict flow from dropout output
         # pr6 = self.pred_flow6(F.dropout2d(conv6b))
