@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
+#from EXRloader import load_exr
 
 class DispDataset(Dataset):
 
@@ -59,6 +60,8 @@ class DispDataset(Dataset):
             elif gt_disp_name.endswith('npy'):
                 gt_disp = np.load(gt_disp_name)
                 gt_disp = gt_disp[::-1, :]
+            elif gt_disp_name.endswith('exr'):
+                gt_disp = load_exr(filename)
             else:
                 gt_disp = Image.open(gt_disp_name)
                 gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
