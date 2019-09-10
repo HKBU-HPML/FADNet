@@ -4,6 +4,7 @@ from __future__ import print_function
 #from networks.dispnet_corr2 import DispNetCorr2
 from networks.DispNetC import DispNetC
 from networks.DispNetS import DispNetS
+from networks.DispNetCS import DispNetCS
 from networks.DispNetCSS import DispNetCSS
 from networks.DispNetCSRes import DispNetCSRes
 from networks.stackhourglass import PSMNet
@@ -17,6 +18,7 @@ SUPPORT_NETS = {
         'dispnetcres': DispNetCSRes,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,
+        'dispnetcs': DispNetCS,
         'dispnetcss': DispNetCSS,
         'psmnet': PSMNet,
         'ganet':GANet,

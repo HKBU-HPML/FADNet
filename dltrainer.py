@@ -73,7 +73,7 @@ class DisparityTrainer(object):
         if self.net_name == "psmnet" or self.net_name == "ganet":
             self.net = build_net(self.net_name)(self.maxdisp)
         else:
-            self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
+            self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, resBlock=True, maxdisp=self.maxdisp)
 
         self.is_pretrain = False
 
@@ -115,8 +115,7 @@ class DisparityTrainer(object):
         #    cur_lr = 0.0001
         #else:
         #    cur_lr = 0.0001 / (2**((epoch - 20)// 10))
-        #cur_lr = self.lr / (2**(epoch// 10))
-        cur_lr = self.lr / (10**(epoch// 10))
+        cur_lr = self.lr / (2**(epoch// 10))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
@@ -133,7 +132,8 @@ class DisparityTrainer(object):
         # switch to train mode
         self.net.train()
         end = time.time()
-        self.adjust_learning_rate(epoch)
+        cur_lr = self.adjust_learning_rate(epoch)
+        logger.info("learning rate of epoch %d: %f." % (epoch, cur_lr))
         for i_batch, sample_batched in enumerate(self.train_loader):
          
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -152,6 +152,13 @@ class DisparityTrainer(object):
 
             self.optimizer.zero_grad()
             if self.net_name == "dispnetcres":
+                output_net1, output_net2 = self.net(input_var)
+                loss_net1 = self.criterion(output_net1, target_var)
+                loss_net2 = self.criterion(output_net2, target_var)
+                loss = loss_net1 + loss_net2
+                output_net2_final = output_net2[0]
+                flow2_EPE = self.epe(output_net2_final, target_var)
+            elif self.net_name == "dispnetcs":
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_var)
                 loss_net2 = self.criterion(output_net2, target_var)
@@ -208,8 +215,9 @@ class DisparityTrainer(object):
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
                   data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
 
-            #if i_batch > 100:
+            #if i_batch > 10:
             #    break
+
         return losses.avg, flow2_EPEs.avg
 
     def validate(self):
@@ -265,9 +273,10 @@ class DisparityTrainer(object):
             else:
                 output = self.net(input_var)
                 output_net1 = output[0]
-                output_net1 = output_net1.squeeze(1)
-                output_net1 = scale_disp(output_net1.data.cpu().numpy(), (output_net1.size()[0], 540, 960))
-                output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
+                #output_net1 = output_net1.squeeze(1)
+                #print(output_net1.size())
+                output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
+                #output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
                 loss = self.epe(output_net1, target_var)
                 flow2_EPE = self.epe(output_net1, target_var)
 
