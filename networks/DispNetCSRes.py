@@ -14,12 +14,13 @@ from networks.submodules import *
 
 class DispNetCSRes(nn.Module):
 
-    def __init__(self, batchNorm=True, lastRelu=False, maxdisp=-1, input_channel=3):
+    def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3):
         super(DispNetCSRes, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
         self.maxdisp = maxdisp
+        self.resBlock = resBlock
 
         # First Block (DispNetC)
         self.dispnetc = DispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel)
