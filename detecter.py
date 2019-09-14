@@ -9,6 +9,7 @@ import numpy as np
 import skimage
 #from dispnet import *
 #from networks.dispnet_v2 import *
+import torch.cuda as ct
 from networks.DispNetCSRes import DispNetCSRes
 from net_builder import SUPPORT_NETS, build_net
 from losses.multiscaleloss import multiscaleloss
@@ -19,7 +20,9 @@ from utils.preprocess import scale_disp, save_pfm
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import psutil
 
+process = psutil.Process(os.getpid())
 cudnn.benchmark = True
 
 #input_transform = transforms.Compose([
@@ -99,8 +102,11 @@ def detect(opt):
             avg_time.append((time.time() - ss))
             if (i - warmup) % display == 0:
                 print('Average inference time: %f' % np.mean(avg_time))
+                mbytes = 1024.*1024
+                print('GPU memory usage memory_allocated: %d MBytes, max_memory_allocated: %d MBytes, memory_cached: %d MBytes, max_memory_cached: %d MBytes, CPU memory usage: %d MBytes' %  \
+                    (ct.memory_allocated()/mbytes, ct.max_memory_allocated()/mbytes, ct.memory_cached()/mbytes, ct.max_memory_cached()/mbytes, process.memory_info().rss/mbytes))
                 avg_time = []
-        np_depth = scale_disp(output)
+        #np_depth = scale_disp(output)
         #for j in range(num_of_samples):
         #    # scale back depth
         #    np_depth = output[j] #.data.cpu().numpy()
@@ -126,6 +132,7 @@ def detect(opt):
         #    #save_pfm('{}/{}'.format(result_path, save_name), img)
         #    skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
             
+
 
     print('Evaluation time used: {}'.format(time.time()-s))
         
