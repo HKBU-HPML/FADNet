@@ -50,7 +50,7 @@ class DisparityTrainer(object):
                                 shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 4, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 2, \
                                 shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
