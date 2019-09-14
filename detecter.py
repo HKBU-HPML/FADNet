@@ -16,6 +16,7 @@ import torch.nn.functional as F
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.SceneFlowLoader import DispDataset
 from utils.preprocess import scale_disp, save_pfm
+from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -44,14 +45,24 @@ def detect(opt):
     #net = DispNetC(ngpu, True)
     #net = DispNetCSRes(ngpu, False, True)
     #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
-    net = build_net(opt.net)(ngpu, False, True)
- 
-    model_data = torch.load(model)
-    print(model_data.keys())
-    if 'state_dict' in model_data.keys():
-        net.load_state_dict(model_data['state_dict'])
+    if opt.net == "psmnet" or opt.net == "ganet":
+        net = build_net(opt.net)(192)
+    elif opt.net == "dispnetc":
+        net = build_net(opt.net)(batchNorm=False, lastRelu=True, resBlock=False)
     else:
-        net.load_state_dict(model_data)
+        net = build_net(opt.net)(batchNorm=False, lastRelu=True)
+    #net = build_net(opt.net)(ngpu, False, True)
+ 
+    #model_data = torch.load(model)
+    #print(model_data.keys())
+    #if 'state_dict' in model_data.keys():
+    #    net.load_state_dict(model_data['state_dict'])
+    #else:
+    #    net.load_state_dict(model_data)
+
+    num_of_parameters = count_parameters(net)
+    print('Model: %s, # of parameters: %d' % (opt.net, num_of_parameters))
+
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
@@ -64,6 +75,9 @@ def detect(opt):
     s = time.time()
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
+    avg_time = []
+    display = 100
+    warmup = 10
     for i, sample_batched in enumerate(test_loader):
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
         # print('input Shape: {}'.format(input.size()))
@@ -77,34 +91,40 @@ def detect(opt):
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
-        # output = net(input_var)[1]
+        
+        if i > warmup:
+            ss = time.time()
         output = net(input_var)[1] 
+        if i > warmup:
+            avg_time.append((time.time() - ss))
+            if (i - warmup) % display == 0:
+                print('Average inference time: %f' % np.mean(avg_time))
+                avg_time = []
+        np_depth = scale_disp(output)
+        #for j in range(num_of_samples):
+        #    # scale back depth
+        #    np_depth = output[j] #.data.cpu().numpy()
+        #    #print(np.min(np_depth), np.max(np_depth))
+        #    #cuda_depth = torch.from_numpy(np_depth).cuda()
+        #    #cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
-        for j in range(num_of_samples):
-            # scale back depth
-            np_depth = output[j].data.cpu().numpy()
-            #print(np.min(np_depth), np.max(np_depth))
-            np_depth = scale_disp(np_depth)
-            #cuda_depth = torch.from_numpy(np_depth).cuda()
-            #cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
+        #    # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
+        #    #flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
+        #    #print('Shape: {}'.format(output[j].size()))
+        #    print('Batch[{}]: {}, average disp: {}'.format(i, j, np.mean(np_depth)))
+        #    #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
 
-            # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
-            #flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
-            #print('Shape: {}'.format(output[j].size()))
-            print('Batch[{}]: {}, average disp: {}'.format(i, j, np.mean(np_depth)))
-            #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
-
-            name_items = sample_batched['img_names'][0][j].split('/')
-            #save_name = '_'.join(name_items).replace('.png', '.pfm')# for girl02 dataset
-            save_name = '_'.join(name_items)# for girl02 dataset
-            #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
-            #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
-            #save_name = 'predict_{}.pfm'.format(name_items[-1])
-            img = np.flip(np_depth[0], axis=0)
-            print('Name: {}'.format(save_name))
-            print('')
-            #save_pfm('{}/{}'.format(result_path, save_name), img)
-            skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
+        #    name_items = sample_batched['img_names'][0][j].split('/')
+        #    #save_name = '_'.join(name_items).replace('.png', '.pfm')# for girl02 dataset
+        #    save_name = '_'.join(name_items)# for girl02 dataset
+        #    #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
+        #    #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
+        #    #save_name = 'predict_{}.pfm'.format(name_items[-1])
+        #    img = np.flip(np_depth[0], axis=0)
+        #    print('Name: {}'.format(save_name))
+        #    print('')
+        #    #save_pfm('{}/{}'.format(result_path, save_name), img)
+        #    skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
             
 
     print('Evaluation time used: {}'.format(time.time()-s))
