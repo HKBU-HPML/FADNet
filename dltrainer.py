@@ -73,7 +73,7 @@ class DisparityTrainer(object):
         if self.net_name == "psmnet" or self.net_name == "ganet":
             self.net = build_net(self.net_name)(self.maxdisp)
         else:
-            self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, resBlock=True, maxdisp=self.maxdisp)
+            self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
 
         self.is_pretrain = False
 
