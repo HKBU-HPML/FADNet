@@ -44,7 +44,12 @@ def detect(opt):
     #net = DispNetC(ngpu, True)
     #net = DispNetCSRes(ngpu, False, True)
     #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
-    net = build_net(opt.net)(ngpu, False, True)
+
+    if opt.net == "psmnet" or opt.net == "ganet":
+        net = build_net(opt.net)(maxdisp=192)
+    else:
+        net = build_net(opt.net)(False, True, True)
+    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
  
     model_data = torch.load(model)
     print(model_data.keys())
@@ -52,7 +57,6 @@ def detect(opt):
         net.load_state_dict(model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
-    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
     batch_size = int(opt.batchSize)
@@ -78,13 +82,20 @@ def detect(opt):
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
         # output = net(input_var)[1]
-        output = net(input_var)[1] 
-
+        if opt.net == "psmnet" or opt.net == "ganet":
+            output = net(input_var)
+        elif opt.net == "dispnetc":
+            output = net(input_var)[0]
+        else:
+            output = net(input_var)[-1] 
+ 
+        output[output > 192] = 0
+        output = scale_disp(output, (output.size()[0], 540, 960))
         for j in range(num_of_samples):
             # scale back depth
-            np_depth = output[j].data.cpu().numpy()
+            np_depth = output[j][0].data.cpu().numpy()
+            gt_depth = target_var[j, 0, :, :].data.cpu().numpy()
             #print(np.min(np_depth), np.max(np_depth))
-            np_depth = scale_disp(np_depth)
             #cuda_depth = torch.from_numpy(np_depth).cuda()
             #cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
 
@@ -96,16 +107,24 @@ def detect(opt):
 
             name_items = sample_batched['img_names'][0][j].split('/')
             #save_name = '_'.join(name_items).replace('.png', '.pfm')# for girl02 dataset
-            save_name = '_'.join(name_items)# for girl02 dataset
             #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
             #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
             #save_name = 'predict_{}.pfm'.format(name_items[-1])
-            img = np.flip(np_depth[0], axis=0)
+            #img = np.flip(np_depth[0], axis=0)
+
+            save_name = '_'.join(name_items)# for girl02 dataset
+            img = np_depth
             print('Name: {}'.format(save_name))
             print('')
             #save_pfm('{}/{}'.format(result_path, save_name), img)
             skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
             
+            save_name = '_'.join(name_items).replace(".png", "_gt.png")# for girl02 dataset
+            img = gt_depth
+            print('Name: {}'.format(save_name))
+            print('')
+            #save_pfm('{}/{}'.format(result_path, save_name), img)
+            skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
 
     print('Evaluation time used: {}'.format(time.time()-s))
         
