@@ -15,6 +15,7 @@
 *.so.*
 *.npy
 *.o
+*.egg
 tmp
 ./data
 data

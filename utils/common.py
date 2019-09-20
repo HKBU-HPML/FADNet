@@ -53,3 +53,5 @@ strhdlr.setFormatter(formatter)
 #    os.makedirs(target_folder)
 #save_pfm('%s/%s' % (target_folder, save_name), occ_data[:,:,0])
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

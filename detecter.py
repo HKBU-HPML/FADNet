@@ -9,6 +9,7 @@ import numpy as np
 import skimage
 #from dispnet import *
 #from networks.dispnet_v2 import *
+import torch.cuda as ct
 from networks.DispNetCSRes import DispNetCSRes
 from net_builder import SUPPORT_NETS, build_net
 from losses.multiscaleloss import multiscaleloss
@@ -16,9 +17,12 @@ import torch.nn.functional as F
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.SceneFlowLoader import DispDataset
 from utils.preprocess import scale_disp, save_pfm
+from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import psutil
 
+process = psutil.Process(os.getpid())
 cudnn.benchmark = True
 
 #input_transform = transforms.Compose([
@@ -47,9 +51,10 @@ def detect(opt):
 
     if opt.net == "psmnet" or opt.net == "ganet":
         net = build_net(opt.net)(maxdisp=192)
+    elif opt.net == "dispnetc":
+        net = build_net(opt.net)(batchNorm=False, lastRelu=True, resBlock=False)
     else:
-        net = build_net(opt.net)(False, True, True)
-    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
+        net = build_net(opt.net)(batchNorm=False, lastRelu=True)
  
     model_data = torch.load(model)
     print(model_data.keys())
@@ -57,6 +62,11 @@ def detect(opt):
         net.load_state_dict(model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
+
+    num_of_parameters = count_parameters(net)
+    print('Model: %s, # of parameters: %d' % (opt.net, num_of_parameters))
+
+    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
     batch_size = int(opt.batchSize)
@@ -68,6 +78,9 @@ def detect(opt):
     s = time.time()
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
+    avg_time = []
+    display = 100
+    warmup = 10
     for i, sample_batched in enumerate(test_loader):
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
         # print('input Shape: {}'.format(input.size()))
@@ -81,7 +94,9 @@ def detect(opt):
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
-        # output = net(input_var)[1]
+
+        if i > warmup:
+            ss = time.time()
         if opt.net == "psmnet" or opt.net == "ganet":
             output = net(input_var)
         elif opt.net == "dispnetc":
@@ -89,6 +104,16 @@ def detect(opt):
         else:
             output = net(input_var)[-1] 
  
+        if i > warmup:
+            avg_time.append((time.time() - ss))
+            if (i - warmup) % display == 0:
+                print('Average inference time: %f' % np.mean(avg_time))
+                mbytes = 1024.*1024
+                print('GPU memory usage memory_allocated: %d MBytes, max_memory_allocated: %d MBytes, memory_cached: %d MBytes, max_memory_cached: %d MBytes, CPU memory usage: %d MBytes' %  \
+                    (ct.memory_allocated()/mbytes, ct.max_memory_allocated()/mbytes, ct.memory_cached()/mbytes, ct.max_memory_cached()/mbytes, process.memory_info().rss/mbytes))
+                avg_time = []
+
+        # output = net(input_var)[1]
         output[output > 192] = 0
         output = scale_disp(output, (output.size()[0], 540, 960))
         for j in range(num_of_samples):
@@ -125,6 +150,7 @@ def detect(opt):
             print('')
             #save_pfm('{}/{}'.format(result_path, save_name), img)
             skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
+
 
     print('Evaluation time used: {}'.format(time.time()-s))
         
