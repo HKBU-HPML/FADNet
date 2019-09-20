@@ -56,6 +56,8 @@ def detect(opt):
     else:
         net = build_net(opt.net)(batchNorm=False, lastRelu=True)
  
+    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
+
     model_data = torch.load(model)
     print(model_data.keys())
     if 'state_dict' in model_data.keys():
@@ -66,7 +68,6 @@ def detect(opt):
     num_of_parameters = count_parameters(net)
     print('Model: %s, # of parameters: %d' % (opt.net, num_of_parameters))
 
-    net = torch.nn.DataParallel(net, device_ids=devices).cuda()
     net.eval()
 
     batch_size = int(opt.batchSize)
