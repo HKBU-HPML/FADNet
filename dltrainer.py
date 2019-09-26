@@ -17,7 +17,7 @@ from losses.multiscaleloss import EPE
 from utils.preprocess import scale_disp
 
 class DisparityTrainer(object):
-    def __init__(self, net_name, lr, devices, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
+    def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
         super(DisparityTrainer, self).__init__()
         self.net_name = net_name
         self.lr = lr
@@ -28,6 +28,7 @@ class DisparityTrainer(object):
         self.ngpu = ngpu
         self.trainlist = trainlist
         self.vallist = vallist
+        self.dataset = dataset
         self.datapath = datapath
         self.batch_size = batch_size
         self.pretrain = pretrain 

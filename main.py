@@ -34,7 +34,7 @@ def main(opt):
 
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
     # initialize a trainer
-    trainer = DisparityTrainer(opt.net, opt.lr, opt.devices, opt.trainlist, opt.vallist, opt.datapath, opt.batch_size, opt.maxdisp, opt.model)
+    trainer = DisparityTrainer(opt.net, opt.lr, opt.devices, opt.dataset, opt.trainlist, opt.vallist, opt.datapath, opt.batch_size, opt.maxdisp, opt.model)
 
     # validate the pretrained model on test data
     best_EPE = -1
@@ -95,6 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
     parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
     parser.add_argument('--maxdisp', type=int, help='disparity search range.', default='-1')
+    parser.add_argument('--dataset', type=str, help='provide the dataset name', default='sceneflow')
     parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data/')
     parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
     parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')
