@@ -38,7 +38,7 @@ class SIRSDataset(Dataset):
         img_left_name = os.path.join(self.root_dir, img_names[0])
         img_right_name = os.path.join(self.root_dir, img_names[1])
         if self.load_disp:
-        gt_disp_name = os.path.join(self.root_dir, img_names[2])
+            gt_disp_name = os.path.join(self.root_dir, img_names[2])
         if self.load_norm:
             gt_norm_name = os.path.join(self.root_dir, img_names[3])
 
@@ -49,6 +49,14 @@ class SIRSDataset(Dataset):
                 img = np.load(filename)
             else:
                 img = io.imread(filename)
+                if len(img.shape) == 2:
+                    img = img[:,:,np.newaxis]
+                    img = np.pad(img, ((0, 0), (0, 0), (0, 2)), 'constant')
+                    img[:,:,1] = img[:,:,0]
+                    img[:,:,2] = img[:,:,0]
+                h, w, c = img.shape
+                if c == 4:
+                    img = img[:,:,:3]
             return img
            
         def load_disp(filename):

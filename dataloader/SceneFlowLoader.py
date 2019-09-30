@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
-#from EXRloader import load_exr
+from EXRloader import load_exr
 
 class DispDataset(Dataset):
 
