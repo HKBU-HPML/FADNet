@@ -72,8 +72,8 @@ def convbn_3d(in_planes, out_planes, kernel_size, stride, pad):
     return nn.Sequential(nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size, padding=pad, stride=stride,bias=False),
                          nn.BatchNorm3d(out_planes))
 
-def predict_flow(in_planes):
-    return nn.Conv2d(in_planes,1,kernel_size=3,stride=1,padding=1,bias=False)
+def predict_flow(in_planes, out_planes = 1):
+    return nn.Conv2d(in_planes,out_planes,kernel_size=3,stride=1,padding=1,bias=False)
 #def predict_flow(in_planes):
 #    return nn.Conv2d(in_planes,1,kernel_size=1,stride=1,padding=0,bias=False)
            

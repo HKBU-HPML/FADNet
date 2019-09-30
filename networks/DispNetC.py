@@ -11,12 +11,13 @@ from networks.submodules import *
 
 class DispNetC(nn.Module):
 
-    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3):
+    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3, get_features = False):
         super(DispNetC, self).__init__()
         
         self.batchNorm = batchNorm
         self.input_channel = input_channel
         self.maxdisp = maxdisp
+        self.get_features = get_features
 
         # shrink and extract features
         self.conv1   = conv(self.input_channel, 64, 7, 2)
@@ -208,8 +209,14 @@ class DispNetC(nn.Module):
         # else:
         #     return pr0
 
+        disps = (pr0, pr1, pr2, pr3, pr4, pr5, pr6)
         # can be chosen outside
-        return pr0, pr1, pr2, pr3, pr4, pr5, pr6
+        if self.get_features:
+            features = (iconv5, iconv4, iconv3, iconv2, iconv1, iconv0)
+            return disps, features
+        else:
+            return disps
+        
 
     def weight_parameters(self):
 	return [param for name, param in self.named_parameters() if 'weight' in name]
