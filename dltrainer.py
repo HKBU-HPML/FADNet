@@ -15,7 +15,7 @@ from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter
 from utils.common import logger
 from losses.multiscaleloss import EPE
-from utils.preprocess import scale_disp
+from utils.preprocess import scale_disp, scale_norm
 
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
@@ -56,7 +56,7 @@ class DisparityTrainer(object):
                                 shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 2, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 4, \
                                 shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
