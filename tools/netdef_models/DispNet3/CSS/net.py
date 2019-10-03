@@ -35,6 +35,7 @@ class Network(DispNet_BaseNetwork):
                 disassembling_function=pred_config.disassemble,
                 loss_function= None,
                 conv_upsample=self._conv_upsample,
+                channel_factor=0.375
             )
             out1 = arch1.make_graph(data.img.L, data.img.R, use_1D_corr=True, single_direction=0)
         disp1 = out1.final.disp.L
@@ -53,7 +54,8 @@ class Network(DispNet_BaseNetwork):
                 num_outputs=pred_config.total_channels(),
                 disassembling_function=pred_config.disassemble,
                 loss_function= None,
-                conv_upsample=self._conv_upsample
+                conv_upsample=self._conv_upsample,
+                channel_factor=0.375
             )
             out2 = arch2.make_graph(input2)
         ## Net 3
@@ -81,7 +83,8 @@ class Network(DispNet_BaseNetwork):
                 disassembling_function=pred_config.disassemble,
                 loss_function= None,
                 conv_upsample=self._conv_upsample,
-                exit_after=0
+                exit_after=0,
+                channel_factor=0.375
             )
             out3 = arch3.make_graph(input3, edge_features=data.img.L)
         return out3
@@ -90,6 +93,7 @@ net = Network(
     conv_upsample=False,
     scale=1.0,
 )
+
 
 
 def get_env():

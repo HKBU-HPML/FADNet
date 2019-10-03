@@ -138,8 +138,8 @@ class NormNetDF(nn.Module):
         return norm
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 

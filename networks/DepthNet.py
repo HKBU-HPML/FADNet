@@ -158,9 +158,9 @@ class DepthNet(nn.Module):
         return pr0, [iconv5, iconv4, iconv3, iconv2, iconv1, iconv0]
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
