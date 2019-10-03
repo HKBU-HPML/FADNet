@@ -15,8 +15,8 @@ from net_builder import SUPPORT_NETS, build_net
 from losses.multiscaleloss import multiscaleloss
 import torch.nn.functional as F
 #from dataset import DispDataset, save_pfm, RandomRescale
-from dataloader.SceneFlowLoader import DispDataset
-from utils.preprocess import scale_disp, save_pfm
+from dataloader.StereoLoader import StereoDataset
+from utils.preprocess import scale_disp, save_pfm, scale_disp
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -71,7 +71,7 @@ def detect(opt):
     net.eval()
 
     batch_size = int(opt.batchSize)
-    test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, phase='detect')
+    test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
                         shuffle = False, num_workers = 1, \
                         pin_memory = True)
@@ -86,15 +86,12 @@ def detect(opt):
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
         # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
-        target = sample_batched['gt_disp']
 
         #print('disp Shape: {}'.format(target.size()))
         #original_size = (1, target.size()[2], target.size()[3])
 
-        target = target.cuda()
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
 
         if i > warmup:
             ss = time.time()
@@ -102,6 +99,11 @@ def detect(opt):
             output = net(input_var)
         elif opt.net == "dispnetc":
             output = net(input_var)[0]
+        elif opt.net == "dispnormnet":
+            output = net(input_var)
+            disp = output[0]
+            normal = output[1]
+            output = torch.cat((normal, disp), 1)
         else:
             output = net(input_var)[-1] 
  
@@ -115,42 +117,37 @@ def detect(opt):
                 avg_time = []
 
         # output = net(input_var)[1]
-        output[output > 192] = 0
-        output = scale_disp(output, (output.size()[0], 540, 960))
-        for j in range(num_of_samples):
-            # scale back depth
-            np_depth = output[j][0].data.cpu().numpy()
-            gt_depth = target_var[j, 0, :, :].data.cpu().numpy()
-            #print(np.min(np_depth), np.max(np_depth))
-            #cuda_depth = torch.from_numpy(np_depth).cuda()
-            #cuda_depth = torch.autograd.Variable(cuda_depth, volatile=True)
+        if opt.disp_on and not opt.norm_on:
+            output = scale_disp(output, (output.size()[0], 540, 960))
+            disp = output[:, 0, :, :]
+        elif opt.disp_on and opt.norm_on:
+            output = scale_norm(output, (output.size()[0], 540, 960))
+            disp = output[:, 3, :, :]
+            normal = output[:, :3, :, :]
 
-            # flow2_EPE = high_res_EPE(output[j], target_var[j]) * 1.0
-            #flow2_EPE = high_res_EPE(cuda_depth, target_var[j]) * 1.0
-            #print('Shape: {}'.format(output[j].size()))
-            print('Batch[{}]: {}, average disp: {}'.format(i, j, np.mean(np_depth)))
-            #print('Batch[{}]: {}, Flow2_EPE: {}'.format(i, sample_batched['img_names'][0][j], flow2_EPE.data.cpu().numpy()))
+        for j in range(num_of_samples):
 
             name_items = sample_batched['img_names'][0][j].split('/')
-            #save_name = '_'.join(name_items).replace('.png', '.pfm')# for girl02 dataset
-            #save_name = 'predict_{}_{}_{}.pfm'.format(name_items[-4], name_items[-3], name_items[-1].split('.')[0])
-            #save_name = 'predict_{}_{}.pfm'.format(name_items[-1].split('.')[0], name_items[-1].split('.')[1])
-            #save_name = 'predict_{}.pfm'.format(name_items[-1])
-            #img = np.flip(np_depth[0], axis=0)
+            # write disparity to file
+            if opt.disp_on:
+                np_disp = disp[j].data.cpu().numpy()
 
-            save_name = '_'.join(name_items)# for girl02 dataset
-            img = np_depth
-            print('Name: {}'.format(save_name))
-            print('')
-            #save_pfm('{}/{}'.format(result_path, save_name), img)
-            skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
+                print('Batch[{}]: {}, average disp: {}'.format(i, j, np.mean(np_disp)))
+                save_name = '_'.join(name_items)# for girl02 dataset
+                print('Name: {}'.format(save_name))
+                skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
+                #np_disp = np.flip(np_disp, axis=0)
+                #save_pfm('{}/{}'.format(result_path, save_name), np_disp)
             
-            save_name = '_'.join(name_items).replace(".png", "_gt.png")# for girl02 dataset
-            img = gt_depth
-            print('Name: {}'.format(save_name))
+            if opt.norm_on:
+                normal = (normal + 1.0) * 0.5
+                normal = normal.transpose(1, 2, 0)
+                save_name = '_'.join(name_items).replace('.png', '_n.png')
+                print('Name: {}'.format(save_name))
+                skimage.io.imsave(os.path.join(result_path, save_name),(normal*256).astype('uint16'))
+                #save_pfm('{}/{}'.format(result_path, save_name), img)
+
             print('')
-            #save_pfm('{}/{}'.format(result_path, save_name), img)
-            skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
 
 
     print('Evaluation time used: {}'.format(time.time()-s))
@@ -167,6 +164,8 @@ if __name__ == '__main__':
     parser.add_argument('--rp', type=str, help='result path', default='./result')
     parser.add_argument('--flowDiv', type=float, help='flow division', default='1.0')
     parser.add_argument('--batchSize', type=int, help='mini batch size', default=1)
+    parser.add_argument('--disp-on', action='store_true', help='enables, disparity')
+    parser.add_argument('--norm-on', action='store_true', help='enables, normal')
 
     opt = parser.parse_args()
     detect(opt)
