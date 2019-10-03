@@ -52,6 +52,7 @@ class DisparityTrainer(object):
         datathread=4
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
+        logger.info("Use %d processes to load data..." % datathread)
         self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
                                 shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
@@ -225,8 +226,10 @@ class DisparityTrainer(object):
 
             # record loss and EPE
             losses.update(loss.data.item(), target_disp.size(0))
-            flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
-            norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
+            if self.disp_on:
+                flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
+            if self.norm_on:
+                norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
 
             # compute gradient and do SGD step
             loss.backward()
@@ -341,9 +344,9 @@ class DisparityTrainer(object):
             # record loss and EPE
             if loss.data.item() == loss.data.item():
                 losses.update(loss.data.item(), target_disp.size(0))
-            if flow2_EPE.data.item() == flow2_EPE.data.item():
+            if self.disp_on and (flow2_EPE.data.item() == flow2_EPE.data.item()):
                 flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
-            if norm_EPE.data.item() == norm_EPE.item():
+            if self.norm_on and (norm_EPE.data.item() == norm_EPE.item()):
                 norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
         
             # measure elapsed time
@@ -353,6 +356,10 @@ class DisparityTrainer(object):
             if i % 10 == 0:
                 logger.info('Test: [{0}/{1}]\t Time {2}\t EPE {3}\t norm_EPE {4}'
                       .format(i, len(self.test_loader), batch_time.val, flow2_EPEs.val, norm_EPEs.val))
+
+            #if i % 10 == 0:
+            #    break
+
         logger.info(' * EPE {:.3f}'.format(flow2_EPEs.avg))
         logger.info(' * normal EPE {:.3f}'.format(norm_EPEs.avg))
         return flow2_EPEs.avg
