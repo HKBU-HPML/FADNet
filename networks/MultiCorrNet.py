@@ -188,9 +188,9 @@ class MultiCorrNet(nn.Module):
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
