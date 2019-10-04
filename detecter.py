@@ -16,6 +16,7 @@ from losses.multiscaleloss import multiscaleloss
 import torch.nn.functional as F
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.SceneFlowLoader import DispDataset
+from dataloader.SIRSLoader import SIRSDataset
 from utils.preprocess import scale_disp, save_pfm
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
@@ -34,28 +35,18 @@ cudnn.benchmark = True
 #        transforms.Normalize(mean=[0],std=[1.0])
 #        ])
 
-def detect(opt):
-    model = opt.model
-    result_path = opt.rp
-    file_list = opt.filelist
-    filepath = opt.filepath
-    
-    if not os.path.exists(result_path):
-        os.makedirs(result_path)
-
-    devices = [int(item) for item in opt.devices.split(',')]
+def init_net(model, devices, net_name):
     ngpu = len(devices)
     #net = DispNetC(ngpu, True)
     #net = DispNetCSRes(ngpu, False, True)
     #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 
-    if opt.net == "psmnet" or opt.net == "ganet":
-        net = build_net(opt.net)(maxdisp=192)
-    elif opt.net == "dispnetc":
-        net = build_net(opt.net)(batchNorm=False, lastRelu=True, resBlock=False)
+    if net_name == "psmnet" or net_name == "ganet":
+        net = build_net(net_name)(maxdisp=192)
+    elif net_name == "dispnetc":
+        net = build_net(net_name)(batchNorm=False, lastRelu=True, resBlock=False)
     else:
-        net = build_net(opt.net)(batchNorm=False, lastRelu=True)
- 
+        net = build_net(net_name)(batchNorm=False, lastRelu=True)
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
     model_data = torch.load(model)
@@ -66,15 +57,54 @@ def detect(opt):
         net.load_state_dict(model_data)
 
     num_of_parameters = count_parameters(net)
-    print('Model: %s, # of parameters: %d' % (opt.net, num_of_parameters))
+    print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
     net.eval()
 
-    batch_size = int(opt.batchSize)
-    test_dataset = DispDataset(txt_file=file_list, root_dir=filepath, phase='detect')
-    test_loader = DataLoader(test_dataset, batch_size = batch_size, \
-                        shuffle = False, num_workers = 1, \
-                        pin_memory = True)
+    return net
+
+def init_data(batch_size, file_list, filepath, phase):
+    dataset = SIRSDataset(txt_file=file_list, root_dir=filepath, phase=phase)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    return dataset, loader
+
+def detect_batch(net, sample_batched, net_name, resize_output = None):
+    input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+    # print('input Shape: {}'.format(input.size()))
+
+    input = input.cuda()
+    input_var = torch.autograd.Variable(input, requires_grad=True)
+
+    if net_name == "psmnet" or net_name == "ganet":
+        output = net(input_var)
+    elif net_name == "dispnetc":
+        output = net(input_var)[0]
+    else:
+        output = net(input_var)[0]
+
+    if resize_output is not None:
+        channel = output.size()[1]
+        output = scale_disp(output, (channel, resize_output[0], resize_output[1]))
+
+    return output, input_var
+
+
+
+def detect(opt):
+    model = opt.model
+    result_path = opt.rp
+    file_list = opt.filelist
+    filepath = opt.filepath
+    net_name = opt.net
+    
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
+
+    devices = [int(item) for item in opt.devices.split(',')]
+
+    net = init_net(model, devices, net_name)
+
+    test_dataset, test_loader = init_data(opt.batchSize, file_list, filepath, 'detect')
 
     s = time.time()
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
@@ -83,28 +113,18 @@ def detect(opt):
     display = 100
     warmup = 10
     for i, sample_batched in enumerate(test_loader):
-        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-        # print('input Shape: {}'.format(input.size()))
-        num_of_samples = input.size(0)
-        target = sample_batched['gt_disp']
+        num_of_samples = len(sample_batched['img_left'])
+        if i > warmup:
+            ss = time.time()
 
+        output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
+
+        target = sample_batched['gt_disp']
+        target = target.cuda()
+        target_var = torch.autograd.Variable(target, requires_grad=True)
         #print('disp Shape: {}'.format(target.size()))
         #original_size = (1, target.size()[2], target.size()[3])
 
-        target = target.cuda()
-        input = input.cuda()
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
-
-        if i > warmup:
-            ss = time.time()
-        if opt.net == "psmnet" or opt.net == "ganet":
-            output = net(input_var)
-        elif opt.net == "dispnetc":
-            output = net(input_var)[0]
-        else:
-            output = net(input_var)[-1] 
- 
         if i > warmup:
             avg_time.append((time.time() - ss))
             if (i - warmup) % display == 0:
@@ -115,8 +135,7 @@ def detect(opt):
                 avg_time = []
 
         # output = net(input_var)[1]
-        output[output > 192] = 0
-        output = scale_disp(output, (output.size()[0], 540, 960))
+        # output[output > 192] = 0
         for j in range(num_of_samples):
             # scale back depth
             np_depth = output[j][0].data.cpu().numpy()
@@ -141,17 +160,24 @@ def detect(opt):
             save_name = '_'.join(name_items)# for girl02 dataset
             img = np_depth
             print('Name: {}'.format(save_name))
-            print('')
+            #print('')
             #save_pfm('{}/{}'.format(result_path, save_name), img)
-            skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
+            skimage.io.imsave(os.path.join(result_path, save_name),(img).astype('uint16'))
             
             save_name = '_'.join(name_items).replace(".png", "_gt.png")# for girl02 dataset
             img = gt_depth
             print('Name: {}'.format(save_name))
-            print('')
+            #print('')
             #save_pfm('{}/{}'.format(result_path, save_name), img)
             skimage.io.imsave(os.path.join(result_path, save_name),(img*256).astype('uint16'))
 
+            save_name = '_'.join(name_items).replace(".png", "_left.png")# for girl02 dataset
+            img = input_var[0].detach().cpu().numpy()[:3,:,:]
+            img = np.transpose(img, (1, 2, 0))
+            print('Name: {}'.format(save_name))
+            print('')
+            #save_pfm('{}/{}'.format(result_path, save_name), img)
+            skimage.io.imsave(os.path.join(result_path, save_name),img)
 
     print('Evaluation time used: {}'.format(time.time()-s))
         
