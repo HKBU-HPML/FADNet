@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
-from EXRloader import load_exr
+from dataloader.EXRloader import load_exr
 
 class SIRSDataset(Dataset):
 
@@ -139,8 +139,9 @@ class SIRSDataset(Dataset):
                 gt_norm = gt_norm[:, top: top + th, left: left + tw]
 
 
-        sample = {'img_left': img_left, 
-                  'img_right': img_right, 
+        sample = {  'img_left': img_left, 
+                    'img_right': img_right, 
+                    'img_names': img_names
                  }
         if self.load_disp:
             sample['gt_disp'] = gt_disp

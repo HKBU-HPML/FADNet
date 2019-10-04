@@ -2,12 +2,12 @@
 #model=models/psmnet/model_best.pth
 
 dataset=driving
-net=dispnetcres
+net=dispnormnet
 
-model=models/dispnetcres/dispnetc.pth
-outf=detect_results/dispnetc-${dataset}/
-#filelist=lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list
-filelist=lists/${dataset}_release.list
+model=models/dispnormnet_resblock_model_best.pth
+outf=detect_results/dark_valid_norm/
+filelist=lists/ue_dark_valid.list
+#filelist=lists/${dataset}_release.list
 filepath=data
 
-CUDA_VISIBLE_DEVICES=0,1 python detecter.py --model $model --rp $outf --filelist $filelist --filepath $filepath --devices 0,1 --net ${net}
+CUDA_VISIBLE_DEVICES=0 python detecter.py --rp $outf --model $model --filelist $filelist --filepath $filepath --devices 0 --net ${net}
