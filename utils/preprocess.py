@@ -290,6 +290,39 @@ def scale_norm(norm, output_size=(1, 4, 540, 960), normalize=True):
 
     return norm_disp
 
+# disp_angle is 4D tensor, [:, :2, :, :] is angle, [:, 2, :, :] is disp
+def scale_angle(disp_angle, output_size=(1, 4, 540, 960)):
+    # print('current shape:', disp.shape)
+    #_output_size = (output_size[0] * output_size[1], output_size[2], output_size[3])
+    input_size = disp_angle.shape
+    #norm = np.reshape(norm, [input_size[0] * input_size[1], input_size[2], input_size[3]])
+    i_w = input_size[3]
+    o_w = output_size[3]
+    #trans_norm = transform.resize(norm, _output_size, preserve_range=True)
+    #trans_norm = np.reshape(trans_norm, [output_size[0], output_size[1], output_size[2], output_size[3]]) 
+
+    #trans_disp = trans_norm[:,3:,:,:]
+    #trans_norm = trans_norm[:,:3,:,:]
+
+    #trans_disp = trans_disp * (o_w * 1.0 / i_w)
+    #if normalize:
+    #    scalar = np.linalg.norm(trans_norm, axis=1, keepdims=True)
+    #    is_valid = (scalar > 0)
+    #    scalar[is_valid] = 1.0 / scalar[is_valid]
+    #    trans_norm = trans_norm * scalar
+
+    #trans_norm = np.concatenate((trans_norm, trans_disp), 1)
+
+    ## print('trans shape:', trans_disp.shape)
+    #return trans_norm.astype(np.float32)
+
+    m = nn.Upsample(size=(540, 960), mode="bilinear")
+    norm_disp = m(disp_angle)
+    norm_disp[:, -1, :, :] = norm_disp[:, -1, :, :] * (o_w * 1.0 / i_w)
+
+    return norm_disp
+
+
 class RandomCrop(object):
     """
     Crop the image randomly
