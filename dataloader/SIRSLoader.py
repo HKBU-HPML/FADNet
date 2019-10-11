@@ -9,10 +9,11 @@ from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
 from EXRloader import load_exr
+import time
 
 class SIRSDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, scale_size=(576, 960)):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(576, 960)):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -25,6 +26,7 @@ class SIRSDataset(Dataset):
         self.phase = phase
         self.load_disp = load_disp
         self.load_norm = load_norm
+        self.to_angle = to_angle
         self.scale_size = scale_size
         
 
@@ -91,13 +93,16 @@ class SIRSDataset(Dataset):
 
             return gt_norm
 
+        s = time.time()
         img_left = load_rgb(img_left_name)
         img_right = load_rgb(img_right_name)
         if self.load_disp:
             gt_disp = load_disp(gt_disp_name)
         if self.load_norm:
             gt_norm = load_norm(gt_norm_name)
+        #print("load data in %f s." % (time.time() - s))
 
+        s = time.time()
         if self.phase == 'detect' or self.phase == 'test':
             img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
             img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
@@ -137,15 +142,26 @@ class SIRSDataset(Dataset):
                 gt_disp = gt_disp[:, top: top + th, left: left + tw]
             if self.load_norm:
                 gt_norm = gt_norm[:, top: top + th, left: left + tw]
-
-
+    
+        if self.to_angle:
+            norm_size = gt_norm.size()
+            gt_angle = torch.empty(2, norm_size[1], norm_size[2], dtype=torch.float)
+            gt_angle[0, :, :] = torch.atan(gt_norm[0, :, :] / gt_norm[2, :, :])
+            gt_angle[1, :, :] = torch.atan(gt_norm[1, :, :] / gt_norm[2, :, :])
+ 
         sample = {'img_left': img_left, 
                   'img_right': img_right, 
                  }
+
         if self.load_disp:
             sample['gt_disp'] = gt_disp
         if self.load_norm:
-            sample['gt_norm'] = gt_norm
+            if self.to_angle:
+                sample['gt_angle'] = gt_angle
+            else:
+                sample['gt_norm'] = gt_norm
+
+        #print("deal data in %f s." % (time.time() - s))
 
         return sample
 

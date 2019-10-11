@@ -14,6 +14,7 @@ from networks.DispNetCSRes import DispNetCSRes
 from net_builder import SUPPORT_NETS, build_net
 from losses.multiscaleloss import multiscaleloss
 import torch.nn.functional as F
+import torch.nn as nn
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.StereoLoader import StereoDataset
 from utils.preprocess import scale_disp, save_pfm, scale_disp
@@ -118,7 +119,7 @@ def detect(opt):
 
         # output = net(input_var)[1]
         if opt.disp_on and not opt.norm_on:
-            output = scale_disp(output, (output.size()[0], 540, 960))
+            #output = scale_disp(output, (output.size()[0], 540, 960))
             disp = output[:, 0, :, :]
         elif opt.disp_on and opt.norm_on:
             output = scale_norm(output, (output.size()[0], 540, 960))
@@ -132,7 +133,7 @@ def detect(opt):
             if opt.disp_on:
                 np_disp = disp[j].data.cpu().numpy()
 
-                print('Batch[{}]: {}, average disp: {}'.format(i, j, np.mean(np_disp)))
+                print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
                 save_name = '_'.join(name_items)# for girl02 dataset
                 print('Name: {}'.format(save_name))
                 skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))

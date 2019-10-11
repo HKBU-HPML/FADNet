@@ -15,7 +15,8 @@ from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter
 from utils.common import logger
 from losses.multiscaleloss import EPE
-from utils.preprocess import scale_disp, scale_norm
+from losses.normalloss import angle_diff_angle, angle_diff_norm
+from utils.preprocess import scale_disp, scale_norm, scale_angle
 
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
@@ -43,8 +44,8 @@ class DisparityTrainer(object):
     def _prepare_dataset(self):
 
         if self.dataset == 'irs':
-            train_dataset = SIRSDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train', load_disp = self.disp_on, load_norm = self.norm_on)
-            test_dataset = SIRSDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test', load_disp = self.disp_on, load_norm = self.norm_on)
+            train_dataset = SIRSDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train', load_disp = self.disp_on, load_norm = self.norm_on, to_angle = self.angle_on)
+            test_dataset = SIRSDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test', load_disp = self.disp_on, load_norm = self.norm_on, to_angle=self.angle_on)
         else:
             train_dataset = DispDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = DispDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
@@ -88,6 +89,11 @@ class DisparityTrainer(object):
         if self.net_name == "dispnormnet":
             self.disp_on = True
             self.norm_on = True
+            self.angle_on = False
+        elif self.net_name == "dispanglenet":
+            self.disp_on = True
+            self.norm_on = True
+            self.angle_on = True
         else:
             self.disp_on = True
             self.norm_on = False
@@ -147,6 +153,7 @@ class DisparityTrainer(object):
         losses = AverageMeter()
         flow2_EPEs = AverageMeter()
         norm_EPEs = AverageMeter()
+        angle_EPEs = AverageMeter()
         # switch to train mode
         self.net.train()
         end = time.time()
@@ -163,9 +170,14 @@ class DisparityTrainer(object):
                 target_disp = target_disp.cuda()
                 target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
             if self.norm_on:
-                target_norm = sample_batched['gt_norm']
-                target_norm = target_norm.cuda()
-                target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
+                if self.angle_on:
+                    target_angle = sample_batched['gt_angle']
+                    target_angle = target_angle.cuda()
+                    target_angle = torch.autograd.Variable(target_angle, requires_grad=False)
+                else:
+                    target_norm = sample_batched['gt_norm']
+                    target_norm = target_norm.cuda()
+                    target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
 
             input_var = torch.autograd.Variable(input, requires_grad=False)
             data_time.update(time.time() - end)
@@ -181,6 +193,18 @@ class DisparityTrainer(object):
                 final_disp = disps[0]
                 flow2_EPE = self.epe(final_disp, target_disp)
                 norm_EPE = loss_norm 
+            elif self.net_name == "dispanglenet":
+                disp_angle = self.net(input_var)
+                disps = disp_angle[0]
+                angle = disp_angle[1]
+                loss_disp = self.criterion(disps, target_disp)
+                #loss_angle = F.smooth_l1_loss(angle, target_angle, size_average=True)
+                loss_angle = F.mse_loss(angle, target_angle, size_average=True)
+                loss = loss_disp + loss_angle
+                final_disp = disps[0]
+                flow2_EPE = self.epe(final_disp, target_disp)
+                angle_EPE = F.l1_loss(angle, target_angle, size_average=True) * 180 / 3.1415967
+                #angle_EPE = torch.mean(torch.acos(1 - 0.5 * ((torch.tan(angle[:, 0, :, :]) - torch.tan(target_angle[:, 0, :, :]))**2 + (torch.tan(angle[:, 1, :, :]) - torch.tan(target_angle[:, 1, :, :]))**2)))
             elif self.net_name == "dispnetcres":
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
@@ -229,7 +253,10 @@ class DisparityTrainer(object):
             if self.disp_on:
                 flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
             if self.norm_on:
-                norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
+                if self.angle_on:
+                    angle_EPEs.update(angle_EPE.data.item(), target_disp.size(0))
+                else:
+                    norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
 
             # compute gradient and do SGD step
             loss.backward()
@@ -245,11 +272,12 @@ class DisparityTrainer(object):
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
                   'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'
-                  'norm_EPE {norm_EPE.val:.3f} ({norm_EPE.avg:.3f})'.format(
+                  'norm_EPE {norm_EPE.val:.3f} ({norm_EPE.avg:.3f})\t'
+                  'angle_EPE {angle_EPE.val:.3f} ({angle_EPE.avg:.3f})'.format(
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
-                  data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, norm_EPE=norm_EPEs))
+                  data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, norm_EPE=norm_EPEs, angle_EPE=angle_EPEs))
 
-            #if i_batch > 10:
+            #if i_batch > 20:
             #    break
 
         return losses.avg, flow2_EPEs.avg
@@ -258,6 +286,7 @@ class DisparityTrainer(object):
         batch_time = AverageMeter()
         flow2_EPEs = AverageMeter()
         norm_EPEs = AverageMeter()
+        angle_EPEs = AverageMeter()
         losses = AverageMeter()
         # switch to evaluate mode
         self.net.eval()
@@ -282,9 +311,14 @@ class DisparityTrainer(object):
                 target_disp = target_disp.cuda()
                 target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
             if self.norm_on:
-                target_norm = sample_batched['gt_norm']
-                target_norm = target_norm.cuda()
-                target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
+                if self.angle_on:
+                    target_angle = sample_batched['gt_angle']
+                    target_angle = target_angle.cuda()
+                    target_angle = torch.autograd.Variable(target_angle, requires_grad=False)
+                else:
+                    target_norm = sample_batched['gt_norm']
+                    target_norm = target_norm.cuda()
+                    target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
 
             if self.net_name == 'dispnormnet':
                 disp, normal = self.net(input_var)
@@ -298,6 +332,22 @@ class DisparityTrainer(object):
 
                 #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
                 norm_EPE = F.mse_loss(normal, target_norm, size_average=True) * 3.0
+                flow2_EPE = self.epe(disp, target_disp)
+            elif self.net_name == "dispanglenet":
+                disp, angle = self.net(input_var)
+                size = disp.size()
+
+                # scale the result
+                disp_angle = torch.cat((angle, disp), 1)
+                disp_angle = scale_angle(disp_angle, (size[0], 3, 540, 960))
+                disp = disp_angle[:, 2, :, :].unsqueeze(1)
+                angle = disp_angle[:, :2, :, :]
+
+                #angle_EPE = F.l1_loss(angle, target_angle, size_average=True) * 180 / 3.1415967
+                norm_angle = angle_diff_angle(angle, target_angle)
+                angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
+
+                #angle_EPE = torch.mean(torch.acos(1 - 0.5 * ((torch.tan(angle[:, 0, :, :]) - torch.tan(target_angle[:, 0, :, :]))**2 + (torch.tan(angle[:, 1, :, :]) - torch.tan(target_angle[:, 1, :, :]))**2)))
                 flow2_EPE = self.epe(disp, target_disp)
             if self.net_name == 'dispnetcres':
                 output_net1, output_net2 = self.net(input_var)
@@ -346,22 +396,27 @@ class DisparityTrainer(object):
                 losses.update(loss.data.item(), target_disp.size(0))
             if self.disp_on and (flow2_EPE.data.item() == flow2_EPE.data.item()):
                 flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
-            if self.norm_on and (norm_EPE.data.item() == norm_EPE.item()):
-                norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
+            if self.norm_on:
+                if self.angle_on:
+                    if angle_EPE.data.item() == angle_EPE.data.item():
+                        angle_EPEs.update(angle_EPE.data.item(), target_angle.size(0))                
+                elif (norm_EPE.data.item() == norm_EPE.item()):
+                    norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
         
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
     
             if i % 10 == 0:
-                logger.info('Test: [{0}/{1}]\t Time {2}\t EPE {3}\t norm_EPE {4}'
-                      .format(i, len(self.test_loader), batch_time.val, flow2_EPEs.val, norm_EPEs.val))
+                logger.info('Test: [{0}/{1}]\t Time {2}\t EPE {3}\t norm_EPE {4}\t angle_EPE {5}'
+                      .format(i, len(self.test_loader), batch_time.val, flow2_EPEs.val, norm_EPEs.val, angle_EPEs.val))
 
             #if i % 10 == 0:
             #    break
 
         logger.info(' * EPE {:.3f}'.format(flow2_EPEs.avg))
         logger.info(' * normal EPE {:.3f}'.format(norm_EPEs.avg))
+        logger.info(' * angle EPE {:.3f}'.format(angle_EPEs.avg))
         return flow2_EPEs.avg
 
     def get_model(self):
