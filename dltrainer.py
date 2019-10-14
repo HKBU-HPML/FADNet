@@ -198,8 +198,8 @@ class DisparityTrainer(object):
                 disps = disp_angle[0]
                 angle = disp_angle[1]
                 loss_disp = self.criterion(disps, target_disp)
-                #loss_angle = F.smooth_l1_loss(angle, target_angle, size_average=True)
-                loss_angle = F.mse_loss(angle, target_angle, size_average=True)
+                loss_angle = F.smooth_l1_loss(angle, target_angle, size_average=True)
+                #loss_angle = F.mse_loss(angle, target_angle, size_average=True)
                 loss = loss_disp + loss_angle
                 final_disp = disps[0]
                 flow2_EPE = self.epe(final_disp, target_disp)
