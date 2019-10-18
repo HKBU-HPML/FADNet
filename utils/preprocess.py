@@ -112,6 +112,18 @@ def default_transform(input_size=None,
 
     return transforms.Compose(rgb_list)
 
+def scale_transform(input_size=None, 
+                  scale_size=(576, 960), normalize=None, augment=True):
+    normalize = __imagenet_stats
+
+    scale_list = [
+        transforms.Resize(scale_size),
+        transforms.ToTensor(),
+        transforms.Normalize(**normalize),
+    ]
+
+    return transforms.Compose(scale_list)
+
 
 class Lighting(object):
     """Lighting noise(AlexNet - style PCA - based noise)"""
