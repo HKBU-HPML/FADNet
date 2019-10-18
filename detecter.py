@@ -17,7 +17,7 @@ import torch.nn.functional as F
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.SceneFlowLoader import DispDataset
 from dataloader.SIRSLoader import SIRSDataset
-from utils.preprocess import scale_disp, save_pfm
+from utils.preprocess import scale_disp, save_pfm, scale_norm
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -80,13 +80,16 @@ def detect_batch(net, sample_batched, net_name, resize_output = None):
     elif net_name == "dispnetc":
         output = net(input_var)[0]
     else:
-        output = net(input_var)[0]
+        output = net(input_var)
+
+    disp, normal = output
+    disp_norm = torch.cat((normal, disp), dim=1)
 
     if resize_output is not None:
-        channel = output.size()[1]
-        output = scale_disp(output, (channel, resize_output[0], resize_output[1]))
+        channel = disp_norm.size()[1]
+        disp_norm = scale_norm(disp_norm, (channel, 4, resize_output[0], resize_output[1]))
 
-    return output, input_var
+    return disp_norm, input_var
 
 
 
@@ -135,7 +138,7 @@ def detect(opt):
                 avg_time = []
 
         # output = net(input_var)[1]
-        # output[output > 192] = 0
+        output[output > 192] = 0
         for j in range(num_of_samples):
             # scale back depth
             np_depth = output[j][0].data.cpu().numpy()
