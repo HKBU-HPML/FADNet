@@ -12,20 +12,19 @@ from networks.DispNetC import DispNetC
 from networks.NormNetDF import NormNetDF
 from networks.submodules import *
 
-class DispNormNet(nn.Module):
+class DNFusionNet(nn.Module):
 
     def __init__(self, batchNorm=False, lastRelu=True, input_channel=3, maxdisp=-1):
-        super(DispNormNet, self).__init__()
+        super(DNFusionNet, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
         self.maxdisp = maxdisp
-        self.dn_transformer = Disp2Norm({"fx":1050, "fy":1050})
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel)
+        self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel, get_features=True)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnets = NormNetS(self.batchNorm, input_channel=3+3+3)
+        self.normnetdf = NormNetDF(self.batchNorm, input_channel=3+3+1)
 
         self.relu = nn.ReLU(inplace=False)
 
@@ -58,12 +57,9 @@ class DispNormNet(nn.Module):
         #depthc = 48.0 / depthc
         #depthc[depthc > 30] = 30
 
-        # convert disparity to normal
-        init_normal = self.dn_transformer.disp2norm(dispnetc_flow)
-
-        # normnets
-        inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
-        normal = self.normnets(inputs_normnets)
+        # normnetdf
+        inputs_normnetdf = torch.cat((inputs, dispnetc_flow), dim = 1)
+        normal = self.normnetdf(inputs_normnetdf, dispnetc_features)
 
         normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
 
