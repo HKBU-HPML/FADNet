@@ -306,7 +306,7 @@ class Disp2Norm:
         self.batch_size = batch_size
         self.xc, self.yc = make_grid(batch_size, width, height)
 
-    def make_grid(self, batch_size, width, height)
+    def make_grid(self, batch_size, width, height):
         x = np.arange(0, width)
         y = np.arange(0, height)
         xc, yc = np.meshgrid(x, y)
@@ -364,4 +364,28 @@ class Disp2Norm:
         angle = torch.cat((ax, ay), dim=1)
         
         return norm
+
+    def norm_adjust_disp(self, init_disp, norm, ori_ratio=0.5):
+        n, c, h, w = init_disp.size()
+
+        nx = norm[:, 0, :, :] / norm[:, 2, :, :]
+        ny = norm[:, 1, :, :] / norm[:, 2, :, :]
+
+        nx = F.pad(nx, (1, 1, 1, 1), 'replicate')
+        ny = F.pad(ny, (1, 1, 1, 1), 'replicate')
+        pad_disp = F.pad(init_disp, (1, 1, 1, 1), 'constant', 0.0)
+        ones = torch.ones([n, c, h, w], dtype=torch.float64, device=cuda0)
+        ones = F.pad(onfs, (1, 1, 1, 1), 'constant', 0.0)
+
+        disp_l = init_disp * (nx + self.xc - 1) / (nx + self.xc)
+        disp_r = init_disp * (nx + self.xc + 1) / (nx + self.xc)
+        disp_u = init_disp * (ny + self.yc - 1) / (ny + self.yc)
+        disp_d = init_disp * (ny + self.yc + 1) / (ny + self.yc)
+
+        merge_disp = (disp_l[:,:,:,:-2] + disp_r[:,:,:,2:] + disp_u[:,:,:-2,:] + disp_d[:,:,2:,:]) / (ones[:,:,:,:-2] + ones[:,:,:,2:] + ones[:,:,:-2,:] + ones[:,:,2:,:])
+
+        if ori_ratio > 0.0:
+            merge_disp = merge_disp * (1 - ori_ratio) + init_disp * ori_ratio
+
+        return merge_disp
 
