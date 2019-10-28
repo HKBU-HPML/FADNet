@@ -9,6 +9,7 @@ from torch.nn.init import kaiming_normal
 from layers_package.resample2d_package.resample2d import Resample2d
 from layers_package.channelnorm_package.channelnorm import ChannelNorm
 from networks.DispNetC import DispNetC
+from networks.NormNetS import NormNetS
 from networks.NormNetDF import NormNetDF
 from networks.submodules import *
 
@@ -20,15 +21,17 @@ class DispNormNet(nn.Module):
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
         self.maxdisp = maxdisp
-        self.dn_transformer = Disp2Norm({"fx":1050, "fy":1050})
+        #self.dn_transformer = Disp2Norm(16, 768, 384, {"fx":1050, "fy":1050})
 
         # First Block (DispNetC)
         self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnets = NormNetS(self.batchNorm, input_channel=3+3+3)
+        self.normnets = NormNetS(self.batchNorm, input_channel=3+1)
 
         self.relu = nn.ReLU(inplace=False)
 
+        self.fx = 1050
+        self.fy = 1050
         # # parameter initialization
         # for m in self.modules():
         #     if isinstance(m, nn.Conv2d):
@@ -51,7 +54,7 @@ class DispNormNet(nn.Module):
         img_right = imgs[1]
 
         # dispnetc
-        dispnetc_flows, dispnetc_features = self.dispnetc(inputs)
+        dispnetc_flows = self.dispnetc(inputs)
         dispnetc_flow = dispnetc_flows[0]
         #depthc = dispnetc_flow.clone()
         #depthc[depthc == 0] = 0.01
@@ -59,11 +62,12 @@ class DispNormNet(nn.Module):
         #depthc[depthc > 30] = 30
 
         # convert disparity to normal
-        init_normal = self.dn_transformer.disp2norm(dispnetc_flow)
+        init_normal = disp2norm(dispnetc_flow, self.fx, self.fy)
 
         # normnets
-        inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
-        normal = self.normnets(inputs_normnets)
+        #inputs_normnets = torch.cat((inputs, dispnetc_flow), dim = 1)
+        inputs_normnets = torch.cat((init_normal, dispnetc_flow), dim = 1)
+        normal = self.normnets(inputs_normnets) 
 
         normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
 
