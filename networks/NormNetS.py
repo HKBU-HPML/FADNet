@@ -6,11 +6,8 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-from layers_package.resample2d_package.modules.resample2d import Resample2d
-from layers_package.channelnorm_package.modules.channelnorm import ChannelNorm
 #from layers_package.submodules import *
 from networks.submodules import *
-from correlation_package.modules.corr import Correlation1d # from PWC-Net
 
 class NormNetS(nn.Module):
 
@@ -93,9 +90,9 @@ class NormNetS(nn.Module):
 
         # split left image and right image
         # print(input.size())
-        imgs = torch.chunk(input[:, :6, :, :], 2, dim = 1)
-        img_left = imgs[0]
-        img_right = imgs[1]
+        #imgs = torch.chunk(input[:, :6, :, :], 2, dim = 1)
+        img_left = input[:, :3, :, :]
+        img_right = input[:, 3:, :, :]
 
         conv1 = self.conv1(input)
         conv2 = self.conv2(conv1)

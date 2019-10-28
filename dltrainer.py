@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os
+import os, sys
 import time
 import torch
 import torch.nn.functional as F
@@ -17,6 +17,8 @@ from utils.common import logger
 from losses.multiscaleloss import EPE
 from losses.normalloss import angle_diff_angle, angle_diff_norm
 from utils.preprocess import scale_disp, scale_norm, scale_angle
+from networks.submodules import disp2norm
+import skimage
 
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
@@ -55,7 +57,7 @@ class DisparityTrainer(object):
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
         self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
-                                shuffle = True, num_workers = datathread, \
+                                shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         
         self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 4, \
@@ -86,7 +88,7 @@ class DisparityTrainer(object):
             self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
 
         # set predicted target
-        if self.net_name == "dispnormnet":
+        if self.net_name == "dispnormnet" or self.net_name == 'dnfusionnet':
             self.disp_on = True
             self.norm_on = True
             self.angle_on = False
@@ -183,7 +185,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
 
             self.optimizer.zero_grad()
-            if self.net_name == "dispnormnet":
+            if self.net_name == "dispnormnet" or self.net_name == "dnfusionnet":
                 disp_norm = self.net(input_var)
                 disps = disp_norm[0]
                 normal = disp_norm[1]
@@ -193,6 +195,24 @@ class DisparityTrainer(object):
                 final_disp = disps[0]
                 flow2_EPE = self.epe(final_disp, target_disp)
                 norm_EPE = loss_norm 
+
+                retrans_norm = disp2norm(target_disp, 1050, 1050)
+                print("mean of GT norm:", torch.mean(target_norm))
+                print("mean of retrans norm:", torch.mean(retrans_norm))
+                #print("test disp2norm error:", F.l1_loss(retrans_norm, target_norm, size_average=True))
+
+                target_norm = (target_norm + 1.0) * 0.5
+                print("lowest-highest of GT norm:", torch.min(target_norm), torch.max(target_norm))
+                normal = target_norm[0].data.cpu().numpy().transpose(1, 2, 0)
+                skimage.io.imsave("gt_test.png",(normal*256).astype('uint16'))
+
+                retrans_norm = (retrans_norm + 1.0) * 0.5
+                #retrans_norm[retrans_norm < 0] = 0.0
+                print("lowest-highest of trans norm:", torch.min(retrans_norm), torch.max(retrans_norm))
+                retrans_norm = retrans_norm[0].data.cpu().numpy().transpose(1, 2, 0)
+                skimage.io.imsave("retrans_test.png",(retrans_norm*256).astype('uint16'))
+                sys.exit(-1)
+
             elif self.net_name == "dispanglenet":
                 disp_angle = self.net(input_var)
                 disps = disp_angle[0]
@@ -277,8 +297,8 @@ class DisparityTrainer(object):
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
                   data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, norm_EPE=norm_EPEs, angle_EPE=angle_EPEs))
 
-            #if i_batch > 20:
-            #    break
+            if i_batch > 200:
+                break
 
         return losses.avg, flow2_EPEs.avg
 
@@ -320,7 +340,7 @@ class DisparityTrainer(object):
                     target_norm = target_norm.cuda()
                     target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
 
-            if self.net_name == 'dispnormnet':
+            if self.net_name == 'dispnormnet' or self.net_name == "dnfusionnet":
                 disp, normal = self.net(input_var)
                 size = disp.size()
 

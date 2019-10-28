@@ -8,6 +8,7 @@ from networks.DispNetCS import DispNetCS
 from networks.DispNetCSS import DispNetCSS
 from networks.DispNetCSRes import DispNetCSRes
 from networks.DispNormNet import DispNormNet
+from networks.DNFusionNet import DNFusionNet
 from networks.DispAngleNet import DispAngleNet
 from networks.stackhourglass import PSMNet
 from networks.GANet_deep import GANet
@@ -25,6 +26,7 @@ SUPPORT_NETS = {
         'psmnet': PSMNet,
         'ganet':GANet,
         'dispnormnet':DispNormNet,
+        'dnfusionnet':DNFusionNet,
         'dispanglenet':DispAngleNet,
         #'multicorrnet': MultiCorrNet,
         #'dispnetcorr2': DispNetCorr2,
