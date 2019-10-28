@@ -189,6 +189,7 @@ class DisparityTrainer(object):
                 normal = disp_norm[1]
                 loss_disp = self.criterion(disps, target_disp)
                 loss_norm = F.mse_loss(normal, target_norm, size_average=True) * 3.0
+                print(loss_disp, loss_norm)
                 loss = loss_disp + loss_norm
                 final_disp = disps[0]
                 flow2_EPE = self.epe(final_disp, target_disp)
@@ -333,6 +334,8 @@ class DisparityTrainer(object):
                 #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
                 norm_EPE = F.mse_loss(normal, target_norm, size_average=True) * 3.0
                 flow2_EPE = self.epe(disp, target_disp)
+                norm_angle = angle_diff_norm(normal, target_norm)
+                angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
             elif self.net_name == "dispanglenet":
                 disp, angle = self.net(input_var)
                 size = disp.size()
@@ -398,10 +401,13 @@ class DisparityTrainer(object):
                 flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
             if self.norm_on:
                 if self.angle_on:
-                    if angle_EPE.data.item() == angle_EPE.data.item():
-                        angle_EPEs.update(angle_EPE.data.item(), target_angle.size(0))                
-                elif (norm_EPE.data.item() == norm_EPE.item()):
-                    norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
+                    if (angle_EPE.data.item() == angle_EPE.data.item()):
+                        angle_EPEs.update(angle_EPE.data.item(), target_angle.size(0))
+                else:
+                    if (norm_EPE.data.item() == norm_EPE.data.item()):
+                        norm_EPEs.update(norm_EPE.data.item(), target_norm.size(0))
+                    if (angle_EPE.data.item() == angle_EPE.data.item()):
+                        angle_EPEs.update(angle_EPE.data.item(), target_norm.size(0))
         
             # measure elapsed time
             batch_time.update(time.time() - end)
