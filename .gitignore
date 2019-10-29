@@ -20,7 +20,7 @@ tmp
 ./data
 data
 ./models
-detect_results/
+detect_results*
 ./tools/FusionPortal/lib
 core
 trained/
@@ -31,3 +31,5 @@ trained
 tags
 runs/
 runs
+tools/openexr-*
+
