@@ -17,7 +17,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.StereoLoader import StereoDataset
-from utils.preprocess import scale_disp, save_pfm, scale_disp
+from utils.preprocess import scale_disp, save_pfm, scale_norm
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -34,13 +34,13 @@ cudnn.benchmark = True
 #target_transform = transforms.Compose([
 #        transforms.Normalize(mean=[0],std=[1.0])
 #        ])
-
 def detect(opt):
+
     model = opt.model
-    result_path = opt.rp
+    results_path = opt.rp
     file_list = opt.filelist
     filepath = opt.filepath
-    
+
     if not os.path.exists(result_path):
         os.makedirs(result_path)
 
@@ -50,13 +50,12 @@ def detect(opt):
     #net = DispNetCSRes(ngpu, False, True)
     #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 
-    if opt.net == "psmnet" or opt.net == "ganet":
-        net = build_net(opt.net)(maxdisp=192)
-    elif opt.net == "dispnetc":
-        net = build_net(opt.net)(batchNorm=False, lastRelu=True, resBlock=False)
+    if net_name == "psmnet" or net_name == "ganet":
+        net = build_net(net_name)(maxdisp=192)
+    elif net_name == "dispnetc":
+        net = build_net(net_name)(batchNorm=False, lastRelu=True, resBlock=False)
     else:
-        net = build_net(opt.net)(batchNorm=False, lastRelu=True)
- 
+        net = build_net(net_name)(batchNorm=False, lastRelu=True)
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
     model_data = torch.load(model)
@@ -67,7 +66,7 @@ def detect(opt):
         net.load_state_dict(model_data)
 
     num_of_parameters = count_parameters(net)
-    print('Model: %s, # of parameters: %d' % (opt.net, num_of_parameters))
+    print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
     net.eval()
 
@@ -88,8 +87,7 @@ def detect(opt):
         # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
 
-        #print('disp Shape: {}'.format(target.size()))
-        #original_size = (1, target.size()[2], target.size()[3])
+        output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
 
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -150,6 +148,13 @@ def detect(opt):
 
             print('')
 
+            save_name = '_'.join(name_items).replace(".png", "_left.png")# for girl02 dataset
+            img = input_var[0].detach().cpu().numpy()[:3,:,:]
+            img = np.transpose(img, (1, 2, 0))
+            print('Name: {}'.format(save_name))
+            print('')
+            #save_pfm('{}/{}'.format(result_path, save_name), img)
+            skimage.io.imsave(os.path.join(result_path, save_name),img)
 
     print('Evaluation time used: {}'.format(time.time()-s))
         

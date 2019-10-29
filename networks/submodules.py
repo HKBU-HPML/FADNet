@@ -283,19 +283,144 @@ def disparity_regression(x, maxdisp):
     return torch.sum(x * disp_values, 1, keepdim=True)
 
 
-'''
-def save_grad(grads, name):
-    def hook(grad):
-        grads[name] = grad
-    return hook
-import torch
-from channelnorm_package.modules.channelnorm import ChannelNorm 
-model = ChannelNorm().cuda()
-grads = {}
-a = 100*torch.autograd.Variable(torch.randn((1,3,5,5)).cuda(), requires_grad=True)
-a.register_hook(save_grad(grads, 'a'))
-b = model(a)
-y = torch.mean(b)
-y.backward()
+#def save_grad(grads, name):
+#    def hook(grad):
+#        grads[name] = grad
+#    return hook
+#import torch
+#from channelnorm_package.modules.channelnorm import ChannelNorm 
+#model = ChannelNorm().cuda()
+#grads = {}
+#a = 100*torch.autograd.Variable(torch.randn((1,3,5,5)).cuda(), requires_grad=True)
+#a.register_hook(save_grad(grads, 'a'))
+#b = model(a)
+#y = torch.mean(b)
+#y.backward()
 
-'''
+def make_grid(batch_size, height, width):
+    x = np.arange(0, width)
+    y = np.arange(0, height)
+    xc, yc = np.meshgrid(x, y)
+
+    x_coord = torch.from_numpy(xc)
+    y_coord = torch.from_numpy(yc)
+
+    x_coord = width * 0.5 - x_coord
+    y_coord = height * 0.5 - y_coord
+
+    # unsqueeze, final size should be (n, c, h, w)
+    x_coord = torch.unsqueeze(x_coord, 0)
+    y_coord = torch.unsqueeze(y_coord, 0)
+
+    x_coord = torch.unsqueeze(x_coord, 0)
+    y_coord = torch.unsqueeze(y_coord, 0)
+
+    x_coord = x_coord.expand(batch_size, 1, height, width)
+    y_coord = y_coord.expand(batch_size, 1, height, width)
+
+    return x_coord, y_coord
+
+def disp2norm(disp, fx, fy):
+    # the shape of disp should be (n, c, h, w), and disp should be tensor
+    n, c, h, w = disp.size()
+    cur_device = disp.device
+    xc, yc = make_grid(n, h, w)
+    xc = xc.float().to(cur_device)
+    yc = yc.float().to(cur_device)
+
+    dx = (disp[:, :, :, :-2] - disp[:, :, :, 2:]) * 0.5
+    dy = (disp[:, :, :-2, :] - disp[:, :, 2:, :]) * 0.5
+
+    #nx = -self.fl.fx * dx / torch.abs(disp[:,:,:,1:-1] - self.xc[:,:,:,1:-1] * dx)
+    #ny = -self.fl.fy * dy / torch.abs(disp[:,:,1:-1,:] - self.yc[:,:,1:-1,:] * dy)
+    divider_nx = torch.abs(disp[:,:,:,1:-1] - xc[:,:,:,1:-1] * dx)
+    divider_ny = torch.abs(disp[:,:,1:-1,:] - yc[:,:,1:-1,:] * dy)
+    nx = fx * dx / (divider_nx + 1e-8)
+    ny = fy * dy / (divider_ny + 1e-8)
+    #nx = fx * dx / (divider_nx)
+    #ny = fy * dy / (divider_ny)
+    nz = -torch.ones(n, 1, h, w).float().to(cur_device)
+
+    nx = F.pad(nx, (1, 1, 0, 0), 'replicate')
+    ny = F.pad(ny, (0, 0, 1, 1), 'replicate')
+    #print "mean of nx:", torch.mean(nx), torch.std(nx)
+    #print "mean of ny:", torch.mean(ny), torch.std(ny)
+
+    norm = torch.cat((nx, ny, nz), dim=1)
+    norm = norm / torch.norm(norm, 2, dim=1, keepdim=True)
+
+    #norm[norm < 0] += 1e-6
+    #print "min-max:", torch.min(norm), torch.max(norm)
+    
+    return norm
+
+#class Disp2Norm:
+#    def __init__(self, batch_size, width, height, focus_length):
+#        self.fl = focus_length
+#
+#    def make_grid(self, batch_size, width, height):
+#        x = np.arange(0, width)
+#        y = np.arange(0, height)
+#        xc, yc = np.meshgrid(x, y)
+#
+#        x_coord = torch.from_numpy(xc).cuda().float()
+#        y_coord = torch.from_numpy(yc).cuda().float()
+#
+#        x_coord = width * 0.5 - x_coord
+#        y_coord = height * 0.5 - y_coord
+#
+#        # unsqueeze, final size should be (n, c, h, w)
+#        x_coord = torch.unsqueeze(x_coord, 0)
+#        y_coord = torch.unsqueeze(y_coord, 0)
+#
+#        x_coord = torch.unsqueeze(x_coord, 0)
+#        y_coord = torch.unsqueeze(y_coord, 0)
+#
+#        x_coord = x_coord.expand(batch_size, 1, height, width)
+#        y_coord = y_coord.expand(batch_size, 1, height, width)
+#
+#        return x_coord, y_coord
+#
+#    def disp2norm(self, disp):
+#        # the shape of disp should be (n, c, h, w), and disp should be tensor
+#        n, c, h, w = disp.size()
+#        self.batch_size = n
+#        self.xc, self.yc = self.make_grid(n, w, h)
+#
+#        dx = (disp[:, :, :, :-2] - disp[:, :, :, 2:]) * 0.5
+#        dy = (disp[:, :, :-2, :] - disp[:, :, 2:, :]) * 0.5
+#
+#        #nx = -self.fl.fx * dx / torch.abs(disp[:,:,:,1:-1] - self.xc[:,:,:,1:-1] * dx)
+#        #ny = -self.fl.fy * dy / torch.abs(disp[:,:,1:-1,:] - self.yc[:,:,1:-1,:] * dy)
+#        divider_nx = torch.abs(disp[:,:,:,1:-1] - self.xc[:,:,:,1:-1] * dx)
+#        divider_ny = torch.abs(disp[:,:,1:-1,:] - self.yc[:,:,1:-1,:] * dy)
+#        nx = -self.fl["fx"] * dx / (divider_nx + 1e-16)
+#        ny = -self.fl["fy"] * dy / (divider_ny + 1e-16)
+#        #print "mean of nx:", torch.mean(nx)
+#        #print "mean of ny:", torch.mean(ny)
+#        nz = torch.ones(n, 1, h, w).cuda()
+#
+#        nx = F.pad(nx, (1, 1, 0, 0), 'replicate')
+#        ny = F.pad(ny, (0, 0, 1, 1), 'replicate')
+#
+#        norm = torch.cat((nx, ny, nz), dim=1)
+#        norm = norm / torch.norm(norm, 2, dim=1, keepdim=True)
+#        
+#        return norm
+#
+#    def disp2angle(self, disp):
+#        # the shape of disp should be (n, c, h, w), and disp should be tensor
+#        n, c, h, w = disp.size()
+#
+#        dx = (disp[:, :, :, :-2] - disp[:, :, :, 2:]) * 0.5
+#        dy = (disp[:, :, :-2, :] - disp[:, :, 2:, :]) * 0.5
+#
+#        ax = torch.atan(-self.fl.fx * dx / torch.abs(disp[:,:,:,1:-1] - self.xc[:,:,:,1:-1] * dx))
+#        ay = torch.atan(-self.fl.fy * dy / torch.abs(disp[:,:,1:-1,:] - self.yc[:,:,1:-1,:] * dy))
+#
+#        ax = F.pad(ax, (1, 1, 0, 0), 'replicate')
+#        ay = F.pad(ay, (0, 0, 1, 1), 'replicate')
+#
+#        angle = torch.cat((ax, ay), dim=1)
+#        
+#        return norm

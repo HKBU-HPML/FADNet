@@ -112,6 +112,18 @@ def default_transform(input_size=None,
 
     return transforms.Compose(rgb_list)
 
+def scale_transform(input_size=None, 
+                  scale_size=(576, 960), normalize=None, augment=True):
+    normalize = __imagenet_stats
+
+    scale_list = [
+        transforms.Resize(scale_size),
+        transforms.ToTensor(),
+        transforms.Normalize(**normalize),
+    ]
+
+    return transforms.Compose(scale_list)
+
 
 class Lighting(object):
     """Lighting noise(AlexNet - style PCA - based noise)"""
@@ -476,36 +488,36 @@ loaded image and the scale factor from the file.
 '''
 def load_pfm(filename):
 
-  file = open(filename, 'r')
-  color = None
-  width = None
-  height = None
-  scale = None
-  endian = None
+    file = open(filename, 'r')
+    color = None
+    width = None
+    height = None
+    scale = None
+    endian = None
 
-  header = file.readline().rstrip()
-  if header == 'PF':
-    color = True    
-  elif header == 'Pf':
-    color = False
-  else:
-    raise Exception('Not a PFM file.')
+    header = file.readline().rstrip()
+    if header == 'PF':
+        color = True    
+    elif header == 'Pf':
+        color = False
+    else:
+        raise Exception('Not a PFM file.')
 
-  dim_match = re.match(r'^(\d+)\s(\d+)\s$', file.readline())
-  if dim_match:
-    width, height = map(int, dim_match.groups())
-  else:
-    raise Exception('Malformed PFM header.')
+    dim_match = re.match(r'^(\d+)\s(\d+)\s$', file.readline())
+    if dim_match:
+        width, height = map(int, dim_match.groups())
+    else:
+        raise Exception('Malformed PFM header.')
 
-  scale = float(file.readline().rstrip())
-  if scale < 0: # little-endian
-    endian = '<'
-    scale = -scale
-  else:
-    endian = '>' # big-endian
+    scale = float(file.readline().rstrip())
+    if scale < 0: # little-endian
+        endian = '<'
+        scale = -scale
+    else:
+        endian = '>' # big-endian
 
-  data = np.fromfile(file, endian + 'f')
-  shape = (height, width, 3) if color else (height, width)
-  file.close()
-  return np.reshape(data, shape), scale
+    data = np.fromfile(file, endian + 'f')
+    shape = (height, width, 3) if color else (height, width)
+    file.close()
+    return np.reshape(data, shape), scale
 
