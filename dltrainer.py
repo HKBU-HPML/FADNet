@@ -198,8 +198,8 @@ class DisparityTrainer(object):
                 disps = disp_angle[0]
                 angle = disp_angle[1]
                 loss_disp = self.criterion(disps, target_disp)
-                loss_angle = F.smooth_l1_loss(angle, target_angle, size_average=True)
-                #loss_angle = F.mse_loss(angle, target_angle, size_average=True)
+                #loss_angle = F.smooth_l1_loss(angle, target_angle, size_average=True)
+                loss_angle = F.mse_loss(angle * 180.0 / 3.1415967, target_angle * 180.0 / 3.1415967, size_average=True) 
                 loss = loss_disp + loss_angle
                 final_disp = disps[0]
                 flow2_EPE = self.epe(final_disp, target_disp)
@@ -345,7 +345,7 @@ class DisparityTrainer(object):
 
                 #angle_EPE = F.l1_loss(angle, target_angle, size_average=True) * 180 / 3.1415967
                 norm_angle = angle_diff_angle(angle, target_angle)
-                angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
+                angle_EPE = torch.mean(norm_angle.squeeze()[target_disp.squeeze() > 2])
 
                 #angle_EPE = torch.mean(torch.acos(1 - 0.5 * ((torch.tan(angle[:, 0, :, :]) - torch.tan(target_angle[:, 0, :, :]))**2 + (torch.tan(angle[:, 1, :, :]) - torch.tan(target_angle[:, 1, :, :]))**2)))
                 flow2_EPE = self.epe(disp, target_disp)
@@ -360,6 +360,7 @@ class DisparityTrainer(object):
                 flow2_EPE = self.epe(output_net2, target_disp)
             elif self.net_name == "psmnet" or self.net_name == "ganet":
                 output_net3 = self.net(input_var)
+                output_net3 = output_net3.unsqueeze(1)
                 output_net3 = scale_disp(output_net3, (output_net3.size()[0], 540, 960))
                 loss = self.epe(output_net3, target_disp)
                 flow2_EPE = loss
