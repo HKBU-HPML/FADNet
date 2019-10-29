@@ -325,8 +325,8 @@ class DisparityTrainer(object):
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
                   data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, norm_EPE=norm_EPEs, angle_EPE=angle_EPEs))
 
-            if i_batch > 20:
-                break
+            #if i_batch > 20:
+            #    break
 
         return losses.avg, flow2_EPEs.avg
 
@@ -385,9 +385,10 @@ class DisparityTrainer(object):
 
                 angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
                 #angle_EPE = torch.mean(norm_angle)
+                loss = norm_EPE + flow2_EPE
             elif self.net_name in ["normnets", "normnetc"]:
                 normal = self.net(input_var)
-                size = disp.size()
+                size = normal.size()
 
                 # scale the result
                 normal = scale_norm(normal, (size[0], 3, 540, 960), True)
@@ -396,8 +397,9 @@ class DisparityTrainer(object):
                 norm_EPE = F.mse_loss(normal, target_norm, size_average=True) * 3.0
 
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
-                angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
+                angle_EPE = torch.mean(norm_angle)
                 #angle_EPE = torch.mean(norm_angle)
+                loss = norm_EPE
             elif self.net_name == "dispanglenet":
                 disp, angle = self.net(input_var)
                 size = disp.size()
@@ -414,7 +416,8 @@ class DisparityTrainer(object):
 
                 #angle_EPE = torch.mean(torch.acos(1 - 0.5 * ((torch.tan(angle[:, 0, :, :]) - torch.tan(target_angle[:, 0, :, :]))**2 + (torch.tan(angle[:, 1, :, :]) - torch.tan(target_angle[:, 1, :, :]))**2)))
                 flow2_EPE = self.epe(disp, target_disp)
-            if self.net_name == 'dispnetcres':
+                loss = angle_EPE + flow2_EPE
+            elif self.net_name == 'dispnetcres':
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], 540, 960))
