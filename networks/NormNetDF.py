@@ -124,7 +124,8 @@ class NormNetDF(nn.Module):
         iconv0 = self.iconv0(concat0)
 
         # predict flow residual
-        norm = self.pred_res0(iconv0)
+        normal = self.pred_res0(iconv0)
+        normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
 
         # # predict flow residual with dropout output
         # pr6_res = self.pred_res6(F.dropout2d(conv6b))
@@ -135,7 +136,7 @@ class NormNetDF(nn.Module):
         # pr1_res = self.pred_res1(F.dropout2d(iconv1))
         # pr0_res = self.pred_res0(F.dropout2d(iconv0))
 
-        return norm
+        return normal
 
     def weight_parameters(self):
         return [param for name, param in self.named_parameters() if 'weight' in name]

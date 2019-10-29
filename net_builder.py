@@ -12,6 +12,8 @@ from networks.DNFusionNet import DNFusionNet
 from networks.DispAngleNet import DispAngleNet
 from networks.stackhourglass import PSMNet
 from networks.GANet_deep import GANet
+from networks.NormNetS import NormNetS
+#from networks.NormNetC import NormNetC
 #from networks.stackhourglass import PSMNet
 #from networks.GANet_deep import GANet
 #from networks.MultiCorrNet import MultiCorrNet
@@ -25,11 +27,13 @@ SUPPORT_NETS = {
         'dispnets': DispNetS,
         'dispnetcs': DispNetCS,
         'dispnetcss': DispNetCSS,
-        #'psmnet': PSMNet,
-        #'ganet':GANet,
+        'psmnet': PSMNet,
+        'ganet':GANet,
         'dispnormnet':DispNormNet,
         'dnfusionnet':DNFusionNet,
         'dispanglenet':DispAngleNet,
+        'normnets':NormNetS,
+        #'normnetc':NormNetC,
         #'multicorrnet': MultiCorrNet,
         #'dispnetcorr2': DispNetCorr2,
         }

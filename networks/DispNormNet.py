@@ -72,7 +72,7 @@ class DispNormNet(nn.Module):
         #inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
         normal = self.normnets(inputs_normnets) 
 
-        normal = normal / (torch.norm(normal, 2, dim=1, keepdim=True) + 1e-8)
+        #normal = normal / (torch.norm(normal, 2, dim=1, keepdim=True) + 1e-8)
 
         if self.training:
             return dispnetc_flows, normal

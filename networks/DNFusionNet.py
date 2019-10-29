@@ -61,7 +61,7 @@ class DNFusionNet(nn.Module):
         inputs_normnetdf = torch.cat((inputs, dispnetc_flow), dim = 1)
         normal = self.normnetdf(inputs_normnetdf, dispnetc_features)
 
-        normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
+        #normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
 
         if self.training:
             return dispnetc_flows, normal
