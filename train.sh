@@ -8,5 +8,5 @@ python main.py --cuda --net $net --loss $loss --lr $lr \
                --startRound $startR --startEpoch $startE --endEpoch $endE \
                --model $model \
                --maxdisp $maxdisp \
-	       --manualSeed 1024
+	       --manualSeed 1024 \
 

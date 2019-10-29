@@ -337,15 +337,20 @@ def disp2norm(disp, fx, fy):
     divider_ny = torch.abs(disp[:,:,1:-1,:] - yc[:,:,1:-1,:] * dy)
     nx = fx * dx / (divider_nx + 1e-16)
     ny = fy * dy / (divider_ny + 1e-16)
+    #nx = fx * dx / (divider_nx)
+    #ny = fy * dy / (divider_ny)
     nz = -torch.ones(n, 1, h, w).float().to(cur_device)
 
     nx = F.pad(nx, (1, 1, 0, 0), 'replicate')
     ny = F.pad(ny, (0, 0, 1, 1), 'replicate')
-    print "mean of nx:", torch.mean(nx), torch.std(nx)
-    print "mean of ny:", torch.mean(ny), torch.std(ny)
+    #print "mean of nx:", torch.mean(nx), torch.std(nx)
+    #print "mean of ny:", torch.mean(ny), torch.std(ny)
 
     norm = torch.cat((nx, ny, nz), dim=1)
     norm = norm / torch.norm(norm, 2, dim=1, keepdim=True)
+
+    #norm[norm < 0] += 1e-6
+    #print "min-max:", torch.min(norm), torch.max(norm)
     
     return norm
 
@@ -419,4 +424,3 @@ def disp2norm(disp, fx, fy):
 #        angle = torch.cat((ax, ay), dim=1)
 #        
 #        return norm
-

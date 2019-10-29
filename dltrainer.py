@@ -45,7 +45,7 @@ class DisparityTrainer(object):
 
     def _prepare_dataset(self):
 
-        if self.dataset == 'irs':
+        if self.dataset == 'irs' or True:
             train_dataset = SIRSDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train', load_disp = self.disp_on, load_norm = self.norm_on, to_angle = self.angle_on)
             test_dataset = SIRSDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test', load_disp = self.disp_on, load_norm = self.norm_on, to_angle=self.angle_on)
         else:
@@ -57,7 +57,7 @@ class DisparityTrainer(object):
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
         self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
-                                shuffle = False, num_workers = datathread, \
+                                shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
         
         self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 4, \
@@ -196,22 +196,26 @@ class DisparityTrainer(object):
                 flow2_EPE = self.epe(final_disp, target_disp)
                 norm_EPE = loss_norm 
 
-                retrans_norm = disp2norm(target_disp, 1050, 1050)
-                print("mean of GT norm:", torch.mean(target_norm))
-                print("mean of retrans norm:", torch.mean(retrans_norm))
+                #retrans_norm = disp2norm(target_disp, 1050.0, 1050.0)
+                #print("average angle diff:", torch.mean(torch.abs(angle_diff_norm(retrans_norm, target_norm))))
                 #print("test disp2norm error:", F.l1_loss(retrans_norm, target_norm, size_average=True))
 
-                target_norm = (target_norm + 1.0) * 0.5
-                print("lowest-highest of GT norm:", torch.min(target_norm), torch.max(target_norm))
-                normal = target_norm[0].data.cpu().numpy().transpose(1, 2, 0)
-                skimage.io.imsave("gt_test.png",(normal*256).astype('uint16'))
+                #target_norm = (target_norm + 1.0) * 0.5
+                #print("lowest-highest of GT norm:", torch.min(target_norm), torch.max(target_norm))
+                #normal = target_norm[0].data.cpu().numpy().transpose(1, 2, 0) * 256
+                #normal[normal < 0] = 0.0
+                #normal[normal > 255] = 255.0
+                #skimage.io.imsave("gt_test.png",(normal).astype('uint16'))
 
-                retrans_norm = (retrans_norm + 1.0) * 0.5
+                #retrans_norm = (retrans_norm + 1.0) * 0.5
+                ##retrans_norm[retrans_norm < 0] = 0.0
+                ##retrans_norm[retrans_norm > 1] = 1.0
+                #print("lowest-highest of trans norm:", torch.min(retrans_norm), torch.max(retrans_norm))
+                #retrans_norm = retrans_norm[0].data.cpu().numpy().transpose(1, 2, 0) * 256
                 #retrans_norm[retrans_norm < 0] = 0.0
-                print("lowest-highest of trans norm:", torch.min(retrans_norm), torch.max(retrans_norm))
-                retrans_norm = retrans_norm[0].data.cpu().numpy().transpose(1, 2, 0)
-                skimage.io.imsave("retrans_test.png",(retrans_norm*256).astype('uint16'))
-                sys.exit(-1)
+                #retrans_norm[retrans_norm > 255] = 255.0
+                #skimage.io.imsave("retrans_test.png",(retrans_norm).astype('uint16'))
+                #sys.exit(-1)
 
             elif self.net_name == "dispanglenet":
                 disp_angle = self.net(input_var)
@@ -297,8 +301,8 @@ class DisparityTrainer(object):
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
                   data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, norm_EPE=norm_EPEs, angle_EPE=angle_EPEs))
 
-            if i_batch > 200:
-                break
+            #if i_batch > 200:
+            #    break
 
         return losses.avg, flow2_EPEs.avg
 

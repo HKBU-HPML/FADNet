@@ -171,7 +171,7 @@ class DispNet(nn.Module):
         iconv0 = self.iconv0(concat0)
         pr0 = self.pred_flow0(iconv0)
 
-	# img_right_rec = warp(img_left, pr0)
+        # img_right_rec = warp(img_left, pr0)
 
         # if self.training:
         #     # print("finish forwarding.")
@@ -183,10 +183,10 @@ class DispNet(nn.Module):
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
 class DispNetC(nn.Module):
@@ -204,10 +204,10 @@ class DispNetC(nn.Module):
         self.conv3   = ResBlock(128, 256, 2)
 
         # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
-	self.conv_redir = ResBlock(256, 32, stride=1)
-	self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
-	#self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
-	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
+        self.conv_redir = ResBlock(256, 32, stride=1)
+        self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
+        #self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
+        self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         self.conv3_1 = ResBlock(53, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
@@ -308,8 +308,8 @@ class DispNetC(nn.Module):
         # Correlate corr3a_l and corr3a_r
         out_corr = self.corr(conv3a_l, conv3a_r)
         out_corr = self.corr_activation(out_corr)
-	out_conv3a_redir = self.conv_redir(conv3a_l)
-	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
+        out_conv3a_redir = self.conv_redir(conv3a_l)
+        in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
 
 
         conv3b = self.conv3_1(in_conv3b)
@@ -379,10 +379,10 @@ class DispNetC(nn.Module):
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
 class DispNetRes(nn.Module):
@@ -558,10 +558,10 @@ class DispNetRes(nn.Module):
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 class DispNetCSRes(nn.Module):
 
@@ -633,10 +633,10 @@ class DispNetCSRes(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
 
@@ -720,8 +720,8 @@ class DispNetCSResWithDomainTransfer(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 

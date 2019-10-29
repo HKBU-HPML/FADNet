@@ -188,10 +188,10 @@ class DispNet(nn.Module):
         return pr0, pr1, pr2, pr3, pr4, pr5, pr6
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
 class DispNetC(nn.Module):
@@ -213,10 +213,10 @@ class DispNetC(nn.Module):
         self.conv2   = ResBlock(64, 128, 2)
         self.conv3   = ResBlock(128, 256, 2)
 
-	# start corr from conv3, output channel is 32 + 21*21 = 473
-	self.conv_redir = ResBlock(256, 32, stride=1)
-	self.corr = Correlation(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
-	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
+        # start corr from conv3, output channel is 32 + 21*21 = 473
+        self.conv_redir = ResBlock(256, 32, stride=1)
+        self.corr = Correlation(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
+        self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         self.conv3_1 = ResBlock(473, 256)
         self.conv4   = ResBlock(256, 512, stride=2)
@@ -322,8 +322,8 @@ class DispNetC(nn.Module):
         # Correlate corr3a_l and corr3a_r
         out_corr = self.corr(conv3a_l, conv3a_r)
         out_corr = self.corr_activation(out_corr)
-	out_conv3a_redir = self.conv_redir(conv3a_l)
-	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
+        out_conv3a_redir = self.conv_redir(conv3a_l)
+        in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
 
         conv3b = self.conv3_1(in_conv3b)
         conv4a = self.conv4(conv3b)
@@ -405,10 +405,10 @@ class DispNetC(nn.Module):
             return pr0, pr1, pr2, pr3, pr4, pr5, pr6, mono_disps
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
 class DispNetRes(nn.Module):
@@ -605,10 +605,10 @@ class DispNetRes(nn.Module):
             return pr0, pr1, pr2, pr3, pr4, pr5, pr6, mono_disps
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 class DispNetCSRes(nn.Module):
 
@@ -680,10 +680,10 @@ class DispNetCSRes(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 class DispNetCSResWithMono(nn.Module):
 
@@ -753,10 +753,10 @@ class DispNetCSResWithMono(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 class DispNetCSResWithMono(nn.Module):
 
@@ -826,10 +826,10 @@ class DispNetCSResWithMono(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
 
@@ -917,8 +917,8 @@ class DispNetCSResWithDomainTransfer(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 

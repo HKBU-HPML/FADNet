@@ -18,23 +18,24 @@ class DispNetC(nn.Module):
         self.input_channel = input_channel
         self.maxdisp = maxdisp
         self.get_features = get_features
+        self.relu = nn.ReLU(inplace=False)
 
         # shrink and extract features
         self.conv1   = conv(self.input_channel, 64, 7, 2)
         if resBlock:
             self.conv2   = ResBlock(64, 128, stride=2)
             self.conv3   = ResBlock(128, 256, stride=2)
-	    self.conv_redir = ResBlock(256, 32, stride=1)
+            self.conv_redir = ResBlock(256, 32, stride=1)
         else:
             self.conv2   = conv(64, 128, stride=2)
             self.conv3   = conv(128, 256, stride=2)
-	    self.conv_redir = conv(256, 32, stride=1)
+            self.conv_redir = conv(256, 32, stride=1)
 
         # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
-	#self.conv_redir = ResBlock(256, 32, stride=1)
-	#self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
-	#self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
-	self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
+        #self.conv_redir = ResBlock(256, 32, stride=1)
+        #self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
+        #self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
+        self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         if resBlock:
             self.conv3_1 = ResBlock(72, 256)
@@ -139,8 +140,8 @@ class DispNetC(nn.Module):
         #out_corr = self.corr(conv3a_l, conv3a_r)
         out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
         out_corr = self.corr_activation(out_corr)
-	out_conv3a_redir = self.conv_redir(conv3a_l)
-	in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
+        out_conv3a_redir = self.conv_redir(conv3a_l)
+        in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
 
         conv3b = self.conv3_1(in_conv3b)
         conv4a = self.conv4(conv3b)
@@ -189,6 +190,7 @@ class DispNetC(nn.Module):
         # predict flow
         if self.maxdisp == -1:
             pr0 = self.pred_flow0(iconv0)
+            pr0 = self.relu(pr0)
         else:
             pr0 = self.disp_expand(iconv0)
             pr0 = F.softmax(pr0, dim=1)
@@ -219,9 +221,9 @@ class DispNetC(nn.Module):
         
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
 
