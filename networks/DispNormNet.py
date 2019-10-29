@@ -9,6 +9,7 @@ from torch.nn.init import kaiming_normal
 from layers_package.resample2d_package.resample2d import Resample2d
 from layers_package.channelnorm_package.channelnorm import ChannelNorm
 from networks.DispNetC import DispNetC
+from networks.NormNetS import NormNetS
 from networks.NormNetDF import NormNetDF
 from networks.submodules import *
 
@@ -20,14 +21,15 @@ class DispNormNet(nn.Module):
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
         self.maxdisp = maxdisp
+        #self.dn_transformer = Disp2Norm(16, 768, 384, {"fx":1050, "fy":1050})
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel, get_features=True)
+        self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnetdf = NormNetDF(self.batchNorm, input_channel=3+3+1)
+        self.normnets = NormNetS(self.batchNorm, input_channel=3+3+3+1)
 
-        self.relu = nn.ReLU(inplace=False)
-
+        self.fx = None
+        self.fy = None
         # # parameter initialization
         # for m in self.modules():
         #     if isinstance(m, nn.Conv2d):
@@ -40,6 +42,10 @@ class DispNormNet(nn.Module):
         #             init.uniform(m.bias)
         #         init.xavier_uniform(m.weight)
 
+    def set_focal_length(self, fx, fy):
+        self.fx = fx
+        self.fy = fy
+
     def forward(self, inputs):
 
         # split left image and right image
@@ -50,18 +56,23 @@ class DispNormNet(nn.Module):
         img_right = imgs[1]
 
         # dispnetc
-        dispnetc_flows, dispnetc_features = self.dispnetc(inputs)
+        dispnetc_flows = self.dispnetc(inputs)
         dispnetc_flow = dispnetc_flows[0]
         #depthc = dispnetc_flow.clone()
         #depthc[depthc == 0] = 0.01
         #depthc = 48.0 / depthc
         #depthc[depthc > 30] = 30
 
-        # normnetdf
-        inputs_normnetdf = torch.cat((inputs, dispnetc_flow), dim = 1)
-        normal = self.normnetdf(inputs_normnetdf, dispnetc_features)
+        # convert disparity to normal
+        init_normal = disp2norm(dispnetc_flow+0.01, self.fx, self.fy)
 
-        normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
+        # normnets
+        #inputs_normnets = torch.cat((inputs, dispnetc_flow), dim = 1)
+        inputs_normnets = torch.cat((inputs, init_normal, dispnetc_flow), dim = 1)
+        #inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
+        normal = self.normnets(inputs_normnets) 
+
+        normal = normal / (torch.norm(normal, 2, dim=1, keepdim=True) + 1e-8)
 
         if self.training:
             return dispnetc_flows, normal
@@ -70,9 +81,9 @@ class DispNormNet(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
     

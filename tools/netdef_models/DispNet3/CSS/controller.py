@@ -6,8 +6,7 @@ import os
 class Controller(BaseTFController):
     base_path = os.path.dirname(os.path.realpath(__file__))
 
-#def run_control():
 if __name__ == '__main__':
-    controller = Controller()
-    controller.run()
+	controller = Controller()
+	controller.run()
 

@@ -8,8 +8,8 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
-from EXRloader import load_exr
 import time
+from dataloader.EXRloader import load_exr
 
 class SIRSDataset(Dataset):
 
@@ -28,7 +28,11 @@ class SIRSDataset(Dataset):
         self.load_norm = load_norm
         self.to_angle = to_angle
         self.scale_size = scale_size
-        
+        self.fx = 480.0
+        self.fy = 480.0
+
+    def get_focal_length(self):
+        return self.fx, self.fy
 
     def __len__(self):
         return len(self.imgPairs)
@@ -85,11 +89,11 @@ class SIRSDataset(Dataset):
                 # transform visualization normal to its true value
                 gt_norm = gt_norm * 2.0 - 1.0
 
-                # fix opposite normal
-                m = gt_norm >= 0
-                m[:,:,0] = False
-                m[:,:,1] = False
-                gt_norm[m] = - gt_norm[m]
+                ## fix opposite normal
+                #m = gt_norm >= 0
+                #m[:,:,0] = False
+                #m[:,:,1] = False
+                #gt_norm[m] = - gt_norm[m]
 
             return gt_norm
 
@@ -149,8 +153,10 @@ class SIRSDataset(Dataset):
             gt_angle[0, :, :] = torch.atan(gt_norm[0, :, :] / gt_norm[2, :, :])
             gt_angle[1, :, :] = torch.atan(gt_norm[1, :, :] / gt_norm[2, :, :])
  
-        sample = {'img_left': img_left, 
-                  'img_right': img_right, 
+
+        sample = {  'img_left': img_left, 
+                    'img_right': img_right, 
+                    'img_names': img_names
                  }
 
         if self.load_disp:

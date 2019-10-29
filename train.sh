@@ -7,5 +7,6 @@ python main.py --cuda --net $net --loss $loss --lr $lr \
                --dataset $dataset --trainlist $trainlist --vallist $vallist \
                --startRound $startR --startEpoch $startE --endEpoch $endE \
                --model $model \
-               --maxdisp $maxdisp
+               --maxdisp $maxdisp \
+	       --manualSeed 1024 \
 

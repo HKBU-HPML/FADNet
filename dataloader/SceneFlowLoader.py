@@ -8,11 +8,12 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
-from EXRloader import load_exr
+import time
+from dataloader.EXRloader import load_exr
 
-class DispDataset(Dataset):
+class SceneFlowDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, transform = None, phase='train', augment=False, center_crop=False):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(576, 960)):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -22,15 +23,16 @@ class DispDataset(Dataset):
             self.imgPairs = f.readlines()
 
         self.root_dir = root_dir
-        #self.transform = transform
         self.phase = phase
-        self.scale_size = (576, 960)
-        #self.scale_size = (512, 1792) # apollo data
-        #self.scale_size = (640, 1024)
-        #self.scale_size = (768, 1280)
-        #self.augment = augment 
-        #self.center_crop = center_crop
-        
+        self.load_disp = load_disp
+        self.load_norm = load_norm
+        self.to_angle = to_angle
+        self.scale_size = scale_size
+        self.fx = 1050.0
+        self.fy = 1050.0
+
+    def get_focal_length(self):
+        return self.fx, self.fy
 
     def __len__(self):
         return len(self.imgPairs)
@@ -41,7 +43,10 @@ class DispDataset(Dataset):
 
         img_left_name = os.path.join(self.root_dir, img_names[0])
         img_right_name = os.path.join(self.root_dir, img_names[1])
-        gt_disp_name = os.path.join(self.root_dir, img_names[2])
+        if self.load_disp:
+            gt_disp_name = os.path.join(self.root_dir, img_names[2])
+        if self.load_norm:
+            gt_norm_name = os.path.join(self.root_dir, img_names[3])
 
         def load_rgb(filename):
 
@@ -50,6 +55,14 @@ class DispDataset(Dataset):
                 img = np.load(filename)
             else:
                 img = io.imread(filename)
+                if len(img.shape) == 2:
+                    img = img[:,:,np.newaxis]
+                    img = np.pad(img, ((0, 0), (0, 0), (0, 2)), 'constant')
+                    img[:,:,1] = img[:,:,0]
+                    img[:,:,2] = img[:,:,0]
+                h, w, c = img.shape
+                if c == 4:
+                    img = img[:,:,:3]
             return img
            
         def load_disp(filename):
@@ -68,10 +81,32 @@ class DispDataset(Dataset):
 
             return gt_disp
 
+        def load_norm(filename):
+            gt_norm = None
+            if filename.endswith('exr'):
+                gt_norm = load_exr(filename)
+                
+                # transform visualization normal to its true value
+                gt_norm = gt_norm * 2.0 - 1.0
+
+                ## fix opposite normal
+                #m = gt_norm >= 0
+                #m[:,:,0] = False
+                #m[:,:,1] = False
+                #gt_norm[m] = - gt_norm[m]
+
+            return gt_norm
+
+        s = time.time()
         img_left = load_rgb(img_left_name)
         img_right = load_rgb(img_right_name)
-        gt_disp = load_disp(gt_disp_name)
+        if self.load_disp:
+            gt_disp = load_disp(gt_disp_name)
+        if self.load_norm:
+            gt_norm = load_norm(gt_norm_name)
+        #print("load data in %f s." % (time.time() - s))
 
+        s = time.time()
         if self.phase == 'detect' or self.phase == 'test':
             img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
             img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
@@ -90,34 +125,49 @@ class DispDataset(Dataset):
         img_left = rgb_transform(img_left)
         img_right = rgb_transform(img_right)
 
-        gt_disp = gt_disp[np.newaxis, :]
-        gt_disp = torch.from_numpy(gt_disp.copy()).float()
+        if self.load_disp:
+            gt_disp = gt_disp[np.newaxis, :]
+            gt_disp = torch.from_numpy(gt_disp.copy()).float()
+
+        if self.load_norm:
+            gt_norm = gt_norm.transpose([2, 0, 1])
+            gt_norm = torch.from_numpy(gt_norm.copy()).float()
 
         if self.phase == 'train':
 
             h, w = img_left.shape[1:3]
             th, tw = 384, 768
-            #th, tw = 512, 1792
             top = random.randint(0, h - th)
             left = random.randint(0, w - tw)
 
             img_left = img_left[:, top: top + th, left: left + tw]
             img_right = img_right[:, top: top + th, left: left + tw]
-            gt_disp = gt_disp[:, top: top + th, left: left + tw]
+            if self.load_disp:
+                gt_disp = gt_disp[:, top: top + th, left: left + tw]
+            if self.load_norm:
+                gt_norm = gt_norm[:, top: top + th, left: left + tw]
+    
+        if self.to_angle:
+            norm_size = gt_norm.size()
+            gt_angle = torch.empty(2, norm_size[1], norm_size[2], dtype=torch.float)
+            gt_angle[0, :, :] = torch.atan(gt_norm[0, :, :] / gt_norm[2, :, :])
+            gt_angle[1, :, :] = torch.atan(gt_norm[1, :, :] / gt_norm[2, :, :])
+ 
 
-        #elif self.phase == 'test':
-
-        #    img_left = img_left[:, :512, :]
-        #    img_right = img_right[:, :512, :]
-        #    gt_disp = gt_disp[:, :512, :]
-
-
-        sample = {'img_left': img_left, 
-                  'img_right': img_right, 
-                  'gt_disp' : gt_disp,   
-                  'img_names': img_names
+        sample = {  'img_left': img_left, 
+                    'img_right': img_right, 
+                    'img_names': img_names
                  }
 
+        if self.load_disp:
+            sample['gt_disp'] = gt_disp
+        if self.load_norm:
+            if self.to_angle:
+                sample['gt_angle'] = gt_angle
+            else:
+                sample['gt_norm'] = gt_norm
+
+        #print("deal data in %f s." % (time.time() - s))
 
         return sample
 
