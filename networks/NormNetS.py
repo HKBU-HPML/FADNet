@@ -92,7 +92,7 @@ class NormNetS(nn.Module):
         # print(input.size())
         #imgs = torch.chunk(input[:, :6, :, :], 2, dim = 1)
         img_left = input[:, :3, :, :]
-        img_right = input[:, 3:, :, :]
+        #img_right = input[:, 3:, :, :]
 
         conv1 = self.conv1(input)
         conv2 = self.conv2(conv1)

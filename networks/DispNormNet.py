@@ -26,12 +26,10 @@ class DispNormNet(nn.Module):
         # First Block (DispNetC)
         self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnets = NormNetS(self.batchNorm, input_channel=3+1)
+        self.normnets = NormNetS(self.batchNorm, input_channel=3+3+3+1)
 
-        self.relu = nn.ReLU(inplace=False)
-
-        self.fx = 1050
-        self.fy = 1050
+        self.fx = 1050.0
+        self.fy = 1050.0
         # # parameter initialization
         # for m in self.modules():
         #     if isinstance(m, nn.Conv2d):
@@ -62,11 +60,12 @@ class DispNormNet(nn.Module):
         #depthc[depthc > 30] = 30
 
         # convert disparity to normal
-        init_normal = disp2norm(dispnetc_flow, self.fx, self.fy)
+        init_normal = disp2norm(dispnetc_flow+0.01, self.fx, self.fy)
 
         # normnets
         #inputs_normnets = torch.cat((inputs, dispnetc_flow), dim = 1)
-        inputs_normnets = torch.cat((init_normal, dispnetc_flow), dim = 1)
+        inputs_normnets = torch.cat((inputs, init_normal, dispnetc_flow), dim = 1)
+        #inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
         normal = self.normnets(inputs_normnets) 
 
         normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
@@ -78,9 +77,9 @@ class DispNormNet(nn.Module):
 
 
     def weight_parameters(self):
-	return [param for name, param in self.named_parameters() if 'weight' in name]
+        return [param for name, param in self.named_parameters() if 'weight' in name]
 
     def bias_parameters(self):
-	return [param for name, param in self.named_parameters() if 'bias' in name]
+        return [param for name, param in self.named_parameters() if 'bias' in name]
 
     

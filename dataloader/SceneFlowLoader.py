@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageOps
 from utils.preprocess import *
 from torchvision import transforms
-from EXRloader import load_exr
+from dataloader.EXRloader import load_exr
 
 class DispDataset(Dataset):
 
@@ -50,6 +50,7 @@ class DispDataset(Dataset):
                 img = np.load(filename)
             else:
                 img = io.imread(filename)
+                img = img[:,:,:3]
             return img
            
         def load_disp(filename):
