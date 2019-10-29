@@ -276,8 +276,8 @@ def scale_norm(norm, output_size=(1, 4, 540, 960), normalize=True):
     #_output_size = (output_size[0] * output_size[1], output_size[2], output_size[3])
     input_size = norm.shape
     #norm = np.reshape(norm, [input_size[0] * input_size[1], input_size[2], input_size[3]])
-    i_w = input_size[3]
-    o_w = output_size[3]
+    i_w = input_size[-1]
+    o_w = output_size[-1]
     #trans_norm = transform.resize(norm, _output_size, preserve_range=True)
     #trans_norm = np.reshape(trans_norm, [output_size[0], output_size[1], output_size[2], output_size[3]]) 
 
@@ -298,7 +298,8 @@ def scale_norm(norm, output_size=(1, 4, 540, 960), normalize=True):
 
     m = nn.Upsample(size=(540, 960), mode="bilinear")
     norm_disp = m(norm)
-    norm_disp[:, -1, :, :] = norm_disp[:, -1, :, :] * (o_w * 1.0 / i_w)
+    if norm_disp.size()[1] == 4:
+        norm_disp[:, -1, :, :] = norm_disp[:, -1, :, :] * (o_w * 1.0 / i_w)
 
     return norm_disp
 

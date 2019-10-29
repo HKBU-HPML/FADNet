@@ -86,6 +86,8 @@ class DisparityTrainer(object):
         # build net according to the net name
         if self.net_name == "psmnet" or self.net_name == "ganet":
             self.net = build_net(self.net_name)(self.maxdisp)
+        elif self.net_name in ["normnets", "normnetc"]:
+            self.net = build_net(self.net_name)()
         else:
             self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
 
@@ -100,9 +102,14 @@ class DisparityTrainer(object):
             self.norm_on = True
             self.angle_on = True
             self.net.set_focal_length(self.fx, self.fy)
+        elif self.net_name in ["normnets", "normnetc"]:
+            self.disp_on = False
+            self.norm_on = True
+            self.angle_on = False
         else:
             self.disp_on = True
             self.norm_on = False
+            self.angle_on = False
 
         self.is_pretrain = False
 
@@ -225,6 +232,15 @@ class DisparityTrainer(object):
                 #skimage.io.imsave("retrans_test.png",(retrans_norm).astype('uint16'))
                 #sys.exit(-1)
 
+            elif self.net_name in ["normnets", "normnetc"]:
+                normal = self.net(input_var)
+                #print("gt norm[%f-%f], predict norm[%f-%f]." % (torch.min(target_norm).data.item(), torch.max(target_norm).data.item(), torch.min(normal).data.item(), torch.max(normal).data.item()))
+                valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
+                loss_norm = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
+                #print(loss_disp, loss_norm)
+                loss = loss_norm
+                norm_EPE = loss_norm 
+
             elif self.net_name == "dispanglenet":
                 disp_angle = self.net(input_var)
                 disps = disp_angle[0]
@@ -281,14 +297,14 @@ class DisparityTrainer(object):
                     flow2_EPE = self.epe(output, target_disp)
 
             # record loss and EPE
-            losses.update(loss.data.item(), target_disp.size(0))
+            losses.update(loss.data.item(), input_var.size(0))
             if self.disp_on:
-                flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
+                flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
             if self.norm_on:
                 if self.angle_on:
-                    angle_EPEs.update(angle_EPE.data.item(), target_disp.size(0))
+                    angle_EPEs.update(angle_EPE.data.item(), input_var.size(0))
                 else:
-                    norm_EPEs.update(norm_EPE.data.item(), target_disp.size(0))
+                    norm_EPEs.update(norm_EPE.data.item(), input_var.size(0))
 
             # compute gradient and do SGD step
             loss.backward()
@@ -309,8 +325,8 @@ class DisparityTrainer(object):
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
                   data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, norm_EPE=norm_EPEs, angle_EPE=angle_EPEs))
 
-            #if i_batch > 20:
-            #    break
+            if i_batch > 20:
+                break
 
         return losses.avg, flow2_EPEs.avg
 
@@ -367,6 +383,19 @@ class DisparityTrainer(object):
                 flow2_EPE = self.epe(disp, target_disp)
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
 
+                angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
+                #angle_EPE = torch.mean(norm_angle)
+            elif self.net_name in ["normnets", "normnetc"]:
+                normal = self.net(input_var)
+                size = disp.size()
+
+                # scale the result
+                normal = scale_norm(normal, (size[0], 3, 540, 960), True)
+
+                #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
+                norm_EPE = F.mse_loss(normal, target_norm, size_average=True) * 3.0
+
+                norm_angle = angle_diff_norm(normal, target_norm).squeeze()
                 angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
                 #angle_EPE = torch.mean(norm_angle)
             elif self.net_name == "dispanglenet":
@@ -430,18 +459,18 @@ class DisparityTrainer(object):
 
             # record loss and EPE
             if loss.data.item() == loss.data.item():
-                losses.update(loss.data.item(), target_disp.size(0))
+                losses.update(loss.data.item(), input_var.size(0))
             if self.disp_on and (flow2_EPE.data.item() == flow2_EPE.data.item()):
-                flow2_EPEs.update(flow2_EPE.data.item(), target_disp.size(0))
+                flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
             if self.norm_on:
                 if self.angle_on:
                     if (angle_EPE.data.item() == angle_EPE.data.item()):
-                        angle_EPEs.update(angle_EPE.data.item(), target_angle.size(0))
+                        angle_EPEs.update(angle_EPE.data.item(), input_var.size(0))
                 else:
                     if (norm_EPE.data.item() == norm_EPE.data.item()):
-                        norm_EPEs.update(norm_EPE.data.item(), target_norm.size(0))
+                        norm_EPEs.update(norm_EPE.data.item(), input_var.size(0))
                     if (angle_EPE.data.item() == angle_EPE.data.item()):
-                        angle_EPEs.update(angle_EPE.data.item(), target_norm.size(0))
+                        angle_EPEs.update(angle_EPE.data.item(), input_var.size(0))
         
             # measure elapsed time
             batch_time.update(time.time() - end)

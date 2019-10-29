@@ -198,7 +198,7 @@ def generate_normals(opt):
     total_num = len(files)
     count = 0
     for filename in files:
-        if "right" in filename:
+        if "right" in filename or "15mm" in filename:
             continue
         disp = load_disp(filename)
         norm = disp2norm(disp, coord, opt.focus_length)

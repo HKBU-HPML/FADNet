@@ -11,11 +11,9 @@ from networks.submodules import *
 
 class NormNetS(nn.Module):
 
-    def __init__(self, ngpu, batchNorm=True, lastRelu=True, input_channel=3):
+    def __init__(self, input_channel=6):
         super(NormNetS, self).__init__()
         
-        self.ngpu = ngpu
-        self.lastRelu = lastRelu
         self.input_channel = input_channel
 
         # shrink and extract features
@@ -137,6 +135,7 @@ class NormNetS(nn.Module):
         iconv0 = self.iconv0(concat0)
         pr0 = self.pred_flow0(iconv0)
 
+        normal = pr0 / (torch.norm(pr0, 2, dim=1, keepdim=True) + 1e-8)
 	# img_right_rec = warp(img_left, pr0)
 
         # if self.training:
@@ -146,7 +145,7 @@ class NormNetS(nn.Module):
         #     return pr0
 
         # can be chosen outside
-        return pr0
+        return normal
 
     def weight_parameters(self):
 	return [param for name, param in self.named_parameters() if 'weight' in name]
