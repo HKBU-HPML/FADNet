@@ -28,8 +28,8 @@ class DispNormNet(nn.Module):
         # Second and third Block (DispNetS), input is 6+3+1+1=11
         self.normnets = NormNetS(self.batchNorm, input_channel=3+3+3+1)
 
-        self.fx = 1050.0
-        self.fy = 1050.0
+        self.fx = None
+        self.fy = None
         # # parameter initialization
         # for m in self.modules():
         #     if isinstance(m, nn.Conv2d):
@@ -41,6 +41,10 @@ class DispNormNet(nn.Module):
         #         if m.bias is not None:
         #             init.uniform(m.bias)
         #         init.xavier_uniform(m.weight)
+
+    def set_focal_length(self, fx, fy):
+        self.fx = fx
+        self.fy = fy
 
     def forward(self, inputs):
 
@@ -68,7 +72,7 @@ class DispNormNet(nn.Module):
         #inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
         normal = self.normnets(inputs_normnets) 
 
-        normal = normal / torch.norm(normal, 2, dim=1, keepdim=True)
+        normal = normal / (torch.norm(normal, 2, dim=1, keepdim=True) + 1e-8)
 
         if self.training:
             return dispnetc_flows, normal
