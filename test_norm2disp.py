@@ -2,11 +2,10 @@ from networks.submodules import *
 from dataloader.EXRloader import exr2hdr
 import torch
 import torch.nn.functional as F
-from dataloader.EXRloader import save_exr
+#from dataloader.EXRloader import save_exr
 import os
 import numpy as np
 from utils.preprocess import load_pfm
-
 
 #init_disp_file = 'test_norm2disp/init_disp.exr'
 #gt_disp_file = 'test_norm2disp/d_401.exr'
@@ -19,7 +18,6 @@ gt_norm_file = './tools/norm_0006.exr'
 
 def EPE(gt_disp, disp):
     return F.smooth_l1_loss(gt_disp, disp, size_average=True)
-
 
 #init_disp = exr2hdr(init_disp_file)
 #init_disp = init_disp[::-1,:,1:2].copy()
