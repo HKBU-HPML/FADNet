@@ -24,9 +24,9 @@ class DispNormNet(nn.Module):
         #self.dn_transformer = Disp2Norm(16, 768, 384, {"fx":1050, "fy":1050})
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel)
+        self.dispnetc = DispNetC(batchNorm = self.batchNorm, input_channel=input_channel)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnets = NormNetS(self.batchNorm, input_channel=3+3+3+1)
+        self.normnets = NormNetS(input_channel=3+3+3+1)
 
         self.fx = None
         self.fy = None

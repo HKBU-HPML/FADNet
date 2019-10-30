@@ -1,10 +1,11 @@
-import re, sys
+import re, sys, array
 import torch
 import torchvision.transforms as transforms
 from skimage import transform
 import random
 import numpy as np
 from torch import nn
+import OpenEXR
 
 __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                    'std': [0.229, 0.224, 0.225]}
@@ -521,4 +522,21 @@ def load_pfm(filename):
     shape = (height, width, 3) if color else (height, width)
     file.close()
     return np.reshape(data, shape), scale
+
+def save_exr(img, filename):
+    c, h, w = img.shape
+    if c == 1:
+        img = img.reshape(w * h)
+        Gs = array.array('f', img).tostring()
+        
+        out = OpenEXR.OutputFile(filename, OpenEXR.Header(w, h))
+        out.writePixels({'G' : Gs })
+    else:
+        data = np.array(img).reshape(c, w * h)
+        Rs = array.array('f', data[0,:]).tostring()
+        Gs = array.array('f', data[1,:]).tostring()
+        Bs = array.array('f', data[2,:]).tostring()
+    
+        out = OpenEXR.OutputFile(filename, OpenEXR.Header(w, h))
+        out.writePixels({'R' : Rs, 'G' : Gs, 'B' : Bs })
 
