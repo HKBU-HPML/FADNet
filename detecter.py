@@ -37,7 +37,7 @@ cudnn.benchmark = True
 def detect(opt):
 
     model = opt.model
-    results_path = opt.rp
+    result_path = opt.rp
     file_list = opt.filelist
     filepath = opt.filepath
 
@@ -50,12 +50,13 @@ def detect(opt):
     #net = DispNetCSRes(ngpu, False, True)
     #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 
-    if net_name == "psmnet" or net_name == "ganet":
-        net = build_net(net_name)(maxdisp=192)
-    elif net_name == "dispnetc":
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, resBlock=False)
+    # build net according to the net name
+    if self.net_name == "psmnet" or self.net_name == "ganet":
+        self.net = build_net(self.net_name)(self.maxdisp)
+    elif self.net_name in ["normnets", "normnetc"]:
+        self.net = build_net(self.net_name)()
     else:
-        net = build_net(net_name)(batchNorm=False, lastRelu=True)
+        self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
     model_data = torch.load(model)
