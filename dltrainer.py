@@ -92,7 +92,7 @@ class DisparityTrainer(object):
             self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
 
         # set predicted target
-        if self.net_name == "dispnormnet" or self.net_name == 'dnfusionnet':
+        if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet']:
             self.disp_on = True
             self.norm_on = True
             self.angle_on = False
@@ -196,7 +196,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
 
             self.optimizer.zero_grad()
-            if self.net_name == "dispnormnet" or self.net_name == "dnfusionnet":
+            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet']:
                 disp_norm = self.net(input_var)
                 disps = disp_norm[0]
                 normal = disp_norm[1]
@@ -368,7 +368,7 @@ class DisparityTrainer(object):
                     target_norm = target_norm.cuda()
                     target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
 
-            if self.net_name == 'dispnormnet' or self.net_name == "dnfusionnet":
+            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet']:
                 disp, normal = self.net(input_var)
                 size = disp.size()
 
