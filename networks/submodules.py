@@ -497,7 +497,7 @@ class Disp2Norm:
         merge_disp = disp_r[:,:,1:-1,:-2] * vote_r + disp_l[:,:,1:-1,2:] * vote_l + disp_d[:,:,:-2,1:-1] * vote_d + disp_u[:,:,2:,1:-1] * vote_u + init_disp * ori_vote
         merge_disp = merge_disp / (vote_r + vote_l + vote_d + vote_u + ori_vote)
 
-        select =  (merge_disp - init_disp).abs() > (init_disp * 0.5)
-        merge_disp[select] = init_disp[select]
+        #select =  (merge_disp - init_disp).abs() > (init_disp * 0.5)
+        #merge_disp[select] = init_disp[select]
 
         return merge_disp
