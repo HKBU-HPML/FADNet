@@ -17,7 +17,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 #from dataset import DispDataset, save_pfm, RandomRescale
 from dataloader.StereoLoader import StereoDataset
-from utils.preprocess import scale_disp, save_pfm, scale_norm
+from utils.preprocess import scale_disp, save_pfm, save_exr, scale_norm
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -36,8 +36,9 @@ cudnn.benchmark = True
 #        ])
 def detect(opt):
 
+    net_name = opt.net
     model = opt.model
-    results_path = opt.rp
+    result_path = opt.rp
     file_list = opt.filelist
     filepath = opt.filepath
 
@@ -50,12 +51,14 @@ def detect(opt):
     #net = DispNetCSRes(ngpu, False, True)
     #net = DispNetCSResWithMono(ngpu, False, True, input_channel=3)
 
+    # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
-        net = build_net(net_name)(maxdisp=192)
-    elif net_name == "dispnetc":
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, resBlock=False)
+        net = build_net(net_name)(192)
+    elif net_name in ["normnets", "normnetc"]:
+        net = build_net(net_name)()
     else:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
+        net.set_focal_length(1050.0, 1050.0)
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
     model_data = torch.load(model)
@@ -87,7 +90,7 @@ def detect(opt):
         # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
 
-        output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
+        #output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
 
         input = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -132,15 +135,15 @@ def detect(opt):
                 np_disp = disp[j].data.cpu().numpy()
 
                 print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
-                save_name = '_'.join(name_items)# for girl02 dataset
+                save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
                 print('Name: {}'.format(save_name))
-                skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
-                #np_disp = np.flip(np_disp, axis=0)
-                #save_pfm('{}/{}'.format(result_path, save_name), np_disp)
+                #skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
+                np_disp = np.flip(np_disp, axis=0)
+                save_pfm('{}/{}'.format(result_path, save_name), np_disp)
             
             if opt.norm_on:
                 normal = (normal + 1.0) * 0.5
-                normal = normal.transpose(1, 2, 0)
+                normal = normal[j].data.cpu().numpy().transpose([1, 2, 0])
                 save_name = '_'.join(name_items).replace('.png', '_n.png')
                 print('Name: {}'.format(save_name))
                 skimage.io.imsave(os.path.join(result_path, save_name),(normal*256).astype('uint16'))
@@ -148,13 +151,13 @@ def detect(opt):
 
             print('')
 
-            save_name = '_'.join(name_items).replace(".png", "_left.png")# for girl02 dataset
-            img = input_var[0].detach().cpu().numpy()[:3,:,:]
-            img = np.transpose(img, (1, 2, 0))
-            print('Name: {}'.format(save_name))
-            print('')
-            #save_pfm('{}/{}'.format(result_path, save_name), img)
-            skimage.io.imsave(os.path.join(result_path, save_name),img)
+            #save_name = '_'.join(name_items).replace(".png", "_left.png")# for girl02 dataset
+            #img = input_var[0].detach().cpu().numpy()[:3,:,:]
+            #img = np.transpose(img, (1, 2, 0))
+            #print('Name: {}'.format(save_name))
+            #print('')
+            ##save_pfm('{}/{}'.format(result_path, save_name), img)
+            #skimage.io.imsave(os.path.join(result_path, save_name),img)
 
     print('Evaluation time used: {}'.format(time.time()-s))
         
