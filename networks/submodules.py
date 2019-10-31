@@ -466,7 +466,7 @@ class Disp2Norm:
         dot = torch.clamp(dot, 0, 1)
         return dot 
 
-    def norm_adjust_disp_vote(self, init_disp, norm, ori_vote=1.0):
+    def norm_adjust_disp_vote(self, init_disp, norm, ori_vote=1.0, k_threshold=0.3):
         n, c, h, w = init_disp.size()
 
         nx = self.fx * norm[:, 2:3, :, :] / norm[:, 0:1, :, :] 
@@ -478,10 +478,15 @@ class Disp2Norm:
         xc = -F.pad(self.xc, (1, 1, 1, 1), 'replicate')
         yc = -F.pad(self.yc, (1, 1, 1, 1), 'replicate')
 
-        disp_l = pad_disp - pad_disp / (xc + (nx[:,:,1:-1,1:-1] + nx[:,:,1:-1,2:]) * 0.5)
-        disp_r = pad_disp + pad_disp / (xc + (nx[:,:,1:-1,1:-1] + nx[:,:,1:-1,:-2]) * 0.5)
-        disp_u = pad_disp - pad_disp / (yc + (ny[:,:,1:-1,1:-1] + ny[:,:,2:,1:-1]) * 0.5)
-        disp_d = pad_disp + pad_disp / (yc + (ny[:,:,1:-1,1:-1] + ny[:,:,:-2,1:-1]) * 0.5)
+        kx_l = torch.clamp(-1 / (xc + (nx[:,:,1:-1,1:-1] + nx[:,:,1:-1,:-2]) * 0.5), -k_threshold, k_threshold) 
+        kx_r = torch.clamp( 1 / (xc + (nx[:,:,1:-1,1:-1] + nx[:,:,1:-1, 2:]) * 0.5), -k_threshold, k_threshold)
+        ky_u = torch.clamp(-1 / (yc + (ny[:,:,1:-1,1:-1] + ny[:,:,:-2,1:-1]) * 0.5), -k_threshold, k_threshold)
+        ky_d = torch.clamp( 1 / (yc + (ny[:,:,1:-1,1:-1] + ny[:,:, 2:,1:-1]) * 0.5), -k_threshold, k_threshold)
+
+        disp_l = pad_disp + pad_disp * kx_l
+        disp_r = pad_disp + pad_disp * kx_r
+        disp_u = pad_disp + pad_disp * ky_u
+        disp_d = pad_disp + pad_disp * ky_d
 
         norm = F.pad(norm, (1, 1, 1, 1), 'constant', 0.0)
         vote_l = self.vote(norm[:,:,1:-1,1:-1], norm[:,:,1:-1,2:])
