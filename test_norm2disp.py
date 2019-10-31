@@ -11,9 +11,9 @@ from utils.preprocess import load_pfm
 #gt_disp_file = 'test_norm2disp/d_401.exr'
 #gt_norm_file = 'test_norm2disp/n_401.exr'
 
-init_disp_file = './tools/init_disp_0006.pfm'
-gt_disp_file = './tools/disp_0006.pfm'
-gt_norm_file = './tools/norm_0006.exr'
+init_disp_file = './tools/init_disp_0007.pfm'
+gt_disp_file = './tools/disp_0007.pfm'
+gt_norm_file = './tools/norm_0007.exr'
 
 
 def EPE(gt_disp, disp):
@@ -34,6 +34,7 @@ init_disp = torch.from_numpy(init_disp).cuda()
 gt_disp, scale = load_pfm(gt_disp_file)
 gt_disp = gt_disp[::-1, :].copy()
 gt_disp = torch.from_numpy(gt_disp).cuda()
+gt_disp = gt_disp.unsqueeze(0).unsqueeze(0)
 
 gt_norm = exr2hdr(gt_norm_file)
 gt_norm = gt_norm * 2.0 - 1.0
@@ -53,9 +54,9 @@ print ('norm mean', gt_norm.mean())
 print ('Ori EPE:', EPE(gt_disp, init_disp))
 print ('Ori Variance :', (init_disp - gt_disp).std())
 
-
+init_disp = init_disp.unsqueeze(0).unsqueeze(0)
 n, c, h, w = init_disp.size()
-disp2norm = Disp2Norm(n, w, h, 480, 480) 
+disp2norm = Disp2Norm(n, w, h, 1050.0, 1050.0) 
 
 
 #print ('GT ', gt_disp)
@@ -80,7 +81,7 @@ for t in range(times):
     out_file = os.path.dirname(init_disp_file) + '/result_d_' + str(t) + '.exr'
     cpu_disp = disp.cpu().numpy().squeeze()
     cpu_disp = cpu_disp[:,:,np.newaxis]
-    save_exr(cpu_disp, out_file)
+    #save_exr(cpu_disp, out_file)
     print ('out file: ', out_file)
 
     print ('')
