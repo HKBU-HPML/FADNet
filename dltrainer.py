@@ -92,7 +92,7 @@ class DisparityTrainer(object):
             self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
 
         # set predicted target
-        if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet']:
+        if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
             self.disp_on = True
             self.norm_on = True
             self.angle_on = False
@@ -196,18 +196,32 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
 
             self.optimizer.zero_grad()
-            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet']:
+            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
                 disp_norm = self.net(input_var)
-                disps = disp_norm[0]
-                normal = disp_norm[1]
+
+                if self.net_name == 'dnirrnet':
+                    refined_disp = disp_norm[0]
+                    disps = disp_norm[1]
+                    normal = disp_norm[2]
+                else:
+                    disps = disp_norm[0]
+                    normal = disp_norm[1]
                 #print("gt norm[%f-%f], predict norm[%f-%f]." % (torch.min(target_norm).data.item(), torch.max(target_norm).data.item(), torch.min(normal).data.item(), torch.max(normal).data.item()))
                 loss_disp = self.criterion(disps, target_disp)
+                if self.net_name == 'dnirrnet':
+                    loss_disp += self.epe(refined_disp, target_disp) * 0.3
 
+                #print("epe before refined: %f. epe after refined: %f." % (self.epe(disps[0], target_disp), self.epe(refined_disp, target_disp)))
                 valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
                 loss_norm = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
                 #print(loss_disp, loss_norm)
                 loss = loss_disp + loss_norm
-                final_disp = disps[0]
+
+                if self.net_name == 'dnirrnet':
+                    final_disp = refined_disp
+                else:
+                    final_disp = disps[0]
+
                 flow2_EPE = self.epe(final_disp, target_disp)
                 norm_EPE = loss_norm 
 
@@ -368,7 +382,7 @@ class DisparityTrainer(object):
                     target_norm = target_norm.cuda()
                     target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
 
-            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet']:
+            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
                 disp, normal = self.net(input_var)
                 size = disp.size()
 
