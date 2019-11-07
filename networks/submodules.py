@@ -354,6 +354,56 @@ def disp2norm(disp, fx, fy):
     
     return norm
 
+def vote(norm1, norm2):
+    #normal should be normalized
+    dot = torch.sum(norm1 * norm2, dim=1).unsqueeze(1)
+    dot = torch.clamp(dot, 0, 1)
+    return dot 
+
+def norm_adjust_disp_vote(init_disp, norm, fx=1050.0, fy=1050.0, ori_vote=1.0, k_threshold=0.3):
+    n, c, h, w = init_disp.size()
+    cur_device = init_disp.device
+    xc, yc = make_grid(n, h, w)
+    xc = xc.float().to(cur_device)
+    yc = yc.float().to(cur_device)
+
+    nx = fx * norm[:, 2, :, :] / (norm[:, 0, :, :] + 1e-12)
+    ny = fy * norm[:, 2, :, :] / (norm[:, 1, :, :] + 1e-12)
+    nx = nx.unsqueeze(1)
+    ny = ny.unsqueeze(1)
+
+    nx = F.pad(nx, (2, 2, 2, 2), 'replicate')
+    ny = F.pad(ny, (2, 2, 2, 2), 'replicate')
+    pad_disp = F.pad(init_disp, (1, 1, 1, 1), 'constant', 0.0)
+    xc = -F.pad(xc, (1, 1, 1, 1), 'replicate')
+    yc = -F.pad(yc, (1, 1, 1, 1), 'replicate')
+
+    kx_l = torch.clamp(-1 / (xc + (nx[:,:,1:-1,1:-1] + nx[:,:,1:-1,:-2]) * 0.5 + 1e-12), -k_threshold, k_threshold) 
+    kx_r = torch.clamp( 1 / (xc + (nx[:,:,1:-1,1:-1] + nx[:,:,1:-1, 2:]) * 0.5 + 1e-12), -k_threshold, k_threshold)
+    ky_u = torch.clamp(-1 / (yc + (ny[:,:,1:-1,1:-1] + ny[:,:,:-2,1:-1]) * 0.5 + 1e-12), -k_threshold, k_threshold)
+    ky_d = torch.clamp( 1 / (yc + (ny[:,:,1:-1,1:-1] + ny[:,:, 2:,1:-1]) * 0.5 + 1e-12), -k_threshold, k_threshold)
+
+    disp_l = pad_disp + pad_disp * kx_l
+    disp_r = pad_disp + pad_disp * kx_r
+    disp_u = pad_disp + pad_disp * ky_u
+    disp_d = pad_disp + pad_disp * ky_d
+
+    norm = F.pad(norm, (1, 1, 1, 1), 'constant', 0.0)
+    vote_l = vote(norm[:,:,1:-1,1:-1], norm[:,:,1:-1,2:])
+    vote_r = vote(norm[:,:,1:-1,1:-1], norm[:,:,1:-1,:-2])
+    vote_u = vote(norm[:,:,1:-1,1:-1], norm[:,:,2:,1:-1])
+    vote_d = vote(norm[:,:,1:-1,1:-1], norm[:,:,:-2,1:-1])
+
+    merge_disp = disp_r[:,:,1:-1,:-2] * vote_r + disp_l[:,:,1:-1,2:] * vote_l + disp_d[:,:,:-2,1:-1] * vote_d + disp_u[:,:,2:,1:-1] * vote_u + init_disp * ori_vote
+    merge_disp = merge_disp / ((vote_r + vote_l + vote_d + vote_u + ori_vote) + 1e-12)
+
+    #select =  (merge_disp - init_disp).abs() > (init_disp * 0.5)
+    #merge_disp[select] = init_disp[select]
+
+    #print "mean of init_disp, mean of norm, mean of refined disp:", torch.mean(init_disp).data.item(), torch.mean(norm).data.item(), torch.mean(merge_disp).data.item()
+
+    return merge_disp
+
 class Disp2Norm:
     def __init__(self, batch_size, width, height, fx, fy):
         self.fx = fx
