@@ -203,19 +203,22 @@ class DisparityTrainer(object):
                     refined_disp = disp_norm[0]
                     disps = disp_norm[1]
                     normal = disp_norm[2]
+                    init_normal = disp_norm[3]
                 else:
                     disps = disp_norm[0]
                     normal = disp_norm[1]
                 #print("gt norm[%f-%f], predict norm[%f-%f]." % (torch.min(target_norm).data.item(), torch.max(target_norm).data.item(), torch.min(normal).data.item(), torch.max(normal).data.item()))
                 loss_disp = self.criterion(disps, target_disp)
                 if self.net_name == 'dnirrnet':
-                    loss_disp += self.epe(refined_disp, target_disp) * 0.3
+                    loss_disp += self.epe(refined_disp, target_disp) * 0.32
 
                 #print("epe before refined: %f. epe after refined: %f." % (self.epe(disps[0], target_disp), self.epe(refined_disp, target_disp)))
                 valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
-                loss_norm = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
+                loss_norm = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0 
+                loss_init_norm = F.mse_loss(init_normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
+                #print("norm l2 before refined: %f. norm l2 after refined: %f." % (F.mse_loss(init_normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True), F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True)))
                 #print(loss_disp, loss_norm)
-                loss = loss_disp + loss_norm
+                loss = loss_disp + loss_norm + loss_init_norm
 
                 if self.net_name == 'dnirrnet':
                     final_disp = refined_disp
@@ -223,7 +226,7 @@ class DisparityTrainer(object):
                     final_disp = disps[0]
 
                 flow2_EPE = self.epe(final_disp, target_disp)
-                norm_EPE = loss_norm 
+                norm_EPE = loss_norm
 
                 #retrans_norm = disp2norm(target_disp, self.fx, self.fy)
                 #print("average angle diff:", torch.mean(torch.abs(angle_diff_norm(retrans_norm, target_norm))))
