@@ -196,7 +196,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
 
             self.optimizer.zero_grad()
-            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
+            if self.net_name in ["dispnormnet", "dtonnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
                 disp_norm = self.net(input_var)
 
                 if self.net_name == 'dnirrnet':

@@ -24,7 +24,7 @@ class DNFusionNet(nn.Module):
         # First Block (DispNetC)
         self.dispnetc = DispNetC(self.batchNorm, input_channel=input_channel, get_features=True)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnetdf = NormNetDF(self.batchNorm, input_channel=3+3+1)
+        self.normnetdf = NormNetDF(input_channel=3+3+1)
 
         self.fx = None
         self.fy = None

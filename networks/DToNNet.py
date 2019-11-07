@@ -13,10 +13,10 @@ from networks.NormNetS import NormNetS
 from networks.NormNetDF import NormNetDF
 from networks.submodules import *
 
-class DispNormNet(nn.Module):
+class DToNNet(nn.Module):
 
     def __init__(self, batchNorm=False, lastRelu=True, input_channel=3, maxdisp=-1):
-        super(DispNormNet, self).__init__()
+        super(DToNNet, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
@@ -26,7 +26,7 @@ class DispNormNet(nn.Module):
         # First Block (DispNetC)
         self.dispnetc = DispNetC(batchNorm = self.batchNorm, input_channel=input_channel)
         # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.normnets = NormNetS(input_channel=3+3+1)
+        self.normnets = NormNetS(input_channel=3+3+3+1)
 
         self.fx = None
         self.fy = None
@@ -63,12 +63,12 @@ class DispNormNet(nn.Module):
         #depthc = 48.0 / depthc
         #depthc[depthc > 30] = 30
 
-        ## convert disparity to normal
-        #init_normal = disp2norm(dispnetc_flow+0.01, self.fx, self.fy)
+        # convert disparity to normal
+        init_normal = disp2norm(dispnetc_flow+0.01, self.fx, self.fy)
 
         # normnets
-        inputs_normnets = torch.cat((inputs, dispnetc_flow), dim = 1)
-        #inputs_normnets = torch.cat((inputs, init_normal, dispnetc_flow), dim = 1)
+        #inputs_normnets = torch.cat((inputs, dispnetc_flow), dim = 1)
+        inputs_normnets = torch.cat((inputs, init_normal, dispnetc_flow), dim = 1)
         #inputs_normnets = torch.cat((inputs, init_normal), dim = 1)
         normal = self.normnets(inputs_normnets) 
 
