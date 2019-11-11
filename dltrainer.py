@@ -11,6 +11,7 @@ from net_builder import build_net
 #from dataset import DispDataset
 from dataloader.SceneFlowLoader import SceneFlowDataset
 from dataloader.SIRSLoader import SIRSDataset
+from dataloader.SintelLoader import SintelDataset
 from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter
 from utils.common import logger
@@ -44,15 +45,18 @@ class DisparityTrainer(object):
         self.initialize()
 
     def _prepare_dataset(self):
-
         if self.dataset == 'irs':
             train_dataset = SIRSDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train', load_disp = self.disp_on, load_norm = self.norm_on, to_angle = self.angle_on)
             test_dataset = SIRSDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test', load_disp = self.disp_on, load_norm = self.norm_on, to_angle=self.angle_on)
         if self.dataset == 'sceneflow':
             train_dataset = SceneFlowDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = SceneFlowDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
+	if self.dataset == 'sintel':
+	    train_dataset = SintelDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
+	    test_dataset = SintelDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
         self.fx, self.fy = train_dataset.get_focal_length()
+	self.sx, self.sy = train_dataset.get_img_size()
 
         datathread=4
         if os.environ.get('datathread') is not None:
@@ -353,8 +357,8 @@ class DisparityTrainer(object):
         # switch to evaluate mode
         self.net.eval()
         end = time.time()
-        #scale_width = 960
-        #scale_height = 540
+        scale_width = self.sx
+        scale_height = self.sy 
         #scale_width = 3130
         #scale_height = 960
         for i, sample_batched in enumerate(self.test_loader):
@@ -388,7 +392,7 @@ class DisparityTrainer(object):
 
                 # scale the result
                 disp_norm = torch.cat((normal, disp), 1)
-                disp_norm = scale_norm(disp_norm, (size[0], 4, 540, 960), True)
+                disp_norm = scale_norm(disp_norm, (size[0], 4, scale_height, scale_width), True)
                 disp = disp_norm[:, 3, :, :].unsqueeze(1)
                 normal = disp_norm[:, :3, :, :]
 
