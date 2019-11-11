@@ -92,7 +92,7 @@ class DisparityTrainer(object):
             self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
 
         # set predicted target
-        if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
+        if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dtonnet', 'dnirrnet']:
             self.disp_on = True
             self.norm_on = True
             self.angle_on = False
@@ -215,10 +215,10 @@ class DisparityTrainer(object):
                 #print("epe before refined: %f. epe after refined: %f." % (self.epe(disps[0], target_disp), self.epe(refined_disp, target_disp)))
                 valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
                 loss_norm = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0 
-                loss_init_norm = F.mse_loss(init_normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
+                #loss_init_norm = F.mse_loss(init_normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
                 #print("norm l2 before refined: %f. norm l2 after refined: %f." % (F.mse_loss(init_normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True), F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True)))
                 #print(loss_disp, loss_norm)
-                loss = loss_disp + loss_norm + loss_init_norm
+                loss = loss_disp + loss_norm #+ loss_init_norm
 
                 if self.net_name == 'dnirrnet':
                     final_disp = refined_disp
@@ -385,7 +385,7 @@ class DisparityTrainer(object):
                     target_norm = target_norm.cuda()
                     target_norm = torch.autograd.Variable(target_norm, requires_grad=False)
 
-            if self.net_name in ["dispnormnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
+            if self.net_name in ["dispnormnet", "dtonnet", "dtonfusionnet", 'dnfusionnet', 'dnirrnet']:
                 disp, normal = self.net(input_var)
                 size = disp.size()
 
