@@ -30,9 +30,14 @@ class SIRSDataset(Dataset):
         self.scale_size = scale_size
         self.fx = 480.0
         self.fy = 480.0
+        self.sx = 960.0
+        self.sy = 540.0
 
     def get_focal_length(self):
         return self.fx, self.fy
+
+    def get_img_size(self):
+        return self.sx, self.sy
 
     def __len__(self):
         return len(self.imgPairs)

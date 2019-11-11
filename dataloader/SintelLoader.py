@@ -11,7 +11,7 @@ from torchvision import transforms
 import time
 from dataloader.EXRloader import load_exr
 
-class SceneFlowDataset(Dataset):
+class SintelDataset(Dataset):
 
     def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(576, 960)):
         """
@@ -30,8 +30,8 @@ class SceneFlowDataset(Dataset):
         self.scale_size = scale_size
         self.fx = 1050.0
         self.fy = 1050.0
-        self.sx = 960.0
-        self.sy = 540.0
+        self.sx = 1024.0
+        self.sy = 436.0
 
     def get_focal_length(self):
         return self.fx, self.fy
@@ -54,7 +54,6 @@ class SceneFlowDataset(Dataset):
             gt_norm_name = os.path.join(self.root_dir, img_names[3])
 
         def load_rgb(filename):
-
             img = None
             if filename.find('.npy') > 0:
                 img = np.load(filename)
@@ -81,8 +80,11 @@ class SceneFlowDataset(Dataset):
             elif gt_disp_name.endswith('exr'):
                 gt_disp = load_exr(filename)
             else:
-                gt_disp = Image.open(gt_disp_name)
-                gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
+                f_in = np.array(Image.open(gt_disp_name))
+		d_r = f_in[:,:,0].astype('float32')
+		d_g = f_in[:,:,1].astype('float32')
+		d_b = f_in[:,:,2].astype('float32')
+		gt_disp = d_r * 4 + d_g / (2**6) + d_b / (2**14)
 
             return gt_disp
 
@@ -121,6 +123,9 @@ class SceneFlowDataset(Dataset):
             img_right = img_right.astype(np.float32)
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
+
+	    self.fx = self.fx * self.scale_size[1] / self.sx
+	    self.fy = self.fy * self.scale_size[0] / self.sy
 
         if self.phase == 'detect' or self.phase == 'test':
             rgb_transform = default_transform()
