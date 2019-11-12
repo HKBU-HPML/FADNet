@@ -46,7 +46,7 @@ def main(opt):
 
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=False)
         trainer.set_criterion(criterion)
-        end_epoch = epoches[r]
+        end_epoch = min(epoches[r], opt.endEpoch)
 
         logger.info('round %d: %s' % (r, str(loss_weights[r])))
         logger.info('num of epoches: %d' % end_epoch)
