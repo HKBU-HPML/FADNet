@@ -396,12 +396,26 @@ class DisparityTrainer(object):
                 disp = disp_norm[:, 3, :, :].unsqueeze(1)
                 normal = disp_norm[:, :3, :, :]
 
+		# normalize the surface normal
+		#normal[:,0,:,:] = normal[:,0,:,:] * scale_width / 960.0
+		#normal[:,0,:,:] = normal[:,0,:,:] / scale_width * 960.0
+		#normal[:,1,:,:] = normal[:,1,:,:] * scale_height / 576.0
+		#normal[:,1,:,:] = normal[:,1,:,:] / scale_height * 576.0
+		#normal[:,2,:,:] = normal[:,2,:,:] * scale_width / 960.0
+		#normal[:,2,:,:] = normal[:,2,:,:] / scale_width * 960.0
+		normal = normal / torch.norm(normal, 2, dim=1, keepdim=True) 
+
+		valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
+
                 #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
-                norm_EPE = F.mse_loss(normal, target_norm, size_average=True) * 3.0
+                norm_EPE = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
                 flow2_EPE = self.epe(disp, target_disp)
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
 
-                angle_EPE = torch.mean(norm_angle[target_disp.squeeze() > 2])
+		valid_angle_idx = (target_disp[:,0,:,:] > 2) & valid_norm_idx[:,0,:,:] & valid_norm_idx[:,1,:,:] & valid_norm_idx[:,2,:,:]	
+		valid_angle_idx = valid_angle_idx.squeeze()
+
+                angle_EPE = torch.mean(norm_angle[valid_angle_idx])
                 #angle_EPE = torch.mean(norm_angle)
                 loss = norm_EPE + flow2_EPE
             elif self.net_name in ["normnets", "normnetc"]:
