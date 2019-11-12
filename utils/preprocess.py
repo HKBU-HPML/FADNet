@@ -297,7 +297,7 @@ def scale_norm(norm, output_size=(1, 4, 540, 960), normalize=True):
     ## print('trans shape:', trans_disp.shape)
     #return trans_norm.astype(np.float32)
 
-    m = nn.Upsample(size=(540, 960), mode="bilinear")
+    m = nn.Upsample(size=(int(output_size[2]), int(output_size[3])), mode="bilinear")
     norm_disp = m(norm)
     if norm_disp.size()[1] == 4:
         norm_disp[:, -1, :, :] = norm_disp[:, -1, :, :] * (o_w * 1.0 / i_w)
