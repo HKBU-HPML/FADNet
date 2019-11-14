@@ -2,11 +2,12 @@
 #model=models/psmnet/model_best.pth
 
 dataset=sceneflow
-net=dispnormnet
+net=dtonnet
 
 #model=models/dispnetcres/model_best.pth
 #model=models/fadnet_sf.pth
-model=models/dispnormnet-test/model_best.pth
+#model=models/dispnormnet-sf-fl1050-d0.928-n16.727.pth
+model=models/dtonnet-sf-fl1050-d0.921-n15.6.pth
 outf=detect_results/${net}-${dataset}/
 #filelist=lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list
 #filelist=lists/${dataset}_test.list

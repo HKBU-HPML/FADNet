@@ -514,9 +514,10 @@ class Disp2Norm:
         mul = norm1 * norm2
         dot = mul[:, 0:1, :, :] + mul[:, 1:2, :, :] + mul[:, 2:3, :, :]
         dot = torch.clamp(dot, 0, 1)
+        dot = dot ** 5
         return dot 
 
-    def norm_adjust_disp_vote(self, init_disp, norm, ori_vote=1.0, k_threshold=0.3):
+    def norm_adjust_disp_vote(self, init_disp, norm, ori_vote=1.0, k_threshold=0.05):
         n, c, h, w = init_disp.size()
 
         nx = self.fx * norm[:, 2:3, :, :] / norm[:, 0:1, :, :] 

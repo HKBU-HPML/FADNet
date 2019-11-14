@@ -18,7 +18,7 @@ from utils.common import logger
 from losses.multiscaleloss import EPE
 from losses.normalloss import angle_diff_angle, angle_diff_norm
 from utils.preprocess import scale_disp, scale_norm, scale_angle
-from networks.submodules import disp2norm
+from networks.submodules import disp2norm, norm_adjust_disp_vote
 import skimage
 
 class DisparityTrainer(object):
@@ -56,7 +56,8 @@ class DisparityTrainer(object):
 	    test_dataset = SintelDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
         self.fx, self.fy = train_dataset.get_focal_length()
-	self.sx, self.sy = train_dataset.get_img_size()
+	self.img_height, self.img_width = train_dataset.get_img_size()
+        self.scale_height, self.scale_width = test_dataset.get_scale_size()
 
         datathread=4
         if os.environ.get('datathread') is not None:
@@ -140,7 +141,7 @@ class DisparityTrainer(object):
     def _build_optimizer(self):
         beta = 0.999
         momentum = 0.9
-        self.optimizer = torch.optim.Adam(self.net.parameters(), self.lr,
+        self.optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.net.parameters()), self.lr,
                                         betas=(momentum, beta), amsgrad=True)
 
     def initialize(self):
@@ -176,6 +177,7 @@ class DisparityTrainer(object):
         end = time.time()
         cur_lr = self.adjust_learning_rate(epoch)
         logger.info("learning rate of epoch %d: %f." % (epoch, cur_lr))
+
         for i_batch, sample_batched in enumerate(self.train_loader):
          
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -223,6 +225,7 @@ class DisparityTrainer(object):
                 #print("norm l2 before refined: %f. norm l2 after refined: %f." % (F.mse_loss(init_normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True), F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True)))
                 #print(loss_disp, loss_norm)
                 loss = loss_disp + loss_norm #+ loss_init_norm
+                #loss = loss_norm
 
                 if self.net_name == 'dnirrnet':
                     final_disp = refined_disp
@@ -360,10 +363,6 @@ class DisparityTrainer(object):
         # switch to evaluate mode
         self.net.eval()
         end = time.time()
-        scale_width = self.sx
-        scale_height = self.sy 
-        #scale_width = 3130
-        #scale_height = 960
         for i, sample_batched in enumerate(self.test_loader):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -395,23 +394,26 @@ class DisparityTrainer(object):
 
                 # scale the result
                 disp_norm = torch.cat((normal, disp), 1)
-                disp_norm = scale_norm(disp_norm, (size[0], 4, scale_height, scale_width), True)
+                disp_norm = scale_norm(disp_norm, (size[0], 4, self.img_height, self.img_width), True)
                 disp = disp_norm[:, 3, :, :].unsqueeze(1)
                 normal = disp_norm[:, :3, :, :]
 
 		# normalize the surface normal
-		#normal[:,0,:,:] = normal[:,0,:,:] * scale_width / 960.0
-		#normal[:,0,:,:] = normal[:,0,:,:] / scale_width * 960.0
-		#normal[:,1,:,:] = normal[:,1,:,:] * scale_height / 576.0
-		#normal[:,1,:,:] = normal[:,1,:,:] / scale_height * 576.0
+		#normal[:,0,:,:] = normal[:,0,:,:] * self.img_width / 960.0
+		#normal[:,1,:,:] = normal[:,1,:,:] * self.img_height / 540.0
 		#normal[:,2,:,:] = normal[:,2,:,:] * scale_width / 960.0
-		#normal[:,2,:,:] = normal[:,2,:,:] / scale_width * 960.0
-		normal = normal / torch.norm(normal, 2, dim=1, keepdim=True) 
+		#normal[:,0,:,:] = normal[:,0,:,:] / self.img_width * 960.0
+		#normal[:,1,:,:] = normal[:,1,:,:] / self.img_height * 540.0
+		#normal[:,2,:,:] = normal[:,2,:,:] * 1050.0 / 1120.0
+		#normal = normal / torch.norm(normal, 2, dim=1, keepdim=True) 
 
 		valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
 
                 #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
                 norm_EPE = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
+
+                refined_disp = norm_adjust_disp_vote(disp, normal, self.fx, self.fy)
+                print("epe before refined: %f. epe after refined: %f." % (self.epe(disp, target_disp), self.epe(refined_disp, target_disp)))
                 flow2_EPE = self.epe(disp, target_disp)
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
 
@@ -483,7 +485,7 @@ class DisparityTrainer(object):
                 output_net1 = output[0]
                 #output_net1 = output_net1.squeeze(1)
                 #print(output_net1.size())
-                output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
+                output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 #output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
                 loss = self.epe(output_net1, target_disp)
                 flow2_EPE = self.epe(output_net1, target_disp)
