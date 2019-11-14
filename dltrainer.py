@@ -363,6 +363,9 @@ class DisparityTrainer(object):
         # switch to evaluate mode
         self.net.eval()
         end = time.time()
+        valid_norm = 0
+        angle_lt = 0
+        angle_thres = 11.25
         for i, sample_batched in enumerate(self.test_loader):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -412,8 +415,8 @@ class DisparityTrainer(object):
                 #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
                 norm_EPE = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
 
-                refined_disp = norm_adjust_disp_vote(disp, normal, self.fx, self.fy)
-                print("epe before refined: %f. epe after refined: %f." % (self.epe(disp, target_disp), self.epe(refined_disp, target_disp)))
+                #refined_disp = norm_adjust_disp_vote(disp, normal, self.fx, self.fy)
+                #print("epe before refined: %f. epe after refined: %f." % (self.epe(disp, target_disp), self.epe(refined_disp, target_disp)))
                 flow2_EPE = self.epe(disp, target_disp)
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
 
@@ -421,6 +424,12 @@ class DisparityTrainer(object):
 		valid_angle_idx = valid_angle_idx.squeeze()
 
                 angle_EPE = torch.mean(norm_angle[valid_angle_idx])
+
+                valid_norm += float(torch.sum(valid_angle_idx))
+                angle_lt += float(torch.sum(norm_angle[valid_angle_idx] < angle_thres))
+                
+                logger.info('percent of < {}: {}.'.format(angle_thres, angle_lt * 1.0 / valid_norm))
+
                 #angle_EPE = torch.mean(norm_angle)
                 loss = norm_EPE + flow2_EPE
             elif self.net_name in ["normnets", "normnetc"]:
@@ -428,13 +437,16 @@ class DisparityTrainer(object):
                 size = normal.size()
 
                 # scale the result
-                normal = scale_norm(normal, (size[0], 3, 540, 960), True)
+                normal = scale_norm(normal, (size[0], 3, self.img_height, self.img_width), True)
 
-                #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
-                norm_EPE = F.mse_loss(normal, target_norm, size_average=True) * 3.0
+		valid_norm_idx = (target_norm >= -1.0) & (target_norm <= 1.0)
+                norm_EPE = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
 
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
-                angle_EPE = torch.mean(norm_angle)
+		valid_angle_idx = (target_disp[:,0,:,:] > 2) & valid_norm_idx[:,0,:,:] & valid_norm_idx[:,1,:,:] & valid_norm_idx[:,2,:,:]	
+		valid_angle_idx = valid_angle_idx.squeeze()
+
+                angle_EPE = torch.mean(norm_angle[valid_angle_idx])
                 #angle_EPE = torch.mean(norm_angle)
                 loss = norm_EPE
             elif self.net_name == "dispanglenet":
