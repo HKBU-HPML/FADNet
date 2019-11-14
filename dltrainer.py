@@ -365,7 +365,7 @@ class DisparityTrainer(object):
         end = time.time()
         valid_norm = 0
         angle_lt = 0
-        angle_thres = 11.25
+        angle_thres = 30.0
         for i, sample_batched in enumerate(self.test_loader):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -443,10 +443,14 @@ class DisparityTrainer(object):
                 norm_EPE = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
 
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
-		valid_angle_idx = (target_disp[:,0,:,:] > 2) & valid_norm_idx[:,0,:,:] & valid_norm_idx[:,1,:,:] & valid_norm_idx[:,2,:,:]	
+		valid_angle_idx = valid_norm_idx[:,0,:,:] & valid_norm_idx[:,1,:,:] & valid_norm_idx[:,2,:,:]	
 		valid_angle_idx = valid_angle_idx.squeeze()
 
                 angle_EPE = torch.mean(norm_angle[valid_angle_idx])
+                valid_norm += float(torch.sum(valid_angle_idx))
+                angle_lt += float(torch.sum(norm_angle[valid_angle_idx] < angle_thres))
+                
+                logger.info('percent of < {}: {}.'.format(angle_thres, angle_lt * 1.0 / valid_norm))
                 #angle_EPE = torch.mean(norm_angle)
                 loss = norm_EPE
             elif self.net_name == "dispanglenet":
