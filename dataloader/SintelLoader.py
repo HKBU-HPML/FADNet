@@ -28,16 +28,18 @@ class SintelDataset(Dataset):
         self.load_norm = load_norm
         self.to_angle = to_angle
         self.scale_size = scale_size
-        self.fx = 1050.0
-        self.fy = 1050.0
-        self.sx = 1024.0
-        self.sy = 436.0
+        self.fx = 1120.0
+        self.fy = 1120.0
+        self.img_size = (436, 1024)
 
     def get_focal_length(self):
         return self.fx, self.fy
 
     def get_img_size(self):
-        return self.sx, self.sy
+        return self.img_size
+
+    def get_scale_size(self):
+        return self.scale_size
 
     def __len__(self):
         return len(self.imgPairs)
@@ -124,8 +126,8 @@ class SintelDataset(Dataset):
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
 
-	    self.fx = self.fx * self.scale_size[1] / self.sx
-	    self.fy = self.fy * self.scale_size[0] / self.sy
+	    #self.fx = self.fx * self.scale_size[1] / self.sx
+	    #self.fy = self.fy * self.scale_size[0] / self.sy
 
         if self.phase == 'detect' or self.phase == 'test':
             rgb_transform = default_transform()

@@ -73,6 +73,8 @@ class DToNNet(nn.Module):
         normal = self.normnets(inputs_normnets) 
 
         #normal = normal / (torch.norm(normal, 2, dim=1, keepdim=True) + 1e-8)
+        #for i in range(1):
+        #    dispnetc_flow = norm_adjust_disp_vote(dispnetc_flow, normal, self.fx, self.fy)
 
         if self.training:
             return dispnetc_flows, normal
