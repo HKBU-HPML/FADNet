@@ -13,7 +13,7 @@ from dataloader.EXRloader import load_exr
 
 class SintelDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(576, 960)):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(448, 1024)):
         """
         Args:
             txt_file [string]: Path to the image list
