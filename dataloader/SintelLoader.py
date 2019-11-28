@@ -28,8 +28,8 @@ class SintelDataset(Dataset):
         self.load_norm = load_norm
         self.to_angle = to_angle
         self.scale_size = scale_size
-        self.fx = 1050.0
-        self.fy = 1050.0
+        self.fx = 1120.0
+        self.fy = 1120.0
         self.sx = 1024.0
         self.sy = 436.0
 
@@ -101,6 +101,8 @@ class SintelDataset(Dataset):
                 #m[:,:,0] = False
                 #m[:,:,1] = False
                 #gt_norm[m] = - gt_norm[m]
+		is_nan = np.isnan(gt_norm)
+		gt_norm[is_nan] = 1.0
 
             return gt_norm
 
@@ -124,8 +126,8 @@ class SintelDataset(Dataset):
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
 
-	    self.fx = self.fx * self.scale_size[1] / self.sx
-	    self.fy = self.fy * self.scale_size[0] / self.sy
+	    #self.fx = self.fx * self.scale_size[1] / self.sx
+	    #self.fy = self.fy * self.scale_size[0] / self.sy
 
         if self.phase == 'detect' or self.phase == 'test':
             rgb_transform = default_transform()
