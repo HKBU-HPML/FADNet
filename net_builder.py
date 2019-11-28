@@ -9,6 +9,7 @@ from networks.DispNetCSS import DispNetCSS
 from networks.DispNetCSRes import DispNetCSRes
 from networks.DispNormNet import DispNormNet
 from networks.DNFusionNet import DNFusionNet
+from networks.DToNNet import DToNNet
 from networks.DToNFusionNet import DToNFusionNet
 from networks.DNIRRNet import DNIRRNet
 from networks.DispAngleNet import DispAngleNet
@@ -34,6 +35,7 @@ SUPPORT_NETS = {
         #'ganet':GANet,
         'dispnormnet':DispNormNet,
         'dnfusionnet':DNFusionNet,
+        'dtonnet':DToNNet,
         'dtonfusionnet':DToNFusionNet,
         'dnirrnet':DNIRRNet,
         'dispanglenet':DispAngleNet,

@@ -3,18 +3,13 @@
 
 dataset=sceneflow
 net=dtonnet
-#net=dispnetcres
 
 #model=models/dispnetcres/model_best.pth
 #model=models/fadnet_sf.pth
-#model=models/dispnormnet-test/model_best.pth
+#model=models/dispnormnet-sf-fl1050-d0.928-n16.727.pth
+model=models/dtonnet-sf-fl1050-d0.921-n15.6.pth
+outf=detect_results/${net}-${dataset}/
 
-model=data/cvpr2020/models/dtonnet-sf-fl1050-d0.921-n15.6.pth
-#model=data/cvpr2020/models/psmnet.pth
-#model=data/cvpr2020/models/dispnetc.pth
-
-outf=data/cvpr2020/results/${net}-${dataset}/
-#outf=data/cvpr2020/results/psmnet-${dataset}/
 #filelist=lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list
 #filelist=lists/${dataset}_test.list
 #filelist=lists/FlyingThings3D_release_TEST_norm.list

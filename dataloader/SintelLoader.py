@@ -13,7 +13,7 @@ from dataloader.EXRloader import load_exr
 
 class SintelDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(576, 960)):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(448, 1024)):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -30,14 +30,16 @@ class SintelDataset(Dataset):
         self.scale_size = scale_size
         self.fx = 1120.0
         self.fy = 1120.0
-        self.sx = 1024.0
-        self.sy = 436.0
+        self.img_size = (436, 1024)
 
     def get_focal_length(self):
         return self.fx, self.fy
 
     def get_img_size(self):
-        return self.sx, self.sy
+        return self.img_size
+
+    def get_scale_size(self):
+        return self.scale_size
 
     def __len__(self):
         return len(self.imgPairs)
