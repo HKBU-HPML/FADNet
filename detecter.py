@@ -10,7 +10,7 @@ import skimage
 #from dispnet import *
 #from networks.dispnet_v2 import *
 import torch.cuda as ct
-from networks.DispNetCSRes import DispNetCSRes
+#from networks.DispNetCSRes import DispNetCSRes
 from net_builder import SUPPORT_NETS, build_net
 from losses.multiscaleloss import multiscaleloss
 import torch.nn.functional as F
@@ -113,7 +113,7 @@ def detect(opt):
             output = net(input_var)
         elif opt.net == "dispnetc":
             output = net(input_var)[0]
-        elif opt.net in [ "dispnormnet", "dtonnet" ] :
+        elif opt.net in ["dispnormnet", "dtonnet", "dnfusionnet"]:
             output = net(input_var)
             disp = output[0]
             normal = output[1]
@@ -154,12 +154,14 @@ def detect(opt):
                 np_disp = disp[j].data.cpu().numpy()
 
                 print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
-                save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
+                save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
                 print('Name: {}'.format(save_name))
-                #skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
-                np_disp = np.flip(np_disp, axis=0)
-                save_pfm('{}/{}'.format(result_path, save_name), np_disp)
 
+                skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
+                #save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
+                #print('Name: {}'.format(save_name))
+                #np_disp = np.flip(np_disp, axis=0)
+                #save_pfm('{}/{}'.format(result_path, save_name), np_disp)
             
             if opt.norm_on:
                 normal[j] = (normal[j] + 1.0) * 0.5

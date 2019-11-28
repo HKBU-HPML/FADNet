@@ -78,7 +78,7 @@ class DNIRRNet(nn.Module):
         #normal = normal / (torch.norm(normal, 2, dim=1, keepdim=True) + 1e-8)
 
         if self.training:
-            return refined_disp, dispnetc_flows, normal
+            return refined_disp, dispnetc_flows, normal, init_normal
         else:
             return refined_disp, normal# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
 

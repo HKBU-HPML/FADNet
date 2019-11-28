@@ -30,14 +30,16 @@ class SceneFlowDataset(Dataset):
         self.scale_size = scale_size
         self.fx = 1050.0
         self.fy = 1050.0
-        self.sx = 960.0
-        self.sy = 540.0
+        self.img_size = (540, 960)
 
     def get_focal_length(self):
         return self.fx, self.fy
 
     def get_img_size(self):
-        return self.sx, self.sy
+        return self.img_size
+
+    def get_scale_size(self):
+        return self.scale_size
 
     def __len__(self):
         return len(self.imgPairs)
