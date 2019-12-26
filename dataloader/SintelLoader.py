@@ -103,6 +103,8 @@ class SintelDataset(Dataset):
                 #m[:,:,0] = False
                 #m[:,:,1] = False
                 #gt_norm[m] = - gt_norm[m]
+		is_nan = np.isnan(gt_norm)
+		gt_norm[is_nan] = 1.0
 
             return gt_norm
 

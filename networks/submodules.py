@@ -333,12 +333,10 @@ def disp2norm(disp, fx, fy):
 
     #nx = -self.fl.fx * dx / torch.abs(disp[:,:,:,1:-1] - self.xc[:,:,:,1:-1] * dx)
     #ny = -self.fl.fy * dy / torch.abs(disp[:,:,1:-1,:] - self.yc[:,:,1:-1,:] * dy)
-    divider_nx = torch.abs(disp[:,:,:,1:-1] - xc[:,:,:,1:-1] * dx)
-    divider_ny = torch.abs(disp[:,:,1:-1,:] - yc[:,:,1:-1,:] * dy)
-    nx = fx * dx / (divider_nx + 1e-8)
-    ny = fy * dy / (divider_ny + 1e-8)
-    #nx = fx * dx / (divider_nx)
-    #ny = fy * dy / (divider_ny)
+    divider_nx = torch.clamp(torch.abs(disp[:,:,:,1:-1] - xc[:,:,:,1:-1] * dx), 1e-8, 1e+16)
+    divider_ny = torch.clamp(torch.abs(disp[:,:,1:-1,:] - yc[:,:,1:-1,:] * dy), 1e-8, 1e+16)
+    nx = fx * dx / divider_nx
+    ny = fy * dy / divider_ny
     nz = -torch.ones(n, 1, h, w).float().to(cur_device)
 
     nx = F.pad(nx, (1, 1, 0, 0), 'replicate')
