@@ -365,7 +365,7 @@ class DisparityTrainer(object):
         end = time.time()
         valid_norm = 0
         angle_lt = 0
-        angle_thres = 30.0
+        angle_thres = 11.25
         for i, sample_batched in enumerate(self.test_loader):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
@@ -415,9 +415,12 @@ class DisparityTrainer(object):
                 #norm_EPE = self.epe(normal, target_disp[:, :3, :, :]) 
                 norm_EPE = F.mse_loss(normal[valid_norm_idx], target_norm[valid_norm_idx], size_average=True) * 3.0
 
-                #refined_disp = norm_adjust_disp_vote(disp, normal, self.fx, self.fy)
-                #print("epe before refined: %f. epe after refined: %f." % (self.epe(disp, target_disp), self.epe(refined_disp, target_disp)))
-                flow2_EPE = self.epe(disp, target_disp)
+                refined_disp = disp.clone()
+                for ri in range(3):
+                    refined_disp = norm_adjust_disp_vote(refined_disp, normal, self.fx, self.fy)
+                print("epe before refined: %f. epe after refined: %f." % (self.epe(disp, target_disp), self.epe(refined_disp, target_disp)))
+                #flow2_EPE = self.epe(disp, target_disp)
+                flow2_EPE = self.epe(refined_disp, target_disp)
                 norm_angle = angle_diff_norm(normal, target_norm).squeeze()
 
 		valid_angle_idx = (target_disp[:,0,:,:] > 2) & valid_norm_idx[:,0,:,:] & valid_norm_idx[:,1,:,:] & valid_norm_idx[:,2,:,:]	

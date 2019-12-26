@@ -58,7 +58,8 @@ def detect(opt):
         net = build_net(net_name)()
     else:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
-        net.set_focal_length(1050.0, 1050.0)
+        if net_name in ["dispnormnet", "dnfusionnet", "dtonnet", "dtonfusionnet"]:
+            net.set_focal_length(1050.0, 1050.0)
     net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
     model_data = torch.load(model)
@@ -83,9 +84,12 @@ def detect(opt):
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
 
     avg_time = []
-    display = 100
+    display = 50
     warmup = 10
     for i, sample_batched in enumerate(test_loader):
+        #if i > 215:
+        #    break
+
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
         # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
@@ -101,7 +105,9 @@ def detect(opt):
             output = net(input_var)
         elif opt.net == "dispnetc":
             output = net(input_var)[0]
-        elif opt.net in ["dispnormnet", "dtonnet", "dnfusionnet"]:
+        elif opt.net == "normnets":
+            output = net(input_var)
+        elif opt.net in ["dispnormnet", "dtonnet", "dnfusionnet", "dtonfusionnet"]:
             output = net(input_var)
             disp = output[0]
             normal = output[1]
@@ -122,10 +128,12 @@ def detect(opt):
         if opt.disp_on and not opt.norm_on:
             #output = scale_disp(output, (output.size()[0], 540, 960))
             disp = output[:, 0, :, :]
-        elif opt.disp_on and opt.norm_on:
-            output = scale_norm(output, (output.size()[0], 540, 960))
-            disp = output[:, 3, :, :]
+        #elif opt.disp_on and opt.norm_on:
+        elif opt.norm_on:
+            output = scale_norm(output, (output.size()[0], output.size()[1], 540, 960))
             normal = output[:, :3, :, :]
+            if opt.disp_on:
+                disp = output[:, 3, :, :]
 
         for j in range(num_of_samples):
 
