@@ -18,8 +18,8 @@ from losses.multiscaleloss import multiscaleloss
 cudnn.benchmark = True
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
-    if state['epoch'] % 10 == 0:
-        torch.save(state, os.path.join(opt.outf,filename))
+    #if state['epoch'] % 10 == 0:
+    torch.save(state, os.path.join(opt.outf,filename))
     if is_best:
         torch.save(state, os.path.join(opt.outf,'model_best.pth'))
         #shutil.copyfile(os.path.join(opt.outf,filename), os.path.join(opt.outf,'model_best.pth'))
