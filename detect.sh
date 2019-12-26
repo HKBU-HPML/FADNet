@@ -13,9 +13,11 @@ model=models/dtonnet-sf-fl1050-d0.921-n15.6.pth
 #model=models/dispnetc-sf-fl1050-d1.09.pth
 #model=models/dtonfusionnet-sf-fl1050-d0.973-n15.768.pth
 outf=detect_results/${net}-${dataset}/
+
 #filelist=lists/SHAOHUAI_CLEAN_FlyingThings3D_release_TEST.list
 #filelist=lists/${dataset}_test.list
-filelist=lists/FlyingThings3D_release_TEST_norm.list
+#filelist=lists/FlyingThings3D_release_TEST_norm.list
+filelist=lists/pcd_sample_data.list
 filepath=data
 
 CUDA_VISIBLE_DEVICES=2 python detecter.py --model $model --rp $outf --filelist $filelist --filepath $filepath --devices 0 --net ${net} --disp-on --norm-on
