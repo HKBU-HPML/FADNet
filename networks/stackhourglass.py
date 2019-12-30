@@ -50,7 +50,7 @@ class hourglass(nn.Module):
         return out, pre, post
 
 class PSMNet(nn.Module):
-    def __init__(self, maxdisp):
+    def __init__(self, maxdisp=192):
         super(PSMNet, self).__init__()
         self.maxdisp = maxdisp
 

@@ -76,12 +76,8 @@ def main(opt):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', type=str, help='indicates the name of net', default='simplenet', choices=SUPPORT_NETS)
-    #parser.add_argument('--domain_transfer', type=int, help='if open the function of domain transer', default=0)
-    #parser.add_argument('--unsupervised', type=bool, help='if open the function of domain transer', default=False)
-    #parser.add_argument('--unsuper_alpha', type=float, help='weight of unsupervised learning', default=1.0)
     parser.add_argument('--loss', type=str, help='indicates the loss scheme', default='simplenet_flying')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
-    #parser.add_argument('--input_channel', type=int, help='with or without ir', default=3)
     parser.add_argument('--batch_size', type=int, default=8, help='input batch size')
     parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd, alpha parameter for adam. default=0.9')
@@ -93,7 +89,6 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, help='model for finetuning', default='')
     parser.add_argument('--startRound', type=int, help='the round number to start training, useful of lr scheduler', default='0')
     parser.add_argument('--startEpoch', type=int, help='the epoch number to start training, useful of lr scheduler', default='0')
-    parser.add_argument('--endEpoch', type=int, help='the epoch number to end training', default='50')
     parser.add_argument('--logFile', type=str, help='logging file', default='./train.log')
     parser.add_argument('--showFreq', type=int, help='display frequency', default='100')
     parser.add_argument('--flowDiv', type=float, help='the number by which the flow is divided.', default='1.0')
@@ -101,7 +96,6 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, help='provide the dataset name', default='sceneflow')
     parser.add_argument('--datapath', type=str, help='provide the root path of the data', default='data/')
     parser.add_argument('--trainlist', type=str, help='provide the train file (with file list)', default='FlyingThings3D_release_TRAIN.list')
-    parser.add_argument('--tdlist', type=str, help='provide the target domain file (with file list)', default='real_sgm_release.list')
     parser.add_argument('--vallist', type=str, help='provide the val file (with file list)', default='FlyingThings3D_release_TEST.list')
     parser.add_argument('--augment', type=int, help='if augment data in training', default=0)
     

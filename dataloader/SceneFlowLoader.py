@@ -13,7 +13,7 @@ from dataloader.EXRloader import load_exr
 
 class SceneFlowDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=True, to_angle=False, scale_size=(576, 960)):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, scale_size=(576, 960)):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -28,12 +28,7 @@ class SceneFlowDataset(Dataset):
         self.load_norm = load_norm
         self.to_angle = to_angle
         self.scale_size = scale_size
-        self.fx = 1050.0
-        self.fy = 1050.0
         self.img_size = (540, 960)
-
-    def get_focal_length(self):
-        return self.fx, self.fy
 
     def get_img_size(self):
         return self.img_size

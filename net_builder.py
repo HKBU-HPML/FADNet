@@ -1,49 +1,23 @@
 from __future__ import print_function
 
-#from networks.simple_net import SimpleNet
-#from networks.dispnet_corr2 import DispNetCorr2
 from networks.DispNetC import DispNetC
 from networks.DispNetS import DispNetS
 from networks.DispNetCS import DispNetCS
 from networks.DispNetCSS import DispNetCSS
-from networks.DispNetCSRes import DispNetCSRes
-from networks.DispNormNet import DispNormNet
-from networks.DNFusionNet import DNFusionNet
-from networks.DToNNet import DToNNet
-from networks.DToNFusionNet import DToNFusionNet
-from networks.DNIRRNet import DNIRRNet
-from networks.DispAngleNet import DispAngleNet
-from networks.DToNNet import DToNNet
+from networks.FADNet import FADNet
 from networks.stackhourglass import PSMNet
-#from networks.GANet_deep import GANet
-from networks.NormNetS import NormNetS
-#from networks.NormNetC import NormNetC
-#from networks.stackhourglass import PSMNet
-#from networks.GANet_deep import GANet
-#from networks.MultiCorrNet import MultiCorrNet
+from networks.GANet_deep import GANet
 
 from utils.common import logger
 
 SUPPORT_NETS = {
-        #'simplenet': SimpleNet,
-        'dispnetcres': DispNetCSRes,
+        'fadnet': FADNet,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,
         'dispnetcs': DispNetCS,
         'dispnetcss': DispNetCSS,
         'psmnet': PSMNet,
-        #'ganet':GANet,
-        'dispnormnet':DispNormNet,
-        'dnfusionnet':DNFusionNet,
-        'dtonnet':DToNNet,
-        'dtonfusionnet':DToNFusionNet,
-        'dnirrnet':DNIRRNet,
-        'dispanglenet':DispAngleNet,
-        'normnets':NormNetS,
-	'dtonnet':DToNNet,
-        #'normnetc':NormNetC,
-        #'multicorrnet': MultiCorrNet,
-        #'dispnetcorr2': DispNetCorr2,
+        'ganet':GANet,
         }
 
 def build_net(net_name):
