@@ -1,6 +1,6 @@
 from __future__ import print_function
 import argparse
-import os
+import os,sys
 import random
 import torch
 import torch.nn as nn
@@ -18,16 +18,16 @@ import numpy as np
 import time
 import math
 from utils.common import load_loss_scheme
-from dataloader import KITTIloader2015 as ls
 from dataloader import KITTILoader as DA
 
-from networks.DispNetCSRes import DispNetCSRes
+from networks.FADNet import FADNet
+from networks.stackhourglass import PSMNet
 from losses.multiscaleloss import multiscaleloss
 
-parser = argparse.ArgumentParser(description='PSMNet')
+parser = argparse.ArgumentParser(description='FADNet')
 parser.add_argument('--maxdisp', type=int ,default=192,
                     help='maxium disparity')
-parser.add_argument('--model', default='stackhourglass',
+parser.add_argument('--model', default='fadnet',
                     help='select model')
 parser.add_argument('--datatype', default='2015',
                     help='datapath')
@@ -68,15 +68,18 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 32, shuffle= False, num_workers= 4, drop_last=False)
+         batch_size= 8, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
 
-if args.model == 'dispnetcres':
-    model = DispNetCSRes(ngpus, False, True)
+if args.model == 'fadnet':
+    model = FADNet(False, True)
+elif args.model == 'psmnet':
+    model = PSMNet(maxdisp=args.maxdisp)
 else:
     print('no model')
+    sys.exit(-1)
 
 if args.cuda:
     model = nn.DataParallel(model, device_ids=devices)
@@ -88,12 +91,14 @@ if args.loadmodel is not None:
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
-optimizer = optim.Adam(model.parameters(), lr=0.1, betas=(0.9, 0.999))
+init_lr = 0.01
+optimizer = optim.Adam(model.parameters(), lr=init_lr, betas=(0.9, 0.999))
 
 loss_json = load_loss_scheme(args.loss)
 train_round = loss_json["round"]
 loss_scale = loss_json["loss_scale"]
 loss_weights = loss_json["loss_weights"]
+epoches = loss_json["epoches"]
 
 def train(imgL,imgR,disp_L, criterion):
         model.train()
@@ -111,17 +116,13 @@ def train(imgL,imgR,disp_L, criterion):
 
         optimizer.zero_grad()
         
-        if args.model == 'stackhourglass':
-            output1, output2, output3 = model(imgL,imgR)
+        if args.model == 'psmnet':
+            output1, output2, output3 = model(torch.cat((imgL, imgR), 1))
             output1 = torch.squeeze(output1,1)
             output2 = torch.squeeze(output2,1)
             output3 = torch.squeeze(output3,1)
             loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output3[mask], disp_true[mask], size_average=True) 
-        elif args.model == 'basic':
-            output = model(imgL,imgR)
-            output = torch.squeeze(output3,1)
-            loss = F.smooth_l1_loss(output3[mask], disp_true[mask], size_average=True)
-        elif args.model == 'dispnetcres':
+        elif args.model == 'fadnet':
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
 
             # multi-scale loss
@@ -138,7 +139,7 @@ def train(imgL,imgR,disp_L, criterion):
         loss.backward()
         optimizer.step()
 
-        return loss.data[0]
+        return loss.data.item()
 
 def test(imgL,imgR,disp_true):
         model.eval()
@@ -153,9 +154,13 @@ def test(imgL,imgR,disp_true):
         #print(imgL.size())
 
         with torch.no_grad():
-            output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
+            if args.model == "psmnet":
+                output_net = model(torch.cat((imgL, imgR), 1))
+                pred_disp = output_net.squeeze(1)
+            elif args.model == "fadnet":
+                output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
+                pred_disp = output_net2.squeeze(1)
 
-        pred_disp = output_net2.squeeze(1)
         pred_disp = pred_disp.data.cpu()
         #pred_disp = pred_disp[:, :368, :1232]
 
@@ -170,9 +175,9 @@ def test(imgL,imgR,disp_true):
 
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= 600:
-       lr = 1e-6
+       lr = init_lr
     else:
-       lr = 1e-7
+       lr = init_lr / 10.0
     print(lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
@@ -193,12 +198,12 @@ def main():
         min_acc=total_test_loss/len(TestImgLoader)*100
 	print('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
 
-        start_round = 2
+        start_round = 0
         for r in range(start_round, train_round):
             criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
             print(loss_weights[r])
 
-	    for epoch in range(1, args.epochs+1):
+	    for epoch in range(1, epoches[r]+1):
 	       total_train_loss = 0
 	       total_test_loss = 0
 	       adjust_learning_rate(optimizer,epoch)
@@ -237,7 +242,7 @@ def main():
 	       print('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
 
 	       #SAVE
-               if epoch % 100 == 0:
+               if (epoch - 1) % 100 == 0:
 	           savefilename = args.savemodel+'finetune_%s_%s' % (str(r), str(epoch))+'.tar'
 	           torch.save({
 	                 'epoch': epoch,
