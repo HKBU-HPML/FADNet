@@ -31,8 +31,14 @@ We propose an efficient and accurate deep network for disparity estimation named
 
 ```
 Usage of Scene Flow dataset
-Download RGB cleanpass images and its disparity for three subset: FlyingThings3D, Driving, and Monkaa.
-Put them in the same folder. Retain the file names as well as the file organization.
+Download RGB cleanpass images and its disparity for three subset: FlyingThings3D, Driving, and Monkaa. Organize them as follows:
+- FlyingThings3D_release/frames_cleanpass
+- FlyingThings3D_release/disparity
+- driving_release/frames_cleanpass
+- driving_release/disparity
+- monkaa_release/frames_cleanpass
+- monkaa_release/disparity
+Put them in the data/ folder (or soft link). The *train.sh* defaultly locates the data root path as data/.
 ```
 
 ### Train
@@ -71,12 +77,68 @@ model=none
 | maxdisp | the maximum disparity that the model tries to predict | \ |
 | model | the model file path of the checkpoint | \ |
 
+We have integrated PSMNet and GANet for comparison. The sample configuration files are also given. 
+
+To start training, use the following command, *dnn=CONFIG_FILE sh train.sh*, such as:
+```
+dnn=fadnet sh train.sh
+```
+You do not need the suffix for *CONFIG_FILE*. 
 
 ### Evaluation
+We have two modes for performance evaluation, *test* and *detect*, respectively. *test* requires that the testing samples should have ground truth of disparity and then reports the average End-point-error (EPE). *detect* does not require any ground truth for EPE computation. However, *detect* stores the disparity maps for each sample in the given list. 
+
+For the *test* mode, one can revise *test.sh* and run *sh test.sh*. The contents of *test.sh* are as follows:
+```
+net=fadnet
+maxdisp=-1
+dataset=sceneflow
+trainlist=lists/SceneFlow.list
+vallist=lists/FlyingThings3D_release_TEST.list
+
+loss=loss_configs/test.json
+outf_model=models/test/
+logf=logs/${net}_test_on_${dataset}.log
+
+lr=1e-4
+devices=0,1,2,3
+startR=0
+startE=0
+batchSize=8
+model=models/fadnet.pth
+python main.py --cuda --net $net --loss $loss --lr $lr \
+               --outf $outf_model --logFile $logf \
+               --devices $devices --batch_size $batchSize \
+               --trainlist $trainlist --vallist $vallist \
+               --dataset $dataset --maxdisp $maxdisp \
+               --startRound $startR --startEpoch $startE \
+               --model $model 
+```
+Most of the parameters in *test.sh* are similar to training. However, you can just ignore parameters, including *trainlist*, *loss*, *outf_model*, since they are not used in the *test* mode.
+
+For the *detect* mode, one can revise *detect.sh* and run *sh detect.sh*. The contents of *detect.sh* are as follows:
+```
+net=fadnet
+dataset=sceneflow
+
+model=models/fadnet.pth
+outf=detect_results/${net}-${dataset}/
+
+filelist=lists/FlyingThings3D_release_TEST.list
+filepath=data
+
+CUDA_VISIBLE_DEVICES=0 python detecter.py --model $model --rp $outf --filelist $filelist --filepath $filepath --devices 0 --net ${net} 
+```
+You can revise the value of *outf* to change the folder that stores the predicted disparity maps.
+
+### Finetuning on KITTI datasets and result submission
+We re-use the codes in [PSMNet](https://github.com/JiaRenChang/PSMNet) to finetune the pretrained models on KITTI datasets and generate disparity maps for submission. Use *finetune.sh* and *submission.sh* to do them respectively.
 
 ### Pretrained Model
+We will release the pretrained models used in the paper soon.
 
 ## Results
+Updating...
 
 ## Acknowledgement
 We acknowledge the following repositories and papers since our project has used some codes of them. 
