@@ -140,7 +140,7 @@ We will release the pretrained models used in the paper soon.
 ## Results
 ### Results on Scene Flow dataset
 
-| Model | EPE | Memory (GB) | Runtime (ms) on Tesla V100 |
+| Model | EPE | GPU Memory during inference (GB) | Runtime (ms) on Tesla V100 |
 |---|---|---|---|
 | FADNet | 0.83 | 3.87 | 48.1 |
 | [DispNetC](https://arxiv.org/pdf/1512.02134) | 1.68 | 1.62 | 18.7 |
