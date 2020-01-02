@@ -138,7 +138,14 @@ We re-use the codes in [PSMNet](https://github.com/JiaRenChang/PSMNet) to finetu
 We will release the pretrained models used in the paper soon.
 
 ## Results
-Updating...
+### Results on Scene Flow dataset
+
+| Model | EPE | Memory (GB) | Runtime (ms) on Tesla V100 |
+|---|---|---|---|
+| FADNet | 0.83 | 3.87 | 48.1 |
+| [DispNetC](https://arxiv.org/pdf/1512.02134) | 1.68 | 1.62 | 18.7 |
+| [PSMNet](https://arxiv.org/abs/1803.08669) | 1.09 | 13.99 | 399.3 |
+| [GANet](https://arxiv.org/abs/1904.06587) | 0.84 | 29.1 | 2251.1 |
 
 ## Acknowledgement
 We acknowledge the following repositories and papers since our project has used some codes of them. 
