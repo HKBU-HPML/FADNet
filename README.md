@@ -135,7 +135,11 @@ You can revise the value of *outf* to change the folder that stores the predicte
 We re-use the codes in [PSMNet](https://github.com/JiaRenChang/PSMNet) to finetune the pretrained models on KITTI datasets and generate disparity maps for submission. Use *finetune.sh* and *submission.sh* to do them respectively.
 
 ### Pretrained Model
-We will release the pretrained models used in the paper soon.
+Update: 2020/2/6 We released the pre-trained Scene Flow model.
+
+| KITTI 2015 |  Scene Flow | KITTI 2012|
+|---|---|---|
+|/|[Google Drive](https://drive.google.com/open?id=1Z0zD0S-zx8cuiJSIvVE1Gfi5YdgPKe3V)|/|
 
 ## Results
 ### Results on Scene Flow dataset
