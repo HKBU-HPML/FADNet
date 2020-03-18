@@ -1,8 +1,6 @@
 # FADNet: A Fast and Accurate Network for Disparity Estimation
 
-Updating...
-
-This repository contains the code (in PyTorch) for "[FADNet]()" paper.
+This repository contains the code (in PyTorch) for "[FADNet](https://github.com/HKBU-HPML/FADNet/blob/master/pdf/FADNet.pdf)" paper, which has been accepted by IEEE International Conference on Robotics and Automation 2020 (ICRA 2020).
 
 ## Contents
 
@@ -28,6 +26,12 @@ We propose an efficient and accurate deep network for disparity estimation named
 - torchvision 0.2.0 (higher version may cause issues)
 - [KITTI Stereo](http://www.cvlibs.net/datasets/kitti/eval_stereo.php)
 - [Scene Flow](https://lmb.informatik.uni-freiburg.de/resources/datasets/SceneFlowDatasets.en.html)
+
+### Package Installation
+- Execute "sh compile.sh" to compile libraries needed by GANet.
+- Enter "layers_package" and execute "sh install.sh" to install customized layers, including Channel Normalization layer and Resample layer.
+
+We also release the docker version of this project, which has been configured completely and can be used directly. Please refer to [this website](https://hub.docker.com/repository/docker/paopaorobot/fadnet) for the image.
 
 ```
 Usage of Scene Flow dataset
