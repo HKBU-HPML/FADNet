@@ -425,7 +425,7 @@ loaded image and the scale factor from the file.
 '''
 def load_pfm(filename):
 
-    file = open(filename, 'r')
+    file = open(filename, 'r', encoding="ISO-8859-1")
     color = None
     width = None
     height = None

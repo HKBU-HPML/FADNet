@@ -43,7 +43,7 @@ class DisparityTrainer(object):
             train_dataset = SceneFlowDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = SceneFlowDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
-	self.img_height, self.img_width = train_dataset.get_img_size()
+        self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_height, self.scale_width = test_dataset.get_scale_size()
 
         datathread=4
@@ -54,7 +54,7 @@ class DisparityTrainer(object):
                                 shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size / 4, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size // 4, \
                                 shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
