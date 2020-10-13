@@ -46,7 +46,7 @@ class DisparityTrainer(object):
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_height, self.scale_width = test_dataset.get_scale_size()
 
-        datathread=4
+        datathread=16
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
@@ -139,7 +139,7 @@ class DisparityTrainer(object):
 
             self.optimizer.zero_grad()
 
-            if self.net_name == "fadnet":
+            if self.net_name in ["fadnet", "mobilefadnet"]:
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
                 loss_net2 = self.criterion(output_net2, target_disp)

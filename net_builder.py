@@ -5,6 +5,7 @@ from networks.DispNetS import DispNetS
 from networks.DispNetCS import DispNetCS
 from networks.DispNetCSS import DispNetCSS
 from networks.FADNet import FADNet
+from networks.MobileFADNet import MobileFADNet
 from networks.stackhourglass import PSMNet
 from networks.GANet_deep import GANet
 
@@ -12,6 +13,7 @@ from utils.common import logger
 
 SUPPORT_NETS = {
         'fadnet': FADNet,
+        'mobilefadnet': MobileFADNet,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,
         'dispnetcs': DispNetCS,
