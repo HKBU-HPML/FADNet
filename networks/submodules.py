@@ -305,7 +305,7 @@ def warp_right_to_left(x, disp):
         grid = grid.cuda()
     
     vgrid = Variable(grid)
-    vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp
+    vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
 
     # scale grid to [-1,1] 
     vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:].clone() / max(W-1,1)-1.0
@@ -326,9 +326,9 @@ def warp_right_to_left(x, disp):
     return output*mask
 
 if __name__ == '__main__':
-    x = torch.rand([1, 3, 540, 960])
-    disp = torch.ones([1, 1, 540, 960]) * 5
-    dummy_y = torch.zeros([1, 1, 540, 960])
+    x = torch.rand([2, 3, 540, 960])
+    disp = torch.ones([2, 1, 540, 960]) * 5
+    dummy_y = torch.zeros([2, 1, 540, 960])
     x = x.cuda()
     disp = disp.cuda()
     dummy_y = dummy_y.cuda()
