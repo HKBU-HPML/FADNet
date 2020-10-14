@@ -155,38 +155,23 @@ Update: 2020/2/6 We released the pre-trained Scene Flow model.
 | [PSMNet](https://arxiv.org/abs/1803.08669) | 1.09 | 13.99 | 399.3 |
 | [GANet](https://arxiv.org/abs/1904.06587) | 0.84 | 29.1 | 2251.1 |
 
+## Citation
+If you find the code and paper is useful in your work, please cite our conference paper
+```
+@inproceedings{wang2020fadnet,
+  title={{FADNet}: A Fast and Accurate Network for Disparity Estimation},
+  author={Wang, Qiang and Shi, Shaohuai and Zheng, Shizhen and Zhao, Kaiyong and Chu, Xiaowen},
+  booktitle={2020 {IEEE} International Conference on Robotics and Automation ({ICRA} 2020)},
+  pages={101--107},
+  year={2020}
+}
+```
 ## Acknowledgement
 We acknowledge the following repositories and papers since our project has used some codes of them. 
 - [PSMNet](https://github.com/JiaRenChang/PSMNet) from [Jia-Ren Chang](https://github.com/JiaRenChang)
 - [GANet](https://github.com/feihuzhang/GANet) from [Feihu Zhang](https://github.com/feihuzhang)
 - [PWCNet](https://github.com/NVlabs/PWC-Net/tree/master/PyTorch) from [NVIDIA Research Projects](https://github.com/NVlabs)
 
-```
-@inproceedings{chang2018pyramid,
-  title={Pyramid Stereo Matching Network},
-  author={Chang, Jia-Ren and Chen, Yong-Sheng},
-  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
-  pages={5410--5418},
-  year={2018}
-}
-```
-```
-@inproceedings{Zhang2019GANet,
-  title={GA-Net: Guided Aggregation Net for End-to-end Stereo Matching},
-  author={Zhang, Feihu and Prisacariu, Victor and Yang, Ruigang and Torr, Philip HS},
-  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
-  pages={185--194},
-  year={2019}
-}
-```
-```
-@InProceedings{Sun2018PWC-Net,
-  author    = {Deqing Sun and Xiaodong Yang and Ming-Yu Liu and Jan Kautz},
-  title     = {{PWC-Net}: {CNNs} for Optical Flow Using Pyramid, Warping, and Cost Volume},
-  booktitle = CVPR,
-  year      = {2018},
-}
-```
 ## Contacts
 qiangwang@comp.hkbu.edu.hk
 
