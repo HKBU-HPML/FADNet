@@ -61,7 +61,7 @@ def detect(opt):
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
                         shuffle = False, num_workers = 1, \
-                        pin_memory = True)
+                        pin_memory = False)
 
     s = time.time()
 
@@ -110,7 +110,7 @@ def detect(opt):
 
             name_items = sample_batched['img_names'][0][j].split('/')
             # write disparity to file
-	    output_disp = disp[j]
+            output_disp = disp[j]
             np_disp = disp[j].data.cpu().numpy()
 
             print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))

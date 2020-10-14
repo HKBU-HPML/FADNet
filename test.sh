@@ -11,12 +11,12 @@ outf_model=models/test/
 logf=logs/${net}_test_on_${dataset}.log
 
 lr=1e-4
-devices=0,1,2,3
+devices=0
 startR=0
 startE=0
 batchSize=8
 model=models/fadnet.pth
-python main.py --cuda --net $net --loss $loss --lr $lr \
+python3 main.py --cuda --net $net --loss $loss --lr $lr \
                --outf $outf_model --logFile $logf \
                --devices $devices --batch_size $batchSize \
                --trainlist $trainlist --vallist $vallist \
