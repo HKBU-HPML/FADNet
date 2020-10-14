@@ -5,7 +5,10 @@ import torch
 import numpy as np 
 from torch.autograd import Variable
 import torch.nn.functional as F
+from torchvision.utils import save_image
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
+from layers_package.channelnorm_package.channelnorm import ChannelNorm
+from layers_package.resample2d_package.resample2d import Resample2d
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
@@ -282,4 +285,68 @@ def disparity_regression(x, maxdisp):
     disp_values = disp_values.view(1, maxdisp, 1, 1)
     return torch.sum(x * disp_values, 1, keepdim=True)
 
+def channel_normalize(x):
+    return x / (torch.norm(x, 2, dim=1, keepdim=True) + 1e-8)
 
+def channel_length(x):
+    return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True))
+
+def warp_right_to_left(x, disp):
+
+    B, C, H, W = x.size()
+    # mesh grid 
+    xx = torch.arange(0, W).view(1,-1).repeat(H,1)
+    yy = torch.arange(0, H).view(-1,1).repeat(1,W)
+    xx = xx.view(1,1,H,W).repeat(B,1,1,1)
+    yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+    grid = torch.cat((xx,yy),1).float()
+
+    if x.is_cuda:
+        grid = grid.cuda()
+    
+    vgrid = Variable(grid)
+    vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp
+
+    # scale grid to [-1,1] 
+    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:].clone() / max(W-1,1)-1.0
+    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:].clone() / max(H-1,1)-1.0
+
+    vgrid = vgrid.permute(0,2,3,1)        
+    output = nn.functional.grid_sample(x, vgrid)
+    mask = torch.autograd.Variable(torch.ones(x.size())).cuda()
+    mask = nn.functional.grid_sample(mask, vgrid)
+
+    # if W==128:
+        # np.save('mask.npy', mask.cpu().data.numpy())
+        # np.save('warp.npy', output.cpu().data.numpy())
+    
+    mask[mask<0.9999] = 0
+    mask[mask>0] = 1
+    
+    return output*mask
+
+if __name__ == '__main__':
+    x = torch.rand([1, 3, 540, 960])
+    disp = torch.ones([1, 1, 540, 960]) * 5
+    dummy_y = torch.zeros([1, 1, 540, 960])
+    x = x.cuda()
+    disp = disp.cuda()
+    dummy_y = dummy_y.cuda()
+
+    # test channel normalization
+    #cn_fn = channel_length(x)
+    #cn_layer = ChannelNorm()
+    #output_cn = cn_layer(x)
+    #print(cn_fn[:, :, :10, :10])
+    #print(output_cn[:, :, :10, :10])
+    #print(cn_fn.size())
+    #print(output_cn.size())
+    #print(torch.norm(cn_fn - output_cn, 2, 1).mean())
+
+    warpped_left = warp_right_to_left(x, -disp)
+    warp_layer = Resample2d()
+    output_warpped = warp_layer(x, -torch.cat((disp, dummy_y), dim = 1))
+    print(torch.norm(warpped_left - output_warpped, 2, 1).mean())
+    save_image(x[0], 'img0.png')
+    save_image(warpped_left[0], 'img1.png')
+    save_image(output_warpped[0], 'img2.png')
