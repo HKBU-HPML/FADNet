@@ -294,22 +294,24 @@ def channel_length(x):
 def warp_right_to_left(x, disp):
 
     B, C, H, W = x.size()
-    # mesh grid 
-    xx = torch.arange(0, W).view(1,-1).repeat(H,1)
-    yy = torch.arange(0, H).view(-1,1).repeat(1,W)
+    # mesh grid
+    xx = torch.arange(0, W)
+    yy = torch.arange(0, H)
+    if x.is_cuda:
+        xx = xx.cuda()
+        yy = yy.cuda()
+    xx = xx.view(1,-1).repeat(H,1)
+    yy = yy.view(-1,1).repeat(1,W)
     xx = xx.view(1,1,H,W).repeat(B,1,1,1)
     yy = yy.view(1,1,H,W).repeat(B,1,1,1)
     grid = torch.cat((xx,yy),1).float()
 
-    if x.is_cuda:
-        grid = grid.cuda()
-    
     vgrid = Variable(grid)
     vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
 
     # scale grid to [-1,1] 
-    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:].clone() / max(W-1,1)-1.0
-    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:].clone() / max(H-1,1)-1.0
+    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
+    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
 
     vgrid = vgrid.permute(0,2,3,1)        
     output = nn.functional.grid_sample(x, vgrid)
