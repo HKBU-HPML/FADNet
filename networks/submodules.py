@@ -315,19 +315,19 @@ def warp_right_to_left(x, disp, warp_grid=None):
         grid = torch.cat((xx,yy),1).float()
 
     vgrid = Variable(grid)
-    vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
+    #vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
 
-    # scale grid to [-1,1] 
-    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
-    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
+    ## scale grid to [-1,1] 
+    #vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
+    #vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
+
     vgrid = vgrid.permute(0,2,3,1)        
-
     output = nn.functional.grid_sample(x, vgrid)
     mask = torch.autograd.Variable(torch.ones_like(x))
     mask = nn.functional.grid_sample(mask, vgrid)
     
-    mask[mask<0.9999] = 0
-    mask[mask>0] = 1
+    #mask[mask<0.9999] = 0
+    #mask[mask>0] = 1
     
     return output*mask
 
