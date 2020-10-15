@@ -295,11 +295,11 @@ def warp_right_to_left(x, disp):
 
     B, C, H, W = x.size()
     # mesh grid
-    xx = torch.arange(0, W)
-    yy = torch.arange(0, H)
-    if x.is_cuda:
-        xx = xx.cuda()
-        yy = yy.cuda()
+    xx = torch.arange(0, W, device=disp.device)
+    yy = torch.arange(0, H, device=disp.device)
+    #if x.is_cuda:
+    #    xx = xx.cuda()
+    #    yy = yy.cuda()
     xx = xx.view(1,-1).repeat(H,1)
     yy = yy.view(-1,1).repeat(1,W)
     xx = xx.view(1,1,H,W).repeat(B,1,1,1)
@@ -315,7 +315,7 @@ def warp_right_to_left(x, disp):
 
     vgrid = vgrid.permute(0,2,3,1)        
     output = nn.functional.grid_sample(x, vgrid)
-    mask = torch.autograd.Variable(torch.ones(x.size())).cuda()
+    mask = torch.autograd.Variable(torch.ones_like(x))
     mask = nn.functional.grid_sample(mask, vgrid)
 
     # if W==128:
