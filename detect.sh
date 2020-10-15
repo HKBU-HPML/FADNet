@@ -1,7 +1,7 @@
-net=psmnet
+net=mobilefadnet
 dataset=sceneflow
 
-model=models/psmnet.pth
+model=models/mobilefadnet/model_best.pth
 outf=detect_results/${net}-${dataset}/
 
 filelist=lists/FlyingThings3D_release_TEST.list
