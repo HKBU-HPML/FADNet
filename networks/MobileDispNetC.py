@@ -11,7 +11,7 @@ from networks.submodules import *
 
 class MobileDispNetC(nn.Module):
 
-    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3, get_features = False):
+    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3, get_features = False, input_img_shape=None):
         super(MobileDispNetC, self).__init__()
         
         self.batchNorm = batchNorm
@@ -19,6 +19,11 @@ class MobileDispNetC(nn.Module):
         self.maxdisp = maxdisp
         self.get_features = get_features
         self.relu = nn.ReLU(inplace=False)
+        self.corr_max_disp = 40
+        if input_img_shape is not None:
+            self.corr_zero_volume = torch.zeros(input_img_shape).cuda()
+        else:
+            self.corr_zero_volume = None
 
         # shrink and extract features
         self.conv1   = conv(self.input_channel, 64, 7, 2)
@@ -112,7 +117,8 @@ class MobileDispNetC(nn.Module):
 
         # Correlate corr3a_l and corr3a_r
         #out_corr = self.corr(conv3a_l, conv3a_r)
-        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+        #print('shape: ', conv3a_l.shape)
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.corr_max_disp, zero_volume=self.corr_zero_volume)
         out_corr = self.corr_activation(out_corr)
         out_conv3a_redir = self.conv_redir(conv3a_l) # 256-32
         in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1) # 32+40
