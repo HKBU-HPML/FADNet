@@ -301,7 +301,8 @@ def warp_right_to_left(x, disp, warp_grid=None):
     B, C, H, W = x.size()
     # mesh grid
     if warp_grid is not None:
-        grid = warp_grid
+        xx, yy = warp_grid
+        xx += disp
     else:
         xx = torch.arange(0, W, device=disp.device).float()
         yy = torch.arange(0, H, device=disp.device).float()
@@ -319,7 +320,7 @@ def warp_right_to_left(x, disp, warp_grid=None):
         xx = 2.0*xx / max(W-1,1)-1.0
         yy = 2.0*yy / max(H-1,1)-1.0
 
-        grid = torch.cat((xx,yy),1).float()
+    grid = torch.cat((xx,yy),1).float()
 
     vgrid = Variable(grid)
     #vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
