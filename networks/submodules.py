@@ -302,16 +302,23 @@ def warp_right_to_left(x, disp):
         yy = yy.cuda()
     xx = xx.view(1,-1).repeat(H,1)
     yy = yy.view(-1,1).repeat(1,W)
+
     xx = xx.view(1,1,H,W).repeat(B,1,1,1)
     yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+
+    # apply disparity to x-axis
+    xx = xx + disp
+    xx = 2.0*xx / max(W-1,1)-1.0
+    yy = 2.0*yy / max(H-1,1)-1.0
+
     grid = torch.cat((xx,yy),1).float()
 
     vgrid = Variable(grid)
-    vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
+    #vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
 
     # scale grid to [-1,1] 
-    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
-    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
+    #vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
+    #vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
 
     vgrid = vgrid.permute(0,2,3,1)        
     output = nn.functional.grid_sample(x, vgrid)
