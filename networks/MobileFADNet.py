@@ -14,13 +14,26 @@ from networks.submodules import *
 
 class MobileFADNet(nn.Module):
 
-    def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3, input_img_shape=None):
+    def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3, input_img_shape=None, warp_size=None):
         super(MobileFADNet, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
         self.maxdisp = maxdisp
         self.resBlock = resBlock
+        self.warp_size = warp_size #(1, 3, 576, 960)
+        if warp_size is not None:
+            B, C, H, W = warp_size
+            xx = torch.arange(0, W).cuda()
+            yy = torch.arange(0, H).cuda()
+            xx = xx.view(1,-1).repeat(H,1)
+            yy = yy.view(-1,1).repeat(1,W)
+            xx = xx.view(1,1,H,W).repeat(B,1,1,1)
+            yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+            grid = torch.cat((xx,yy),1).float()
+            self.warp_grid = grid
+        else:
+            self.warp_grid = None
 
         # First Block (DispNetC)
         self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel, input_img_shape=input_img_shape)
@@ -65,7 +78,7 @@ class MobileFADNet(nn.Module):
         #dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
         #resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
         #norm_diff_img0 = self.channelnorm(diff_img0)
-        resampled_img1 = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow)
+        resampled_img1 = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow, warp_grid=self.warp_grid)
         diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
         norm_diff_img0 = channel_length(diff_img0)
 

@@ -295,20 +295,24 @@ def channel_normalize(x):
 def channel_length(x):
     return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True))
 
-def warp_right_to_left(x, disp):
+def warp_right_to_left(x, disp, warp_grid=None):
+    #print('size: ', x.size())
 
     B, C, H, W = x.size()
     # mesh grid
-    xx = torch.arange(0, W, device=disp.device)
-    yy = torch.arange(0, H, device=disp.device)
-    #if x.is_cuda:
-    #    xx = xx.cuda()
-    #    yy = yy.cuda()
-    xx = xx.view(1,-1).repeat(H,1)
-    yy = yy.view(-1,1).repeat(1,W)
-    xx = xx.view(1,1,H,W).repeat(B,1,1,1)
-    yy = yy.view(1,1,H,W).repeat(B,1,1,1)
-    grid = torch.cat((xx,yy),1).float()
+    if warp_grid is not None:
+        grid = warp_grid
+    else:
+        xx = torch.arange(0, W, device=disp.device)
+        yy = torch.arange(0, H, device=disp.device)
+        #if x.is_cuda:
+        #    xx = xx.cuda()
+        #    yy = yy.cuda()
+        xx = xx.view(1,-1).repeat(H,1)
+        yy = yy.view(-1,1).repeat(1,W)
+        xx = xx.view(1,1,H,W).repeat(B,1,1,1)
+        yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+        grid = torch.cat((xx,yy),1).float()
 
     vgrid = Variable(grid)
     vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
@@ -316,15 +320,11 @@ def warp_right_to_left(x, disp):
     # scale grid to [-1,1] 
     vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
     vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
-
     vgrid = vgrid.permute(0,2,3,1)        
+
     output = nn.functional.grid_sample(x, vgrid)
     mask = torch.autograd.Variable(torch.ones_like(x))
     mask = nn.functional.grid_sample(mask, vgrid)
-
-    # if W==128:
-        # np.save('mask.npy', mask.cpu().data.numpy())
-        # np.save('warp.npy', output.cpu().data.numpy())
     
     mask[mask<0.9999] = 0
     mask[mask>0] = 1
