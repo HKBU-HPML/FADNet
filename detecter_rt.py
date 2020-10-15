@@ -19,9 +19,15 @@ from utils.common import count_parameters
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import psutil
+from torch2trt import torch2trt
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
+
+def load_model_trained_with_DP(net, state_dict):
+    own_state = net.state_dict()
+    for name, param in state_dict.items():
+        own_state[name[7:]].copy_(param)
 
 def detect(opt):
 
@@ -40,18 +46,17 @@ def detect(opt):
     # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
         net = build_net(net_name)(192)
-    elif net_name in ["fadnet", "dispnetc"]:
+    elif net_name in ["fadnet", "dispnetc", "mobilefadnet"]:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
-    elif net_name == "mobilefadnet":
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=(1, 6, 576, 960))
 
     if ngpu > 1:
-        net = torch.nn.DataParallel(net, device_ids=devices).cuda()
+        net = torch.nn.DataParallel(net, device_ids=devices)
 
     model_data = torch.load(model)
     print(model_data.keys())
     if 'state_dict' in model_data.keys():
-        net.load_state_dict(model_data['state_dict'])
+        #net.load_state_dict(model_data['state_dict'])
+        load_model_trained_with_DP(net, model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
 
@@ -59,11 +64,14 @@ def detect(opt):
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
     net.eval()
+    net = net.cuda()
+    x = torch.ones((1, 6, 576, 960)).cuda()
+    net_trt = torch2trt(net, [x])
 
     batch_size = int(opt.batchSize)
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
-                        shuffle = False, num_workers = 1, \
+                        shuffle = False, num_workers = 2, \
                         pin_memory = False)
 
     s = time.time()
@@ -78,7 +86,7 @@ def detect(opt):
 
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
 
-        # print('input Shape: {}'.format(input.size()))
+        print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
 
         #output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
@@ -93,12 +101,12 @@ def detect(opt):
 
         with torch.no_grad():
             if opt.net == "psmnet" or opt.net == "ganet":
-                output = net(input_var)
+                output = net_trt(input_var)
                 output = output.unsqueeze(1)
             elif opt.net == "dispnetc":
-                output = net(input_var)[0]
+                output = net_trt(input_var)[0]
             else:
-                output = net(input_var)[-1]
+                output = net_trt(input_var)[-1]
         itime = time.time()
         print('[{}] Inference time:{}'.format(i, itime-iotime))
  
@@ -121,14 +129,14 @@ def detect(opt):
             name_items = sample_batched['img_names'][0][j].split('/')
             # write disparity to file
             output_disp = disp[j]
-            np_disp = disp[j].data.cpu().numpy()
+            #np_disp = disp[j].data.cpu().numpy()
 
             #print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
             save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
             print('Name: {}'.format(save_name))
-            skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
         print('Current batch time used:: {}'.format(time.time()-stime))
 
+            #skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
 
             #save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
             #print('Name: {}'.format(save_name))
