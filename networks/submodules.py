@@ -303,8 +303,8 @@ def warp_right_to_left(x, disp, warp_grid=None):
     if warp_grid is not None:
         grid = warp_grid
     else:
-        xx = torch.arange(0, W, device=disp.device)
-        yy = torch.arange(0, H, device=disp.device)
+        xx = torch.arange(0, W, device=disp.device).float()
+        yy = torch.arange(0, H, device=disp.device).float()
         #if x.is_cuda:
         #    xx = xx.cuda()
         #    yy = yy.cuda()
