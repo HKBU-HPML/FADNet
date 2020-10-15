@@ -19,9 +19,15 @@ from utils.common import count_parameters
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import psutil
+from torch2trt import torch2trt
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
+
+def load_model_trained_with_DP(net, state_dict):
+    own_state = net.state_dict()
+    for name, param in state_dict.items():
+        own_state[name[7:]].copy_(param)
 
 def detect(opt):
 
@@ -43,13 +49,14 @@ def detect(opt):
     elif net_name in ["fadnet", "dispnetc", "mobilefadnet"]:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
 
-    if ngpu > 0:
-        net = torch.nn.DataParallel(net, device_ids=devices).cuda()
+    if ngpu > 1:
+        net = torch.nn.DataParallel(net, device_ids=devices)
 
     model_data = torch.load(model)
     print(model_data.keys())
     if 'state_dict' in model_data.keys():
-        net.load_state_dict(model_data['state_dict'])
+        #net.load_state_dict(model_data['state_dict'])
+        load_model_trained_with_DP(net, model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
 
@@ -57,11 +64,14 @@ def detect(opt):
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
     net.eval()
+    net = net.cuda()
+    x = torch.ones((1, 6, 576, 960)).cuda()
+    net_trt = torch2trt(net, [x])
 
     batch_size = int(opt.batchSize)
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
-                        shuffle = False, num_workers = 1, \
+                        shuffle = False, num_workers = 2, \
                         pin_memory = False)
 
     s = time.time()
@@ -76,7 +86,7 @@ def detect(opt):
 
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
 
-        # print('input Shape: {}'.format(input.size()))
+        print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
 
         #output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
@@ -91,12 +101,12 @@ def detect(opt):
 
         with torch.no_grad():
             if opt.net == "psmnet" or opt.net == "ganet":
-                output = net(input_var)
+                output = net_trt(input_var)
                 output = output.unsqueeze(1)
             elif opt.net == "dispnetc":
-                output = net(input_var)[0]
+                output = net_trt(input_var)[0]
             else:
-                output = net(input_var)[-1]
+                output = net_trt(input_var)[-1]
         itime = time.time()
         print('[{}] Inference time:{}'.format(i, itime-iotime))
  
