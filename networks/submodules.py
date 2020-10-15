@@ -85,7 +85,7 @@ def predict_flow(in_planes, out_planes = 1):
 
 def build_corr(img_left, img_right, max_disp=40, zero_volume=None):
     B, C, H, W = img_left.shape
-    if zero_volume:
+    if zero_volume is not None:
         zero_volume.fill_(0.0)
         volume = zero_volume
     else:

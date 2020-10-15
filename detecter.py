@@ -23,6 +23,12 @@ import psutil
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
 
+
+def load_model_trained_with_DP(net, state_dict):
+    own_state = net.state_dict()
+    for name, param in state_dict.items():
+        own_state[name[7:]].copy_(param)
+
 def detect(opt):
 
     net_name = opt.net
@@ -43,15 +49,20 @@ def detect(opt):
     elif net_name in ["fadnet", "dispnetc"]:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
     elif net_name == "mobilefadnet":
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=(1, 6, 576, 960))
+        #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
+        shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
+        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape)
 
     if ngpu > 1:
-        net = torch.nn.DataParallel(net, device_ids=devices).cuda()
+        net = torch.nn.DataParallel(net, device_ids=devices)
 
     model_data = torch.load(model)
     print(model_data.keys())
     if 'state_dict' in model_data.keys():
-        net.load_state_dict(model_data['state_dict'])
+        if ngpu > 1:
+            net.load_state_dict(model_data['state_dict'])
+        else:
+            load_model_trained_with_DP(net, model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
 
@@ -59,6 +70,7 @@ def detect(opt):
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
     net.eval()
+    net = net.cuda()
 
     batch_size = int(opt.batchSize)
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')

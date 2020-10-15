@@ -23,7 +23,7 @@ class MobileFADNet(nn.Module):
         self.resBlock = resBlock
 
         # First Block (DispNetC)
-        self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel, input_img_shape)
+        self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel, input_img_shape=input_img_shape)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()
