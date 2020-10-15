@@ -61,7 +61,8 @@ class MobileFADNet(nn.Module):
         dispnetc_final_flow = dispnetc_flows[0]
 
         # warp img1 to img0; magnitude of diff between img0 and warped_img1,
-        dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
+        #dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
+        dummy_flow = torch.autograd.Variable(torch.zeros_like(dispnetc_final_flow))
         # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
         dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
         resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
