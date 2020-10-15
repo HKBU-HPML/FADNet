@@ -24,14 +24,14 @@ class MobileFADNet(nn.Module):
         self.warp_size = warp_size #(1, 3, 576, 960)
         if warp_size is not None:
             B, C, H, W = warp_size
-            xx = torch.arange(0, W).cuda()
-            yy = torch.arange(0, H).cuda()
+            xx = torch.arange(0, W).cuda().float()
+            yy = torch.arange(0, H).cuda().float()
             xx = xx.view(1,-1).repeat(H,1)
             yy = yy.view(-1,1).repeat(1,W)
             xx = xx.view(1,1,H,W).repeat(B,1,1,1)
             yy = yy.view(1,1,H,W).repeat(B,1,1,1)
-            grid = torch.cat((xx,yy),1).float()
-            self.warp_grid = grid
+            #grid = torch.cat((xx,yy),1).float()
+            self.warp_grid = (xx, yy)
         else:
             self.warp_grid = None
 
