@@ -73,6 +73,8 @@ def detect(opt):
     x = torch.ones((1, 6, 576, 960)).cuda()
     net_trt = torch2trt(net, [x])
 
+    torch.save(net_trt.state_dict(), 'models/mobilefadnet_trt.pth')
+
     batch_size = int(opt.batchSize)
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
