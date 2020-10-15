@@ -303,31 +303,39 @@ def warp_right_to_left(x, disp, warp_grid=None):
     if warp_grid is not None:
         grid = warp_grid
     else:
-        xx = torch.arange(0, W, device=disp.device)
-        yy = torch.arange(0, H, device=disp.device)
+        xx = torch.arange(0, W, device=disp.device).float()
+        yy = torch.arange(0, H, device=disp.device).float()
         #if x.is_cuda:
         #    xx = xx.cuda()
         #    yy = yy.cuda()
         xx = xx.view(1,-1).repeat(H,1)
         yy = yy.view(-1,1).repeat(1,W)
+
         xx = xx.view(1,1,H,W).repeat(B,1,1,1)
         yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+
+        # apply disparity to x-axis
+        xx = xx + disp
+        xx = 2.0*xx / max(W-1,1)-1.0
+        yy = 2.0*yy / max(H-1,1)-1.0
+
         grid = torch.cat((xx,yy),1).float()
 
     vgrid = Variable(grid)
     #vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
+    #vgrid[:, 0, :, :].add_(disp[:, 0, :, :])
+    vgrid.add_(disp)
 
-    ## scale grid to [-1,1] 
-    #vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
-    #vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
-
+    # scale grid to [-1,1] 
+    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
+    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
     vgrid = vgrid.permute(0,2,3,1)        
     output = nn.functional.grid_sample(x, vgrid)
     mask = torch.autograd.Variable(torch.ones_like(x))
     mask = nn.functional.grid_sample(mask, vgrid)
     
-    #mask[mask<0.9999] = 0
-    #mask[mask>0] = 1
+    mask[mask<0.9999] = 0
+    mask[mask>0] = 1
     
     return output*mask
 

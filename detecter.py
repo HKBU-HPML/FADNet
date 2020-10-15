@@ -139,7 +139,7 @@ def detect(opt):
             #print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
             save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
             print('Name: {}'.format(save_name))
-            #skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
+            skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
         print('Current batch time used:: {}'.format(time.time()-stime))
 
 
