@@ -51,7 +51,8 @@ def detect(opt):
     elif net_name == "mobilefadnet":
         #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
         shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape)
+        warp_size = (opt.batchSize, 3, 576, 960)
+        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
 
     if ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=devices)
