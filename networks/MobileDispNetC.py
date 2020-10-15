@@ -117,6 +117,7 @@ class MobileDispNetC(nn.Module):
 
         # Correlate corr3a_l and corr3a_r
         #out_corr = self.corr(conv3a_l, conv3a_r)
+        #print('shape: ', conv3a_l.shape)
         out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.corr_max_disp, zero_volume=self.corr_zero_volume)
         out_corr = self.corr_activation(out_corr)
         out_conv3a_redir = self.conv_redir(conv3a_l) # 256-32
