@@ -14,7 +14,7 @@ from networks.submodules import *
 
 class MobileFADNet(nn.Module):
 
-    def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3):
+    def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3, input_img_shape=None):
         super(MobileFADNet, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
@@ -23,7 +23,7 @@ class MobileFADNet(nn.Module):
         self.resBlock = resBlock
 
         # First Block (DispNetC)
-        self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel)
+        self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel, input_img_shape)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()

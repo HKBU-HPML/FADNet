@@ -40,10 +40,12 @@ def detect(opt):
     # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
         net = build_net(net_name)(192)
-    elif net_name in ["fadnet", "dispnetc", "mobilefadnet"]:
+    elif net_name in ["fadnet", "dispnetc"]:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
+    elif net_name == "mobilefadnet":
+        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=(1, 6, 576, 960))
 
-    if ngpu > 0:
+    if ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=devices).cuda()
 
     model_data = torch.load(model)
@@ -119,14 +121,14 @@ def detect(opt):
             name_items = sample_batched['img_names'][0][j].split('/')
             # write disparity to file
             output_disp = disp[j]
-            #np_disp = disp[j].data.cpu().numpy()
+            np_disp = disp[j].data.cpu().numpy()
 
             #print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
             save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
             print('Name: {}'.format(save_name))
+            skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
         print('Current batch time used:: {}'.format(time.time()-stime))
 
-            #skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
 
             #save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
             #print('Name: {}'.format(save_name))
