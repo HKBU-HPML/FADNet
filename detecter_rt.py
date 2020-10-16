@@ -29,6 +29,9 @@ def load_model_trained_with_DP(net, state_dict):
     for name, param in state_dict.items():
         own_state[name[7:]].copy_(param)
 
+def check_tensorrt(y, y_trt):
+    print(torch.max(torch.abs(y - y_trt)))
+
 def detect(opt):
 
     net_name = opt.net
@@ -68,17 +71,32 @@ def detect(opt):
     num_of_parameters = count_parameters(net)
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
-    net.eval()
-    net = net.cuda()
-    x = torch.ones((1, 6, 576, 960)).cuda()
-    net_trt = torch2trt(net, [x])
-
     batch_size = int(opt.batchSize)
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
-                        shuffle = False, num_workers = 2, \
+                        shuffle = False, num_workers = 1, \
                         pin_memory = False)
 
+
+    net.eval()
+    net.dispnetc.eval()
+    net.dispnetres.eval()
+    net = net.cuda()
+
+    for i, sample_batched in enumerate(test_loader):
+        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        num_of_samples = input.size(0)
+        input = input.cuda()
+        x = input
+        break
+
+    #x = torch.rand((1, 6, 576, 960)).cuda()
+    #x = torch.zeros((1, 6, 576, 960)).cuda()
+    net_trt = torch2trt(net, [x], fp16_mode=False)
+
+    torch.save(net_trt.state_dict(), 'models/mobilefadnet_trt.pth')
+
+    
     s = time.time()
 
     avg_time = []
@@ -124,6 +142,7 @@ def detect(opt):
                     (ct.memory_allocated()/mbytes, ct.max_memory_allocated()/mbytes, ct.memory_cached()/mbytes, ct.max_memory_cached()/mbytes, process.memory_info().rss/mbytes))
                 avg_time = []
 
+        print('[%d] output shape:' % i, output.size())
         output = scale_disp(output, (output.size()[0], 540, 960))
         disp = output[:, 0, :, :]
         ptime = time.time()
@@ -134,14 +153,14 @@ def detect(opt):
             name_items = sample_batched['img_names'][0][j].split('/')
             # write disparity to file
             output_disp = disp[j]
-            #np_disp = disp[j].data.cpu().numpy()
+            np_disp = disp[j].float().cpu().numpy()
 
-            #print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
+            print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
             save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
             print('Name: {}'.format(save_name))
+            skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
         print('Current batch time used:: {}'.format(time.time()-stime))
 
-            #skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
 
             #save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
             #print('Name: {}'.format(save_name))

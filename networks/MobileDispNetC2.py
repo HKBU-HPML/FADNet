@@ -9,10 +9,10 @@ from torch.nn.init import kaiming_normal
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
 from networks.submodules import *
 
-class MobileDispNetC(nn.Module):
+class MobileDispNetC2(nn.Module):
 
     def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3, get_features = False, input_img_shape=None):
-        super(MobileDispNetC, self).__init__()
+        super(MobileDispNetC2, self).__init__()
         
         self.batchNorm = batchNorm
         self.input_channel = input_channel
@@ -21,7 +21,7 @@ class MobileDispNetC(nn.Module):
         self.relu = nn.ReLU(inplace=False)
         self.corr_max_disp = 40
         if input_img_shape is not None:
-            self.corr_zero_volume = torch.zeros(input_img_shape, dtype=torch.float32).cuda()
+            self.corr_zero_volume = torch.zeros(input_img_shape).cuda()
         else:
             self.corr_zero_volume = None
 
