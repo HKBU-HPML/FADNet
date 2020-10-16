@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import psutil
 from torch2trt import torch2trt
-from networks.submodules import build_corr, channel_length
+from networks.submodules import build_corr, channel_length, warp_right_to_left
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
@@ -48,13 +48,21 @@ def trt_transform(net):
     dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
     dispnetc_final_flow = dispnetc_flows[0]
 
-    diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+    #diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+    #norm_diff_img0 = channel_length(diff_img0)
+
+    ## concat img0, img1, img1->img0, flow, diff-mag
+    #inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+    resampled_img1 = warp_right_to_left(x[:, 3:, :, :], -dispnetc_final_flow)
+    diff_img0 = x[:, :3, :, :] - resampled_img1
     norm_diff_img0 = channel_length(diff_img0)
 
     # concat img0, img1, img1->img0, flow, diff-mag
-    inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+    inputs_net2 = torch.cat((x, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
 
-    net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+
+    #net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+    net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_flows[0], dispnetc_flows[1],dispnetc_flows[2],dispnetc_flows[3],dispnetc_flows[4],dispnetc_flows[5],dispnetc_flows[6]])
     return net
 
 def detect(opt):

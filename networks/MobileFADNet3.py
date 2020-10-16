@@ -9,7 +9,8 @@ from torch.nn.init import kaiming_normal
 from layers_package.resample2d_package.resample2d import Resample2d
 from layers_package.channelnorm_package.channelnorm import ChannelNorm
 from networks.MobileDispNetC3 import MobileExtractNet, MobileDispCUNet
-from networks.MobileDispNetRes3 import MobileDispNetRes
+#from networks.MobileDispNetRes3 import MobileDispNetRes
+from networks.MobileDispNetRes import MobileDispNetRes
 from networks.submodules import *
 
 class MobileFADNet(nn.Module):
@@ -77,7 +78,8 @@ class MobileFADNet(nn.Module):
         inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
 
         # dispnetres
-        dispnetres_flows = self.dispnetres(inputs_net2, dispnetc_final_flow)
+        #dispnetres_flows = self.dispnetres(inputs_net2, dispnetc_final_flow)
+        dispnetres_flows = self.dispnetres(inputs_net2, dispnetc_flows[0], dispnetc_flows[1],dispnetc_flows[2],dispnetc_flows[3],dispnetc_flows[4],dispnetc_flows[5],dispnetc_flows[6])
         index = 0
         #print('Index: ', index)
         dispnetres_final_flow = dispnetres_flows[index]
