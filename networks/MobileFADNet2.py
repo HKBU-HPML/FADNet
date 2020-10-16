@@ -8,14 +8,14 @@ from torch.nn import init
 from torch.nn.init import kaiming_normal
 from layers_package.resample2d_package.resample2d import Resample2d
 from layers_package.channelnorm_package.channelnorm import ChannelNorm
-from networks.MobileDispNetC import MobileDispNetC
-from networks.MobileDispNetRes import MobileDispNetRes
+from networks.MobileDispNetC2 import MobileDispNetC2
+from networks.MobileDispNetRes2 import MobileDispNetRes2
 from networks.submodules import *
 
-class MobileFADNet(nn.Module):
+class MobileFADNet2(nn.Module):
 
     def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3, input_img_shape=None, warp_size=None):
-        super(MobileFADNet, self).__init__()
+        super(MobileFADNet2, self).__init__()
         self.input_channel = input_channel
         self.batchNorm = batchNorm
         self.lastRelu = lastRelu
@@ -24,19 +24,19 @@ class MobileFADNet(nn.Module):
         self.warp_size = warp_size #(1, 3, 576, 960)
         if warp_size is not None:
             B, C, H, W = warp_size
-            xx = torch.arange(0, W).float().cuda()
-            yy = torch.arange(0, H).float().cuda()
+            xx = torch.arange(0, W).cuda().float()
+            yy = torch.arange(0, H).cuda().float()
             xx = xx.view(1,-1).repeat(H,1)
             yy = yy.view(-1,1).repeat(1,W)
             xx = xx.view(1,1,H,W).repeat(B,1,1,1)
             yy = yy.view(1,1,H,W).repeat(B,1,1,1)
-            yy = 2.0*yy / max(H-1,1)-1.0
+            #grid = torch.cat((xx,yy),1).float()
             self.warp_grid = (xx, yy)
         else:
             self.warp_grid = None
 
         # First Block (DispNetC)
-        self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel, input_img_shape=input_img_shape)
+        self.dispnetc = MobileDispNetC2(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel, input_img_shape=input_img_shape)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()
@@ -44,7 +44,7 @@ class MobileFADNet(nn.Module):
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
         in_planes = 3 * 3 + 1 + 1
-        self.dispnetres = MobileDispNetRes(in_planes, self.batchNorm, lastRelu=self.lastRelu, maxdisp=self.maxdisp, input_channel=input_channel)
+        self.dispnetres = MobileDispNetRes2(in_planes, self.batchNorm, lastRelu=self.lastRelu, maxdisp=self.maxdisp, input_channel=input_channel)
 
         self.relu = nn.ReLU(inplace=False)
 

@@ -1,10 +1,13 @@
 net=mobilefadnet
+#net=fadnet
 dataset=sceneflow
 
-model=models/mobilefadnet-sceneflow/model_best.pth
-outf=detect_results/${net}-${dataset}/
+model=models/${net}-sceneflow-v1/model_best.pth
+outf=detect_results/${net}-${dataset}-trt/
+#outf=detect_results/${net}-${dataset}/
+filelist=lists/nano_test.list
 
-filelist=lists/FlyingThings3D_release_TEST.list
+#filelist=lists/FlyingThings3D_release_TEST.list
 #filelist=lists/nano_fake.list
 filepath=/datasets
 #filepath=./data
