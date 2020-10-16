@@ -50,8 +50,8 @@ def detect(opt):
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
     elif net_name == "mobilefadnet":
         #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
-        shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
-        warp_size = (opt.batchSize, 3, 576, 960)
+        shape = None #(opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
+        warp_size = None #(opt.batchSize, 3, 576, 960)
         net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
 
     if ngpu > 1:
@@ -74,10 +74,12 @@ def detect(opt):
     net = net.cuda()
 
     batch_size = int(opt.batchSize)
-    test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
+    scale_size = (576, 960)
+    #scale_size = (576+128, 960+128)
+    test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect', scale_size=scale_size)
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
-                        shuffle = False, num_workers = 1, \
-                        pin_memory = False)
+                        shuffle = False, num_workers = 2, \
+                        pin_memory = True)
 
     s = time.time()
 
@@ -124,6 +126,7 @@ def detect(opt):
                     (ct.memory_allocated()/mbytes, ct.max_memory_allocated()/mbytes, ct.memory_cached()/mbytes, ct.max_memory_cached()/mbytes, process.memory_info().rss/mbytes))
                 avg_time = []
 
+        print('[{}] disp norm:{}'.format(i, output.norm()))
         output = scale_disp(output, (output.size()[0], 540, 960))
         disp = output[:, 0, :, :]
         ptime = time.time()
@@ -136,7 +139,7 @@ def detect(opt):
             output_disp = disp[j]
             np_disp = disp[j].data.cpu().numpy()
 
-            #print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
+            print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
             save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
             print('Name: {}'.format(save_name))
             skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
