@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import psutil
 from torch2trt import torch2trt
+from networks.submodules import build_corr, channel_length
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
@@ -31,6 +32,30 @@ def load_model_trained_with_DP(net, state_dict):
 
 def check_tensorrt(y, y_trt):
     print(torch.max(torch.abs(y - y_trt)))
+
+def trt_transform(net):
+    x = torch.rand((1, 6, 576, 960)).cuda()
+    net.extract_network = torch2trt(net.extract_network, [x])
+
+    # extract features
+    conv1_l, conv2_l, conv3a_l, conv3a_r = net.extract_network(x)
+
+    # build corr
+    out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+
+    # generate first-stage flows
+    net.dispcunet = torch2trt(net.dispcunet, [x, conv1_l, conv2_l, conv3a_l, out_corr])
+    dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
+    dispnetc_final_flow = dispnetc_flows[0]
+
+    diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+    norm_diff_img0 = channel_length(diff_img0)
+
+    # concat img0, img1, img1->img0, flow, diff-mag
+    inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+
+    net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+    return net
 
 def detect(opt):
 
@@ -79,23 +104,20 @@ def detect(opt):
 
 
     net.eval()
-    net.dispnetc.eval()
-    net.dispnetres.eval()
+    #net.dispnetc.eval()
+    #net.dispnetres.eval()
     net = net.cuda()
 
-    for i, sample_batched in enumerate(test_loader):
-        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-        num_of_samples = input.size(0)
-        input = input.cuda()
-        x = input
-        break
+    #for i, sample_batched in enumerate(test_loader):
+    #    input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+    #    num_of_samples = input.size(0)
+    #    input = input.cuda()
+    #    x = input
+    #    break
 
-    #x = torch.rand((1, 6, 576, 960)).cuda()
-    #x = torch.zeros((1, 6, 576, 960)).cuda()
-    net_trt = torch2trt(net, [x], fp16_mode=False)
+    net_trt = trt_transform(net)
 
     torch.save(net_trt.state_dict(), 'models/mobilefadnet_trt.pth')
-
     
     s = time.time()
 
