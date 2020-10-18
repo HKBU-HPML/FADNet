@@ -3,8 +3,8 @@ net=mobilefadnet
 dataset=sceneflow
 
 model=models/${net}-sceneflow-v3/model_best.pth
-#outf=detect_results/${net}-${dataset}-trt/
-outf=detect_results/${net}-${dataset}/
+outf=detect_results/${net}-${dataset}-trt/
+#outf=detect_results/${net}-${dataset}/
 filelist=lists/nano_test.list
 
 #filelist=lists/FlyingThings3D_release_TEST.list
