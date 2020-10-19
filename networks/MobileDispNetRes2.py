@@ -12,10 +12,10 @@ from torch.nn.init import kaiming_normal
 from networks.submodules import *
 
 
-class MobileDispNetRes2(nn.Module):
+class MobileDispNetRes(nn.Module):
 
     def __init__(self, in_planes, batchNorm=True, lastRelu=False, maxdisp=-1, input_channel=3):
-        super(MobileDispNetRes2, self).__init__()
+        super(MobileDispNetRes, self).__init__()
         
         self.input_channel = input_channel
         self.batchNorm = batchNorm
@@ -84,10 +84,11 @@ class MobileDispNetRes2(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
         
-    def forward(self, inputs, get_feature=False):
+    #def forward(self, inputs, get_feature=False):
+    def forward(self, input, base_flow0, base_flow1, base_flow2, base_flow3, base_flow4, base_flow5, base_flow6, get_feature=False):
 
-        input = inputs[0]
-        base_flow = inputs[1]
+        #input = inputs[0]
+        #base_flow = inputs[1]
 
         conv1 = self.conv1(input) # 11-16
         conv2 = self.conv2(conv1) # 16-32
@@ -97,7 +98,7 @@ class MobileDispNetRes2(nn.Module):
         conv6a = self.conv6(conv5a) # 256-512
 
         pr6_res = self.pred_res6(conv6a) # 256-1
-        pr6 = pr6_res + base_flow[6] # 1-1
+        pr6 = pr6_res + base_flow6 #base_flow[6] # 1-1
 
         upconv5 = self.upconv5(conv6a) # 512-256
         upflow6 = self.upflow6to5(pr6) # 1-1
@@ -105,7 +106,7 @@ class MobileDispNetRes2(nn.Module):
         iconv5 = self.iconv5(concat5) # 256+1+256-256
 
         pr5_res = self.pred_res5(iconv5) # 256-1
-        pr5 = pr5_res + base_flow[5] # 1-1
+        pr5 = pr5_res + base_flow5 #[5] # 1-1
 
         upconv4 = self.upconv4(iconv5) # 256-128
         upflow5 = self.upflow5to4(pr5) # 1-1
@@ -113,7 +114,7 @@ class MobileDispNetRes2(nn.Module):
         iconv4 = self.iconv4(concat4) # 128+1+128-128
 
         pr4_res = self.pred_res4(iconv4)
-        pr4 = pr4_res + base_flow[4]
+        pr4 = pr4_res + base_flow4 #[4]
         
         upconv3 = self.upconv3(iconv4)
         upflow4 = self.upflow4to3(pr4)
@@ -121,7 +122,7 @@ class MobileDispNetRes2(nn.Module):
         iconv3 = self.iconv3(concat3)
 
         pr3_res = self.pred_res3(iconv3)
-        pr3 = pr3_res + base_flow[3]
+        pr3 = pr3_res + base_flow3 #[3]
 
         upconv2 = self.upconv2(iconv3)
         upflow3 = self.upflow3to2(pr3)
@@ -129,7 +130,7 @@ class MobileDispNetRes2(nn.Module):
         iconv2 = self.iconv2(concat2)
 
         pr2_res = self.pred_res2(iconv2)
-        pr2 = pr2_res + base_flow[2]
+        pr2 = pr2_res + base_flow2#[2]
 
         upconv1 = self.upconv1(iconv2)
         upflow2 = self.upflow2to1(pr2)
@@ -137,7 +138,7 @@ class MobileDispNetRes2(nn.Module):
         iconv1 = self.iconv1(concat1)
 
         pr1_res = self.pred_res1(iconv1)
-        pr1 = pr1_res + base_flow[1]
+        pr1 = pr1_res + base_flow1 #[1]
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
@@ -147,7 +148,7 @@ class MobileDispNetRes2(nn.Module):
         # predict flow residual
         if self.maxdisp == -1:
             pr0_res = self.pred_res0(iconv0)
-            pr0 = pr0_res + base_flow[0]
+            pr0 = pr0_res + base_flow0 #[0]
 
             if self.lastRelu:
                 pr0 = self.relu(pr0)
