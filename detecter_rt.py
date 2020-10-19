@@ -35,7 +35,9 @@ def check_tensorrt(y, y_trt):
 
 def trt_transform(net):
     x = torch.rand((1, 6, 576, 960)).cuda()
+    print('start to transform extract_network...')
     net.extract_network = torch2trt(net.extract_network, [x])
+    print('extract_network tranformed')
 
     # extract features
     conv1_l, conv2_l, conv3a_l, conv3a_r = net.extract_network(x)
@@ -44,7 +46,9 @@ def trt_transform(net):
     out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
 
     # generate first-stage flows
+    print('start to transform dispcunet...')
     net.dispcunet = torch2trt(net.dispcunet, [x, conv1_l, conv2_l, conv3a_l, out_corr])
+    print('dispcunet tranformed')
     dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
     dispnetc_final_flow = dispnetc_flows[0]
 
@@ -53,6 +57,7 @@ def trt_transform(net):
 
     ## concat img0, img1, img1->img0, flow, diff-mag
     #inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+    print('x.shape: ', x.size())
     resampled_img1 = warp_right_to_left(x[:, 3:, :, :], -dispnetc_final_flow)
     diff_img0 = x[:, :3, :, :] - resampled_img1
     norm_diff_img0 = channel_length(diff_img0)
@@ -62,7 +67,9 @@ def trt_transform(net):
 
 
     #net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+    print('start to transform dispnetres...')
     net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_flows[0], dispnetc_flows[1],dispnetc_flows[2],dispnetc_flows[3],dispnetc_flows[4],dispnetc_flows[5],dispnetc_flows[6]])
+    print('dispnetres transformed')
     return net
 
 def detect(opt):
