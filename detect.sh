@@ -1,8 +1,8 @@
-net=mobilefadnet
+net=slightfadnet
 #net=fadnet
 dataset=sceneflow
 
-model=models/${net}-sceneflow-v3/model_best.pth
+model=models/${net}-sceneflow-v1/model_best.pth
 outf=detect_results/${net}-${dataset}-trt/
 #outf=detect_results/${net}-${dataset}/
 filelist=lists/nano_test.list
