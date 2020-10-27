@@ -138,25 +138,34 @@ def detect(opt):
 
     avg_time = []
     display = 50
-    warmup = 10
+    warmup = 2
     for i, sample_batched in enumerate(test_loader):
         #if i > 215:
         #    break
         stime = time.time()
 
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
-
         print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
-
-        #output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
-
         input = input.cuda()
+        break
+
+    iterations = 14 + warmup
+    #iterations = len(test_loader) - warmup
+    #for i, sample_batched in enumerate(test_loader):
+    for i in range(iterations):
+        stime = time.time()
+
+        input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+        print('input Shape: {}'.format(input.size()))
+        num_of_samples = input.size(0)
+        input = input.cuda()
+
         input_var = input #torch.autograd.Variable(input, volatile=True)
         iotime = time.time()
         print('[{}] IO time:{}'.format(i, iotime-stime))
 
-        if i > warmup:
+        if i == warmup:
             ss = time.time()
 
         with torch.no_grad():
@@ -180,8 +189,8 @@ def detect(opt):
                 avg_time = []
 
         print('[%d] output shape:' % i, output.size())
-        output = scale_disp(output, (output.size()[0], 540, 960))
-        disp = output[:, 0, :, :]
+        #output = scale_disp(output, (output.size()[0], 540, 960))
+        #disp = output[:, 0, :, :]
         ptime = time.time()
         print('[{}] Post-processing time:{}'.format(i, ptime-itime))
 
@@ -206,7 +215,7 @@ def detect(opt):
             
 
 
-    print('Evaluation time used: {}'.format(time.time()-s))
+    print('Evaluation time used: {}, avg iter: {}'.format(time.time()-ss, (time.time()-ss)/iterations))
         
 
 if __name__ == '__main__':
