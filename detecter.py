@@ -46,13 +46,13 @@ def detect(opt):
     # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
         net = build_net(net_name)(192)
-    elif net_name in ["fadnet", "dispnetc"]:
+    elif net_name in ["fadnet", "dispnetc", "mobilefadnet", "slightfadnet"]:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
-    elif net_name == "mobilefadnet":
-        #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
-        shape = None #(opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
-        warp_size = None #(opt.batchSize, 3, 576, 960)
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
+    #elif net_name == "mobilefadnet":
+    #    #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
+    #    shape = None #(opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
+    #    warp_size = None #(opt.batchSize, 3, 576, 960)
+    #    net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
 
     if ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=devices)
@@ -132,17 +132,17 @@ def detect(opt):
         ptime = time.time()
         print('[{}] Post-processing time:{}'.format(i, ptime-itime))
 
-        for j in range(num_of_samples):
+        #for j in range(num_of_samples):
 
-            name_items = sample_batched['img_names'][0][j].split('/')
-            # write disparity to file
-            output_disp = disp[j]
-            np_disp = disp[j].data.cpu().numpy()
+        #    name_items = sample_batched['img_names'][0][j].split('/')
+        #    # write disparity to file
+        #    output_disp = disp[j]
+        #    np_disp = disp[j].data.cpu().numpy()
 
-            print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
-            save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
-            print('Name: {}'.format(save_name))
-            skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
+        #    print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
+        #    save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
+        #    print('Name: {}'.format(save_name))
+        #    skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
         print('Current batch time used:: {}'.format(time.time()-stime))
 
 
