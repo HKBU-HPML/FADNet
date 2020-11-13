@@ -4,27 +4,15 @@ import math
 import numpy as np
 import torch.nn.functional as F
 
-def EPE(input_flow, target_flow):
-    # print(input_flow.size(), target_flow.size())
-    # print(target_flow - input_flow)
-    #EPE_map = torch.abs(target_flow - input_flow + 1e-16)# / #, 2, 1)
-    #EPE_map = torch.exp(target_flow - input_flow + 1e-16)# / #, 2, 1)
-    # print(target_flow.sum())
 
-    # shaohuai histogram
-    #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
-    #EPE_map = torch.abs(target_flow - input_flow + 1e-16)# / #, 2, 1)
-    #hist = np.histogram(EPE_map.data.cpu().numpy(), bins=10)
-    #print(hist)
-    # print(input_flow.sum())
-    #thres = 20
-    #bg_valid = target_flow <= thres
-    #fg_valid = (target_flow > thres) & (target_flow < 192)
-
-    #return 1.0 * F.smooth_l1_loss(input_flow[bg_valid], target_flow[bg_valid], size_average=True) + 0.3 * F.smooth_l1_loss(input_flow[fg_valid], target_flow[fg_valid], size_average=True)
-    
+def SL_EPE(input_flow, target_flow):
     target_valid = target_flow < 192
     return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
+
+def EPE(input_flow, target_flow):
+    
+    target_valid = target_flow < 192
+    return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
     #return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
 
@@ -89,7 +77,7 @@ class MultiScaleLoss(nn.Module):
                     input_ = input_[mask]
                     target_ = target_[mask]
 
-                EPE_ = EPE(input_, target_)
+                EPE_ = SL_EPE(input_, target_)
                 out += self.weights[i] * EPE_
         else:
             out = self.loss(input, self.multiScales[0](target))
