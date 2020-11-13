@@ -7,8 +7,8 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torchvision.utils import save_image
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
-from layers_package.channelnorm_package.channelnorm import ChannelNorm
-from layers_package.resample2d_package.resample2d import Resample2d
+#from layers_package.channelnorm_package.channelnorm import ChannelNorm
+#from layers_package.resample2d_package.resample2d import Resample2d
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):

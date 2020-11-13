@@ -222,6 +222,7 @@ class DisparityTrainer(object):
 
             input = torch.cat((left_input, right_input), 1)
             input_var = torch.autograd.Variable(input, requires_grad=False)
+            input_var = F.interpolate(input_var, (576, 960), mode='bilinear')
 
             target_disp = sample_batched['gt_disp']
             target_disp = target_disp.cuda()

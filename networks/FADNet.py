@@ -6,8 +6,8 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-from layers_package.resample2d_package.resample2d import Resample2d
-from layers_package.channelnorm_package.channelnorm import ChannelNorm
+#from layers_package.resample2d_package.resample2d import Resample2d
+#from layers_package.channelnorm_package.channelnorm import ChannelNorm
 from networks.DispNetC import DispNetC
 from networks.DispNetRes import DispNetRes
 from networks.submodules import *
@@ -25,9 +25,9 @@ class FADNet(nn.Module):
         # First Block (DispNetC)
         self.dispnetc = DispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel)
 
-        # warp layer and channelnorm layer
-        self.channelnorm = ChannelNorm()
-        self.resample1 = Resample2d()
+        ## warp layer and channelnorm layer
+        #self.channelnorm = ChannelNorm()
+        #self.resample1 = Resample2d()
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
         in_planes = 3 * 3 + 1 + 1
