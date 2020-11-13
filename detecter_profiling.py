@@ -18,6 +18,8 @@ from utils.preprocess import scale_disp, save_pfm
 from utils.common import count_parameters 
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import torch.autograd.profiler as profiler
+from torchprofile import profile_macs
 import psutil
 
 process = psutil.Process(os.getpid())
@@ -48,11 +50,6 @@ def detect(opt):
         net = build_net(net_name)(192)
     elif net_name in ["fadnet", "dispnetc", "mobilefadnet", "slightfadnet"]:
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
-    #elif net_name == "mobilefadnet":
-    #    #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
-    #    shape = None #(opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
-    #    warp_size = None #(opt.batchSize, 3, 576, 960)
-    #    net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
 
     if ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=devices)
@@ -78,7 +75,7 @@ def detect(opt):
     #scale_size = (576+128, 960+128)
     test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect', scale_size=scale_size)
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
-                        shuffle = False, num_workers = 2, \
+                        shuffle = False, num_workers = 0, \
                         pin_memory = True)
 
     s = time.time()
@@ -87,19 +84,14 @@ def detect(opt):
     display = 50
     warmup = 10
     for i, sample_batched in enumerate(test_loader):
-        #if i > 215:
-        #    break
         stime = time.time()
 
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
 
-        # print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
 
-        #output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
-
         input = input.cuda()
-        input_var = input #torch.autograd.Variable(input, volatile=True)
+        input_var = input 
         iotime = time.time()
         print('[{}] IO time:{}'.format(i, iotime-stime))
 
@@ -117,42 +109,23 @@ def detect(opt):
         torch.cuda.synchronize()
         itime = time.time()
         print('[{}] Inference time:{}'.format(i, itime-iotime))
- 
-        if i > warmup:
-            avg_time.append((time.time() - ss))
-            if (i - warmup) % display == 0:
-                print('Average inference time: %f' % np.mean(avg_time))
-                mbytes = 1024.*1024
-                print('GPU memory usage memory_allocated: %d MBytes, max_memory_allocated: %d MBytes, memory_cached: %d MBytes, max_memory_cached: %d MBytes, CPU memory usage: %d MBytes' %  \
-                    (ct.memory_allocated()/mbytes, ct.max_memory_allocated()/mbytes, ct.memory_cached()/mbytes, ct.max_memory_cached()/mbytes, process.memory_info().rss/mbytes))
-                avg_time = []
 
         print('[{}] disp norm:{}'.format(i, output.norm()))
         output = scale_disp(output, (output.size()[0], 540, 960))
         disp = output[:, 0, :, :]
         ptime = time.time()
         print('[{}] Post-processing time:{}'.format(i, ptime-itime))
-
-        #for j in range(num_of_samples):
-
-        #    name_items = sample_batched['img_names'][0][j].split('/')
-        #    # write disparity to file
-        #    output_disp = disp[j]
-        #    np_disp = disp[j].data.cpu().numpy()
-
-        #    print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
-        #    save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset
-        #    print('Name: {}'.format(save_name))
-        #    skimage.io.imsave(os.path.join(result_path, save_name),(np_disp*256).astype('uint16'))
         print('Current batch time used:: {}'.format(time.time()-stime))
+        break
 
+    macs = profile_macs(net, input_var)
+    print('macs: ', macs)
 
-            #save_name = '_'.join(name_items).replace("png", "pfm")# for girl02 dataset
-            #print('Name: {}'.format(save_name))
-            #np_disp = np.flip(np_disp, axis=0)
-            #save_pfm('{}/{}'.format(result_path, save_name), np_disp)
-            
-
+    #with profiler.profile(record_shapes=True, use_cuda=True) as prof:
+    #    with profiler.record_function("model_inference"):
+    #        net(input_var)
+    #    torch.cuda.synchronize()
+    #    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
     print('Evaluation time used: {}'.format(time.time()-s))
         

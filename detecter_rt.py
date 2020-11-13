@@ -176,6 +176,7 @@ def detect(opt):
                 output = net_trt(input_var)[0]
             else:
                 output = net_trt(input_var)[-1]
+        torch.cuda.synchronize()
         itime = time.time()
         print('[{}] Inference time:{}'.format(i, itime-iotime))
  

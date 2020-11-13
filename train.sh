@@ -1,7 +1,8 @@
 dnn="${dnn:-fadnet}"
 source exp_configs/$dnn.conf
 
-python -W ignore main.py --cuda --net $net --loss $loss --lr $lr \
+PY=/home/esetstore/fadnet/bin/python
+$PY -W ignore main.py --cuda --net $net --loss $loss --lr $lr \
                --outf $outf_model --logFile $logf \
                --devices $devices --batch_size $batchSize \
                --datapath $datapath \

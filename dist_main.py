@@ -9,6 +9,7 @@ import shutil
 
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+import horovod.torch as hvd
 
 from utils.common import *
 from dltrainer import DisparityTrainer
@@ -16,6 +17,7 @@ from net_builder import SUPPORT_NETS
 from losses.multiscaleloss import multiscaleloss
 
 cudnn.benchmark = True
+hvd.init()
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
     #if state['epoch'] % 10 == 0:
@@ -25,6 +27,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
         #shutil.copyfile(os.path.join(opt.outf,filename), os.path.join(opt.outf,'model_best.pth'))
 
 def main(opt):
+
+    rank = hvd.rank()
+    ngpu= hvd.size()
+    torch.cuda.set_device(rank%opt.nwpernode)
 
     # load the training loss scheme
     loss_json = load_loss_scheme(opt.loss)
@@ -36,8 +42,15 @@ def main(opt):
 
     #high_res_EPE = multiscaleloss(scales=1, downscale=1, weights=(1), loss='L1', sparse=False)
     # initialize a trainer
-    devices = [int(item) for item in opt.devices.split(',')]
-    trainer = DisparityTrainer(opt.net, opt.lr, devices, opt.dataset, opt.trainlist, opt.vallist, opt.datapath, opt.batch_size, opt.maxdisp, opt.model, ngpu=len(devices))
+    trainer = DisparityTrainer(opt.net, opt.lr, [0], opt.dataset, opt.trainlist, opt.vallist, opt.datapath, opt.batch_size, opt.maxdisp, opt.model, ngpu=ngpu, rank=rank, hvd=True)
+
+    logger.info('Broadcast parameters....')
+    hvd.broadcast_parameters(trainer.net.state_dict(), root_rank=0)
+    logger.info('Broadcast parameters finished....')
+
+
+    optimizer = hvd.DistributedOptimizer(trainer.optimizer, named_parameters=trainer.net.named_parameters())
+    trainer.optimizer = optimizer
 
     # validate the pretrained model on test data
     best_EPE = -1
@@ -57,26 +70,31 @@ def main(opt):
         logger.info('\t'.join(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE', 'lr']))
         for i in range(start_epoch, end_epoch):
             avg_loss, avg_EPE = trainer.train_one_epoch(i)
-            val_EPE = trainer.validate()
-            is_best = best_EPE < 0 or val_EPE < best_EPE
-            if is_best:
-                best_EPE = val_EPE
+            if rank == 0:
+                with torch.no_grad():
+                    val_EPE = trainer.validate()
+                is_best = best_EPE < 0 or val_EPE < best_EPE
+                if is_best:
+                    best_EPE = val_EPE
 
-            save_checkpoint({
-                'round': r + 1,
-                'epoch': i + 1,
-                'arch': 'dispnet',
-                'state_dict': trainer.get_model(),
-                'best_EPE': best_EPE,    
-            }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
+                save_checkpoint({
+                    'round': r + 1,
+                    'epoch': i + 1,
+                    'arch': 'dispnet',
+                    'state_dict': trainer.get_model(),
+                    'best_EPE': best_EPE,    
+                }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
         
-            logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(avg_EPE), str(val_EPE), str(trainer.current_lr)]))
+                logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(avg_EPE), str(val_EPE), str(trainer.current_lr)]))
         start_epoch = 0
 
 
 if __name__ == '__main__':
+    #torch.multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', type=str, help='indicates the name of net', default='simplenet', choices=SUPPORT_NETS)
+    parser.add_argument('--ngpus', type=int, default=1, help='# of GPUs per node')
+    parser.add_argument('--nwpernode', type=int, default=4, help='Number of workers per node')
     parser.add_argument('--loss', type=str, help='indicates the loss scheme', default='simplenet_flying')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
     parser.add_argument('--batch_size', type=int, default=8, help='input batch size')
@@ -105,7 +123,8 @@ if __name__ == '__main__':
         os.makedirs(opt.outf)
     except OSError:
         pass
-    hdlr = logging.FileHandler(opt.logFile)
+    logfile = opt.logFile.replace('.log', '-%d.log' % hvd.rank())
+    hdlr = logging.FileHandler(logfile)
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr) 
     logger.info('Configurations: %s', opt)

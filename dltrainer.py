@@ -17,15 +17,17 @@ from utils.preprocess import scale_disp
 import skimage
 
 class DisparityTrainer(object):
-    def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
+    def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None, ngpu=1, rank=0, hvd=False):
         super(DisparityTrainer, self).__init__()
         self.net_name = net_name
         self.lr = lr
         self.current_lr = lr
         self.devices = devices
-        self.devices = [int(item) for item in devices.split(',')]
-        ngpu = len(devices)
+        #self.devices = [int(item) for item in devices.split(',')]
+        #ngpu = len(devices)
         self.ngpu = ngpu
+        self.rank = rank
+        self.hvd = hvd
         self.trainlist = trainlist
         self.vallist = vallist
         self.dataset = dataset
@@ -50,11 +52,20 @@ class DisparityTrainer(object):
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
+        train_sampler = None
+        shuffle = True
+        if self.ngpu > 1: 
+            train_sampler = torch.utils.data.distributed.DistributedSampler(
+                train_dataset, num_replicas=self.ngpu, rank=self.rank)
+            train_sampler.set_epoch(0)
+            shuffle = False
+        self.train_sampler = train_sampler
+
         self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
-                                shuffle = True, num_workers = datathread, \
-                                pin_memory = True)
+                                shuffle = shuffle, num_workers = datathread, \
+                                pin_memory = True, sampler=train_sampler)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size // 4, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size, \
                                 shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
@@ -70,7 +81,7 @@ class DisparityTrainer(object):
 
         self.is_pretrain = False
 
-        if self.ngpu > 1:
+        if self.ngpu > 1 and not self.hvd:
             self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
         else:
             self.net.cuda()
@@ -122,6 +133,8 @@ class DisparityTrainer(object):
         self.net.train()
         end = time.time()
         cur_lr = self.adjust_learning_rate(epoch)
+        if self.train_sampler is not None:
+            self.train_sampler.set_epoch(epoch)
         logger.info("learning rate of epoch %d: %f." % (epoch, cur_lr))
 
         for i_batch, sample_batched in enumerate(self.train_loader):
