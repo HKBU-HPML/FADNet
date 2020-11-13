@@ -10,6 +10,7 @@ from utils.preprocess import *
 from torchvision import transforms
 import time
 from dataloader.EXRloader import load_exr
+import torch.nn.functional as F
 
 class SceneFlowDataset(Dataset):
 
@@ -109,13 +110,14 @@ class SceneFlowDataset(Dataset):
         #print("load data in %f s." % (time.time() - s))
 
         s = time.time()
-        if self.phase == 'detect' or self.phase == 'test':
-            img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
-            img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
+
+        #if self.phase == 'detect' or self.phase == 'test':
+            #img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
+            #img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
 
             # change image pixel value type ot float32
-            img_left = img_left.astype(np.float32)
-            img_right = img_right.astype(np.float32)
+            #img_left = img_left.astype(np.float32)
+            #img_right = img_right.astype(np.float32)
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
 
@@ -126,6 +128,10 @@ class SceneFlowDataset(Dataset):
 
         img_left = rgb_transform(img_left)
         img_right = rgb_transform(img_right)
+
+        #if self.phase == 'detect' or self.phase == 'test':
+        #    img_left = F.interpolate(img_left, (576, 960), mode='nearest')
+        #    img_right = F.interpolate(img_right, (576, 960), mode='nearest')
 
         if self.load_disp:
             gt_disp = gt_disp[np.newaxis, :]
