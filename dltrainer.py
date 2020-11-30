@@ -39,7 +39,7 @@ class DisparityTrainer(object):
         self.initialize()
 
     def _prepare_dataset(self):
-        if self.dataset == 'sceneflow':
+        if self.dataset == 'sceneflow' or self.dataset == 'irs':
             train_dataset = SceneFlowDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = SceneFlowDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
@@ -125,6 +125,9 @@ class DisparityTrainer(object):
         logger.info("learning rate of epoch %d: %f." % (epoch, cur_lr))
 
         for i_batch, sample_batched in enumerate(self.train_loader):
+
+            if i_batch > 30:
+                break
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
@@ -238,7 +241,8 @@ class DisparityTrainer(object):
                 loss = loss_net1 + loss_net2
                 flow2_EPE = self.epe(output_net2, target_disp)
             elif self.net_name == "psmnet" or self.net_name == "ganet":
-                output_net3 = self.net(input_var)
+                with torch.no_grad():
+                    output_net3 = self.net(input_var)
                 output_net3 = output_net3.unsqueeze(1)
                 output_net3 = scale_disp(output_net3, (output_net3.size()[0], 540, 960))
                 loss = self.epe(output_net3, target_disp)
