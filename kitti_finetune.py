@@ -91,7 +91,7 @@ if args.loadmodel is not None:
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
-init_lr = 0.01
+init_lr = 1e-5
 optimizer = optim.Adam(model.parameters(), lr=init_lr, betas=(0.9, 0.999))
 
 loss_json = load_loss_scheme(args.loss)
