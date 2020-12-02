@@ -126,9 +126,6 @@ class DisparityTrainer(object):
 
         for i_batch, sample_batched in enumerate(self.train_loader):
 
-            if i_batch > 30:
-                break
-
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
             input = torch.cat((left_input, right_input), 1)
