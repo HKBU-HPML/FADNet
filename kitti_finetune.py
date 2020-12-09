@@ -174,10 +174,11 @@ def test(imgL,imgR,disp_true):
     return 1-(float(torch.sum(correct))/float(len(index[0])))
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch <= 600:
-       lr = init_lr
-    else:
-       lr = init_lr / 10.0
+    #if epoch <= 600:
+    #   lr = init_lr
+    #else:
+    #   lr = init_lr / 10.0
+    lr = init_lr / (2 ** (epoch // 200))
     print(lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
@@ -199,11 +200,12 @@ def main():
     print('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
 
     start_round = 0
+    start_epoch = 1
     for r in range(start_round, train_round):
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
         print(loss_weights[r])
 
-        for epoch in range(1, epoches[r]+1):
+        for epoch in range(start_epoch, epoches[r]+1):
            total_train_loss = 0
            total_test_loss = 0
            adjust_learning_rate(optimizer,epoch)
@@ -251,6 +253,8 @@ def main():
                      'test_loss': total_test_loss/len(TestImgLoader)*100,
                }, savefilename)
     
+        start_epoch = 1
+
     print('full finetune time = %.2f HR' %((time.time() - start_full_time)/3600))
     print(min_epo)
     print(min_round)

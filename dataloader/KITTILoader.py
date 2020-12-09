@@ -66,7 +66,8 @@ class myImageFloder(data.Dataset):
            #th, tw = 384, 768
  
            x1 = random.randint(0, w - tw)
-           y1 = random.randint(h // 4, h - th)
+           y1 = random.randint(0, h - th)
+           #y1 = random.randint(h // 4, h - th)
            #y1 = h - th
            #y1 = random.randint((h-th)/2, h - th)
 
