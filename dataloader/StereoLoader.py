@@ -57,13 +57,13 @@ class StereoDataset(Dataset):
         img_left = load_rgb(img_left_name)
         img_right = load_rgb(img_right_name)
 
-        if self.phase == 'detect' or self.phase == 'test':
-            img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
-            img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
+        #if self.phase == 'detect' or self.phase == 'test':
+        #    img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
+        #    img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
 
-            # change image pixel value type ot float32
-            img_left = img_left.astype(np.float32)
-            img_right = img_right.astype(np.float32)
+            # change image pixel value type to float32
+            #img_left = img_left.astype(np.float32)
+            #img_right = img_right.astype(np.float32)
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
 

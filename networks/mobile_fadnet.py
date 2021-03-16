@@ -8,11 +8,11 @@ from torch.nn import init
 from torch.nn.init import kaiming_normal
 from layers_package.resample2d_package.resample2d import Resample2d
 from layers_package.channelnorm_package.channelnorm import ChannelNorm
-from networks.DispNetC import DispNetC
-from networks.DispNetRes import DispNetRes
+from networks.MobileDispNetC import MobileDispNetC
+from networks.MobileDispNetRes import MobileDispNetRes
 from networks.submodules import *
 
-class FADNet(nn.Module):
+class MobileFADNet(nn.Module):
 
     def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3):
         super(FADNet, self).__init__()
@@ -23,7 +23,7 @@ class FADNet(nn.Module):
         self.resBlock = resBlock
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel)
+        self.dispnetc = MobileDispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel)
 
         # warp layer and channelnorm layer
         self.channelnorm = ChannelNorm()
@@ -31,7 +31,7 @@ class FADNet(nn.Module):
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
         in_planes = 3 * 3 + 1 + 1
-        self.dispnetres = DispNetRes(in_planes, self.batchNorm, lastRelu=self.lastRelu, maxdisp=self.maxdisp, input_channel=input_channel)
+        self.dispnetres = MobileDispNetRes(in_planes, self.batchNorm, lastRelu=self.lastRelu, maxdisp=self.maxdisp, input_channel=input_channel)
 
         self.relu = nn.ReLU(inplace=False)
 
@@ -62,14 +62,14 @@ class FADNet(nn.Module):
 
         # warp img1 to img0; magnitude of diff between img0 and warped_img1,
         #dummy_flow = torch.autograd.Variable(torch.zeros(dispnetc_final_flow.data.shape).cuda())
-        #dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
-        #resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
-        resampled_img1 = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow)
+        dummy_flow = torch.autograd.Variable(torch.zeros_like(dispnetc_final_flow))
+        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
+        dispnetc_final_flow_2d = torch.cat((dispnetc_final_flow, dummy_flow), dim = 1)
+        resampled_img1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow_2d)
         diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
-        #norm_diff_img0 = self.channelnorm(diff_img0)
-        norm_diff_img0 = channel_length(diff_img0)
+        norm_diff_img0 = self.channelnorm(diff_img0)
 
-        # concat img0, img1, img1->img0, flow, diff-img
+        # concat img0, img1, img1->img0, flow, diff-mag
         inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
 
         # dispnetres

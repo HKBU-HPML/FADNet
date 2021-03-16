@@ -46,7 +46,7 @@ class DisparityTrainer(object):
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_height, self.scale_width = test_dataset.get_scale_size()
 
-        datathread=4
+        datathread=16
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
@@ -125,7 +125,7 @@ class DisparityTrainer(object):
         logger.info("learning rate of epoch %d: %f." % (epoch, cur_lr))
 
         for i_batch, sample_batched in enumerate(self.train_loader):
-         
+
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
             input = torch.cat((left_input, right_input), 1)
@@ -139,7 +139,7 @@ class DisparityTrainer(object):
 
             self.optimizer.zero_grad()
 
-            if self.net_name == "fadnet":
+            if self.net_name in ["fadnet", "mobilefadnet"]:
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
                 loss_net2 = self.criterion(output_net2, target_disp)
@@ -227,7 +227,7 @@ class DisparityTrainer(object):
             target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
-            if self.net_name == 'fadnet':
+            if self.net_name in ['fadnet', 'mobilefadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], 540, 960))

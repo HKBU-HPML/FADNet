@@ -19,15 +19,43 @@ from utils.common import count_parameters
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import psutil
+from torch2trt import torch2trt
+from networks.submodules import build_corr, channel_length
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
-
 
 def load_model_trained_with_DP(net, state_dict):
     own_state = net.state_dict()
     for name, param in state_dict.items():
         own_state[name[7:]].copy_(param)
+
+def check_tensorrt(y, y_trt):
+    print(torch.max(torch.abs(y - y_trt)))
+
+def trt_transform(net):
+    x = torch.rand((1, 6, 576, 960)).cuda()
+    net.extract_network = torch2trt(net.extract_network, [x])
+
+    # extract features
+    conv1_l, conv2_l, conv3a_l, conv3a_r = net.extract_network(x)
+
+    # build corr
+    out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+
+    # generate first-stage flows
+    net.dispcunet = torch2trt(net.dispcunet, [x, conv1_l, conv2_l, conv3a_l, out_corr])
+    dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
+    dispnetc_final_flow = dispnetc_flows[0]
+
+    diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+    norm_diff_img0 = channel_length(diff_img0)
+
+    # concat img0, img1, img1->img0, flow, diff-mag
+    inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+
+    net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+    return net
 
 def detect(opt):
 
@@ -50,8 +78,8 @@ def detect(opt):
         net = build_net(net_name)(batchNorm=False, lastRelu=True)
     elif net_name == "mobilefadnet":
         #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
-        shape = None #(opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
-        warp_size = None #(opt.batchSize, 3, 576, 960)
+        shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
+        warp_size = (opt.batchSize, 3, 576, 960)
         net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
 
     if ngpu > 1:
@@ -60,27 +88,37 @@ def detect(opt):
     model_data = torch.load(model)
     print(model_data.keys())
     if 'state_dict' in model_data.keys():
-        if ngpu > 1:
-            net.load_state_dict(model_data['state_dict'])
-        else:
-            load_model_trained_with_DP(net, model_data['state_dict'])
+        #net.load_state_dict(model_data['state_dict'])
+        load_model_trained_with_DP(net, model_data['state_dict'])
     else:
         net.load_state_dict(model_data)
 
     num_of_parameters = count_parameters(net)
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
-    net.eval()
-    net = net.cuda()
-
     batch_size = int(opt.batchSize)
-    scale_size = (576, 960)
-    #scale_size = (576+128, 960+128)
-    test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect', scale_size=scale_size)
+    test_dataset = StereoDataset(txt_file=file_list, root_dir=filepath, phase='detect')
     test_loader = DataLoader(test_dataset, batch_size = batch_size, \
                         shuffle = False, num_workers = 1, \
                         pin_memory = False)
 
+
+    net.eval()
+    #net.dispnetc.eval()
+    #net.dispnetres.eval()
+    net = net.cuda()
+
+    #for i, sample_batched in enumerate(test_loader):
+    #    input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
+    #    num_of_samples = input.size(0)
+    #    input = input.cuda()
+    #    x = input
+    #    break
+
+    net_trt = trt_transform(net)
+
+    torch.save(net_trt.state_dict(), 'models/mobilefadnet_trt.pth')
+    
     s = time.time()
 
     avg_time = []
@@ -93,15 +131,13 @@ def detect(opt):
 
         input = torch.cat((sample_batched['img_left'], sample_batched['img_right']), 1)
 
-        # print('input Shape: {}'.format(input.size()))
+        print('input Shape: {}'.format(input.size()))
         num_of_samples = input.size(0)
 
         #output, input_var = detect_batch(net, sample_batched, opt.net, (540, 960))
 
-        
         input = input.cuda()
         input_var = input #torch.autograd.Variable(input, volatile=True)
-        input_var = F.interpolate(input_var, (576, 960), mode='bilinear')
         iotime = time.time()
         print('[{}] IO time:{}'.format(i, iotime-stime))
 
@@ -110,12 +146,12 @@ def detect(opt):
 
         with torch.no_grad():
             if opt.net == "psmnet" or opt.net == "ganet":
-                output = net(input_var)
+                output = net_trt(input_var)
                 output = output.unsqueeze(1)
             elif opt.net == "dispnetc":
-                output = net(input_var)[0]
+                output = net_trt(input_var)[0]
             else:
-                output = net(input_var)[-1]
+                output = net_trt(input_var)[-1]
         itime = time.time()
         print('[{}] Inference time:{}'.format(i, itime-iotime))
  
@@ -128,7 +164,7 @@ def detect(opt):
                     (ct.memory_allocated()/mbytes, ct.max_memory_allocated()/mbytes, ct.memory_cached()/mbytes, ct.max_memory_cached()/mbytes, process.memory_info().rss/mbytes))
                 avg_time = []
 
-        print('[{}] disp norm:{}'.format(i, output.norm()))
+        print('[%d] output shape:' % i, output.size())
         output = scale_disp(output, (output.size()[0], 540, 960))
         disp = output[:, 0, :, :]
         ptime = time.time()
@@ -139,7 +175,7 @@ def detect(opt):
             name_items = sample_batched['img_names'][0][j].split('/')
             # write disparity to file
             output_disp = disp[j]
-            np_disp = disp[j].data.cpu().numpy()
+            np_disp = disp[j].float().cpu().numpy()
 
             print('Batch[{}]: {}, average disp: {}({}-{}).'.format(i, j, np.mean(np_disp), np.min(np_disp), np.max(np_disp)))
             save_name = '_'.join(name_items).replace(".png", "_d.png")# for girl02 dataset

@@ -5,7 +5,10 @@ import torch
 import numpy as np 
 from torch.autograd import Variable
 import torch.nn.functional as F
+from torchvision.utils import save_image
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
+from layers_package.channelnorm_package.channelnorm import ChannelNorm
+from layers_package.resample2d_package.resample2d import Resample2d
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
@@ -80,12 +83,17 @@ def predict_flow(in_planes, out_planes = 1):
 #def corr(in_planes, max_disp=40):
 #    return Correlation1d(pad_size=max_disp, kernel_size=1, max_displacement=max_disp, stride1=1, stride2=2, corr_multiply=1)
 
-def build_corr(img_left, img_right, max_disp=40):
+def build_corr(img_left, img_right, max_disp=40, zero_volume=None):
     B, C, H, W = img_left.shape
-    volume = img_left.new_zeros([B, max_disp, H, W])
+    if zero_volume is not None:
+        tmp_zero_volume = zero_volume #* 0.0
+        #print('tmp_zero_volume: ', mean)
+        volume = tmp_zero_volume
+    else:
+        volume = img_left.new_zeros([B, max_disp, H, W])
     for i in range(max_disp):
         if i > 0:
-            volume[:, i, :, i:] = (img_left[:, :, :, i:] * img_right[:, :, :, :-i]).mean(dim=1)
+            volume[:, i, :, i:] = (img_left[:, :, :, i:] * img_right[:, :, :, :W-i]).mean(dim=1)
         else:
             volume[:, i, :, :] = (img_left[:, :, :, :] * img_right[:, :, :, :]).mean(dim=1)
 
@@ -282,4 +290,81 @@ def disparity_regression(x, maxdisp):
     disp_values = disp_values.view(1, maxdisp, 1, 1)
     return torch.sum(x * disp_values, 1, keepdim=True)
 
+def channel_normalize(x):
+    return x / (torch.norm(x, 2, dim=1, keepdim=True) + 1e-8)
 
+def channel_length(x):
+    return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True))
+
+def warp_right_to_left(x, disp, warp_grid=None):
+    #print('size: ', x.size())
+
+    B, C, H, W = x.size()
+    # mesh grid
+    if warp_grid is not None:
+        xx0, yy = warp_grid
+        xx = xx0 + disp
+        xx = 2.0*xx / max(W-1,1)-1.0
+    else:
+        xx = torch.arange(0, W, device=disp.device).float()
+        yy = torch.arange(0, H, device=disp.device).float()
+        #if x.is_cuda:
+        #    xx = xx.cuda()
+        #    yy = yy.cuda()
+        xx = xx.view(1,-1).repeat(H,1)
+        yy = yy.view(-1,1).repeat(1,W)
+
+        xx = xx.view(1,1,H,W).repeat(B,1,1,1)
+        yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+
+        # apply disparity to x-axis
+        xx = xx + disp
+        xx = 2.0*xx / max(W-1,1)-1.0
+        yy = 2.0*yy / max(H-1,1)-1.0
+
+    grid = torch.cat((xx,yy),1)
+
+    vgrid = grid 
+    #vgrid[:, 0, :, :] = vgrid[:, 0, :, :] + disp[:, 0, :, :]
+    #vgrid[:, 0, :, :].add_(disp[:, 0, :, :])
+    #vgrid.add_(disp)
+
+    # scale grid to [-1,1] 
+    #vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:] / max(W-1,1)-1.0
+    #vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:] / max(H-1,1)-1.0
+    vgrid = vgrid.permute(0,2,3,1)        
+    output = nn.functional.grid_sample(x, vgrid)
+    #mask = torch.autograd.Variable(torch.ones_like(x))
+    #mask = nn.functional.grid_sample(mask, vgrid)
+    
+    #mask[mask<0.9999] = 0
+    #mask[mask>0] = 1
+    
+    #return output*mask
+    return output #*mask
+
+if __name__ == '__main__':
+    x = torch.rand([2, 3, 540, 960])
+    disp = torch.ones([2, 1, 540, 960]) * 5
+    dummy_y = torch.zeros([2, 1, 540, 960])
+    x = x.cuda()
+    disp = disp.cuda()
+    dummy_y = dummy_y.cuda()
+
+    # test channel normalization
+    #cn_fn = channel_length(x)
+    #cn_layer = ChannelNorm()
+    #output_cn = cn_layer(x)
+    #print(cn_fn[:, :, :10, :10])
+    #print(output_cn[:, :, :10, :10])
+    #print(cn_fn.size())
+    #print(output_cn.size())
+    #print(torch.norm(cn_fn - output_cn, 2, 1).mean())
+
+    warpped_left = warp_right_to_left(x, -disp)
+    warp_layer = Resample2d()
+    output_warpped = warp_layer(x, -torch.cat((disp, dummy_y), dim = 1))
+    print(torch.norm(warpped_left - output_warpped, 2, 1).mean())
+    save_image(x[0], 'img0.png')
+    save_image(warpped_left[0], 'img1.png')
+    save_image(output_warpped[0], 'img2.png')

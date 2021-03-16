@@ -114,8 +114,8 @@ class SceneFlowDataset(Dataset):
             img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
 
             # change image pixel value type ot float32
-            img_left = img_left.astype(np.float32)
-            img_right = img_right.astype(np.float32)
+            #img_left = img_left.astype(np.float32)
+            #img_right = img_right.astype(np.float32)
             #scale = RandomRescale((1024, 1024))
             #sample = scale(sample)
 
