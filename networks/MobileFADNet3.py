@@ -47,6 +47,7 @@ class MobileFADNet(nn.Module):
         #         if m.bias is not None:
         #             init.uniform(m.bias)
         #         init.xavier_uniform(m.weight)
+        self.model_trt = None
 
     def trt_transform(self):
         net = copy.deepcopy(self)

@@ -12,4 +12,4 @@ filelist=lists/nano_fake.list
 #filepath=/datasets
 filepath=./data
 
-CUDA_VISIBLE_DEVICES=0 python detecter.py --model $model --rp $outf --filelist $filelist --filepath $filepath --devices 0 --net ${net} 
+CUDA_VISIBLE_DEVICES=0 python benchmark.py --model $model --rp $outf --filelist $filelist --filepath $filepath --devices 0 --net ${net} 
