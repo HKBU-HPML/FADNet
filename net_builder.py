@@ -7,8 +7,8 @@ from networks.DispNetCSS import DispNetCSS
 from networks.FADNet import FADNet
 from networks.MobileFADNet3 import MobileFADNet
 from networks.stackhourglass import PSMNet
-#from networks.GANet_deep import GANet
-
+from networks.GANet_deep import GANet
+from networks.gwcnet import GwcNet
 from utils.common import logger
 
 SUPPORT_NETS = {
@@ -19,7 +19,8 @@ SUPPORT_NETS = {
         'dispnetcs': DispNetCS,
         'dispnetcss': DispNetCSS,
         'psmnet': PSMNet,
-        #'ganet':GANet,
+        'ganet':GANet,
+        'gwcnet':GwcNet,
         }
 
 def build_net(net_name):

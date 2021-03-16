@@ -115,7 +115,8 @@ def detect(opt):
     #    x = input
     #    break
 
-    net_trt = trt_transform(net)
+    #net_trt = trt_transform(net)
+    net_trt = net.get_tensorrt_model()
 
     torch.save(net_trt.state_dict(), 'models/mobilefadnet_trt.pth')
     

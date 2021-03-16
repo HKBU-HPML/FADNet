@@ -7,8 +7,8 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torchvision.utils import save_image
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
-from layers_package.channelnorm_package.channelnorm import ChannelNorm
-from layers_package.resample2d_package.resample2d import Resample2d
+#from layers_package.channelnorm_package.channelnorm import ChannelNorm
+#from layers_package.resample2d_package.resample2d import Resample2d
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
@@ -97,6 +97,40 @@ def build_corr(img_left, img_right, max_disp=40, zero_volume=None):
         else:
             volume[:, i, :, :] = (img_left[:, :, :, :] * img_right[:, :, :, :]).mean(dim=1)
 
+    volume = volume.contiguous()
+    return volume
+
+def build_concat_volume(refimg_fea, targetimg_fea, maxdisp):
+    B, C, H, W = refimg_fea.shape
+    volume = refimg_fea.new_zeros([B, 2 * C, maxdisp, H, W])
+    for i in range(maxdisp):
+        if i > 0:
+            volume[:, :C, i, :, i:] = refimg_fea[:, :, :, i:]
+            volume[:, C:, i, :, i:] = targetimg_fea[:, :, :, :-i]
+        else:
+            volume[:, :C, i, :, :] = refimg_fea
+            volume[:, C:, i, :, :] = targetimg_fea
+    volume = volume.contiguous()
+    return volume
+
+def groupwise_correlation(fea1, fea2, num_groups):
+    B, C, H, W = fea1.shape
+    assert C % num_groups == 0
+    channels_per_group = C // num_groups
+    cost = (fea1 * fea2).view([B, num_groups, channels_per_group, H, W]).mean(dim=2)
+    assert cost.shape == (B, num_groups, H, W)
+    return cost
+
+
+def build_gwc_volume(refimg_fea, targetimg_fea, maxdisp, num_groups):
+    B, C, H, W = refimg_fea.shape
+    volume = refimg_fea.new_zeros([B, num_groups, maxdisp, H, W])
+    for i in range(maxdisp):
+        if i > 0:
+            volume[:, :, i, :, i:] = groupwise_correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i],
+                                                           num_groups)
+        else:
+            volume[:, :, i, :, :] = groupwise_correlation(refimg_fea, targetimg_fea, num_groups)
     volume = volume.contiguous()
     return volume
 
@@ -294,7 +328,7 @@ def channel_normalize(x):
     return x / (torch.norm(x, 2, dim=1, keepdim=True) + 1e-8)
 
 def channel_length(x):
-    return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True))
+    return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True) + 1e-8)
 
 def warp_right_to_left(x, disp, warp_grid=None):
     #print('size: ', x.size())

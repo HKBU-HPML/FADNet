@@ -6,8 +6,8 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-from layers_package.resample2d_package.resample2d import Resample2d
-from layers_package.channelnorm_package.channelnorm import ChannelNorm
+#from layers_package.resample2d_package.resample2d import Resample2d
+#from layers_package.channelnorm_package.channelnorm import ChannelNorm
 from networks.DispNetC import DispNetC
 from networks.DispNetS import DispNetS
 from networks.submodules import *
@@ -28,9 +28,9 @@ class DispNetCSS(nn.Module):
         self.dispnets1 = DispNetS(11, batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=3)
         self.dispnets2 = DispNetS(11, batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=3)
 
-        # warp layer and channelnorm layer
-        self.channelnorm = ChannelNorm()
-        self.resample1 = Resample2d()
+        ## warp layer and channelnorm layer
+        #self.channelnorm = ChannelNorm()
+        #self.resample1 = Resample2d()
 
         self.relu = nn.ReLU(inplace=False)
 
