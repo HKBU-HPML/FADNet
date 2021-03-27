@@ -11,6 +11,8 @@ from torch.nn.init import kaiming_normal
 from networks.MobileDispNetC3 import MobileExtractNet, MobileDispCUNet
 from networks.MobileDispNetRes3 import MobileDispNetRes
 from networks.submodules import *
+import copy
+from torch2trt import torch2trt
 
 class MobileFADNet(nn.Module):
 
@@ -45,6 +47,40 @@ class MobileFADNet(nn.Module):
         #         if m.bias is not None:
         #             init.uniform(m.bias)
         #         init.xavier_uniform(m.weight)
+        self.model_trt = None
+
+    def trt_transform(self):
+        net = copy.deepcopy(self)
+        x = torch.rand((1, 6, 576, 960)).cuda()
+        net.extract_network = torch2trt(net.extract_network, [x])
+    
+        # extract features
+        conv1_l, conv2_l, conv3a_l, conv3a_r = net.extract_network(x)
+    
+        # build corr
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+    
+        # generate first-stage flows
+        net.dispcunet = torch2trt(net.dispcunet, [x, conv1_l, conv2_l, conv3a_l, out_corr])
+        dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
+        dispnetc_final_flow = dispnetc_flows[0]
+    
+        diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+        norm_diff_img0 = channel_length(diff_img0)
+    
+        # concat img0, img1, img1->img0, flow, diff-mag
+        inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+    
+        net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+
+        return net
+
+
+    def get_tensorrt_model(self):
+
+        if self.model_trt == None:
+            self.model_trt = self.trt_transform()
+        return self.model_trt
 
     def forward(self, inputs):
 
