@@ -362,9 +362,9 @@ if __name__ == '__main__':
     #print(torch.norm(cn_fn - output_cn, 2, 1).mean())
 
     warpped_left = warp_right_to_left(x, -disp)
-    warp_layer = Resample2d()
-    output_warpped = warp_layer(x, -torch.cat((disp, dummy_y), dim = 1))
-    print(torch.norm(warpped_left - output_warpped, 2, 1).mean())
+    #warp_layer = Resample2d()
+    #output_warpped = warp_layer(x, -torch.cat((disp, dummy_y), dim = 1))
+    #print(torch.norm(warpped_left - output_warpped, 2, 1).mean())
     save_image(x[0], 'img0.png')
     save_image(warpped_left[0], 'img1.png')
-    save_image(output_warpped[0], 'img2.png')
+    #save_image(output_warpped[0], 'img2.png')
