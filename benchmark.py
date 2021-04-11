@@ -14,7 +14,7 @@ import torch.nn as nn
 from utils.common import count_parameters 
 import psutil
 from pytorch_utils import get_net_info
-from torch2trt import torch2trt
+#from torch2trt import torch2trt
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
@@ -72,9 +72,10 @@ def detect(opt):
     repetitions = 30
     timings=np.zeros((repetitions,1))
     #GPU-WARM-UP
-    for _ in range(10):
-        _ = net(dummy_input)
-        # MEASURE PERFORMANCE
+    with torch.no_grad():
+        for _ in range(10):
+            _ = net(dummy_input)
+            # MEASURE PERFORMANCE
     with torch.no_grad():
         for rep in range(repetitions):
             starter.record()
