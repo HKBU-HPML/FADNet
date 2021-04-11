@@ -6,15 +6,15 @@ import torch.nn.functional as F
 
 
 def SL_EPE(input_flow, target_flow):
-    target_valid = target_flow < 192
+    target_valid = (target_flow < 192) & (target_flow > 0)
     return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
 def EPE(input_flow, target_flow):
     
-    target_valid = target_flow < 192
-    return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
-
-    #return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
+    #target_valid = target_flow < 192
+    target_valid = (target_flow < 192) & (target_flow > 0)
+    #return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
+    return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
     #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
     #return EPE_map.mean()
@@ -40,8 +40,8 @@ class MultiScaleLoss(nn.Module):
                 self.loss = MAPELoss()
         else:
             self.loss = loss
-        self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
-        #self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        #self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
         #self.multiScales = [nn.Upsample(scale_factor=self.downscale*(2**i), mode='bilinear', align_corners=True) for i in range(scales)]
         print('self.multiScales: ', self.multiScales, ' self.downscale: ', self.downscale)
         # self.multiScales = [nn.functional.adaptive_avg_pool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
@@ -62,15 +62,15 @@ class MultiScaleLoss(nn.Module):
                 #target_ = self.multiScales[i](target) / (2**i)
                 #print('target shape: ', target_.shape, ' input shape: ', input_.shape)
                 if self.mask:
-                    # work for sparse
-                    mask = target > 0
-                    mask.detach_()
-                    
-                    mask = mask.type(torch.cuda.FloatTensor)
-                    pooling_mask = self.multiScales[i](mask) 
+                    ## work for sparse
+                    #mask = target > 0
+                    #mask.detach_()
+                    #
+                    #mask = mask.type(torch.cuda.FloatTensor)
+                    #pooling_mask = self.multiScales[i](mask) 
 
-                    # use unbalanced avg
-                    target_ = target_ / pooling_mask
+                    ## use unbalanced avg
+                    #target_ = target_ / pooling_mask
 
                     mask = target_ > 0
                     mask.detach_()

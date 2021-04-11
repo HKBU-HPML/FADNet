@@ -22,7 +22,8 @@ from dataloader import KITTILoader as DA
 
 from networks.FADNet import FADNet
 from networks.stackhourglass import PSMNet
-from losses.multiscaleloss import multiscaleloss
+from networks.gwcnet import GwcNet
+from losses.multiscaleloss import multiscaleloss, SL_EPE, EPE
 
 parser = argparse.ArgumentParser(description='FADNet')
 parser.add_argument('--maxdisp', type=int ,default=192,
@@ -64,11 +65,11 @@ all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(all_left_img,all_right_img,all_left_disp, True), 
-         batch_size= 8, shuffle= True, num_workers= 8, drop_last=False)
+         batch_size= 1, shuffle= True, num_workers= 8, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFloder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 8, shuffle= False, num_workers= 4, drop_last=False)
+         batch_size= 1, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
@@ -77,6 +78,8 @@ if args.model == 'fadnet':
     model = FADNet(False, True)
 elif args.model == 'psmnet':
     model = PSMNet(maxdisp=args.maxdisp)
+elif args.model == 'gwcnet':
+    model = GwcNet(maxdisp=args.maxdisp)
 else:
     print('no model')
     sys.exit(-1)
@@ -87,7 +90,11 @@ if args.cuda:
 
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
-    model.load_state_dict(state_dict['state_dict'])
+    if 'model' in state_dict.keys():
+        state_dict = state_dict["model"]
+    if 'state_dict' in state_dict.keys():
+        state_dict = state_dict["state_dict"]
+    model.load_state_dict(state_dict)
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
@@ -126,15 +133,15 @@ def train(imgL,imgR,disp_L, criterion):
         output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
 
         # multi-scale loss
-        disp_true = disp_true.unsqueeze(1)
-        loss_net1 = criterion(output_net1, disp_true)
-        loss_net2 = criterion(output_net2, disp_true)
-        loss = loss_net1 + loss_net2 
+        #disp_true = disp_true.unsqueeze(1)
+        #loss_net1 = criterion(output_net1, disp_true)
+        #loss_net2 = criterion(output_net2, disp_true)
+        #loss = loss_net1 + loss_net2 
 
         # only the last scale
-        #output1 = output_net1[0].squeeze(1)
-        #output2 = output_net2[0].squeeze(1)
-        #loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
+        output1 = output_net1[0].squeeze(1)
+        output2 = output_net2[0].squeeze(1)
+        loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
 
     loss.backward()
     optimizer.step()
@@ -154,7 +161,7 @@ def test(imgL,imgR,disp_true):
     #print(imgL.size())
 
     with torch.no_grad():
-        if args.model == "psmnet":
+        if args.model == "psmnet" or args.model == "gwcnet":
             output_net = model(torch.cat((imgL, imgR), 1))
             pred_disp = output_net.squeeze(1)
         elif args.model == "fadnet":
@@ -163,6 +170,9 @@ def test(imgL,imgR,disp_true):
 
     pred_disp = pred_disp.data.cpu()
     #pred_disp = pred_disp[:, :368, :1232]
+    #epe = EPE(pred_disp, disp_true)
+    epe = np.abs(disp_true - pred_disp)
+    epe = torch.mean(epe[disp_true > 0])
 
     #computing 3-px error#
     true_disp = disp_true.clone()
@@ -171,13 +181,14 @@ def test(imgL,imgR,disp_true):
     correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3)|(disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[index[0][:], index[1][:], index[2][:]]*0.05)      
     torch.cuda.empty_cache()
 
-    return 1-(float(torch.sum(correct))/float(len(index[0])))
+    return 1-(float(torch.sum(correct))/float(len(index[0]))), epe
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch <= 600:
-       lr = init_lr
-    else:
-       lr = init_lr / 10.0
+    #if epoch <= 600:
+    #   lr = init_lr
+    #else:
+    #   lr = init_lr / 10.0
+    lr = init_lr / (2 ** (epoch // 200))
     print(lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
@@ -191,21 +202,26 @@ def main():
 
     # test on the loaded model
     total_test_loss = 0
+    total_epe = 0
     for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
-        test_loss = test(imgL,imgR, disp_L)
+        test_loss, test_epe = test(imgL,imgR, disp_L)
         print('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
         total_test_loss += test_loss
-        min_acc=total_test_loss/len(TestImgLoader)*100
-    print('MIN epoch %d of round %d total test error = %.3f' %(min_epo, min_round, min_acc))
+        total_epe += test_epe
+    min_acc=total_test_loss/len(TestImgLoader)*100
+    min_epe=total_epe/len(TestImgLoader)
+    print('MIN epoch %d of round %d total test error = %.3f, epe = %.3f.' %(min_epo, min_round, min_acc, min_epe))
 
     start_round = 0
+    start_epoch = 1
     for r in range(start_round, train_round):
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
         print(loss_weights[r])
 
-        for epoch in range(1, epoches[r]+1):
+        for epoch in range(start_epoch, epoches[r]+1):
            total_train_loss = 0
            total_test_loss = 0
+           total_epe = 0
            adjust_learning_rate(optimizer,epoch)
                
            ## training ##
@@ -221,11 +237,12 @@ def main():
            ## Test ##
 
            for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
-               test_loss = test(imgL,imgR, disp_L)
+               test_loss, epe = test(imgL,imgR, disp_L)
                print('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
                total_test_loss += test_loss
+               total_epe += epe
 
-           print('epoch %d of round %d total 3-px error in val = %.3f' %(epoch, r, total_test_loss/len(TestImgLoader)*100))
+           print('epoch %d of round %d total 3-px error in val = %.3f, epe = %.3f.' %(epoch, r, total_test_loss/len(TestImgLoader)*100, total_epe/len(TestImgLoader)))
            if total_test_loss/len(TestImgLoader)*100 < min_acc:
                min_acc = total_test_loss/len(TestImgLoader)*100
                min_epo = epoch
@@ -251,6 +268,8 @@ def main():
                      'test_loss': total_test_loss/len(TestImgLoader)*100,
                }, savefilename)
     
+        start_epoch = 1
+
     print('full finetune time = %.2f HR' %((time.time() - start_full_time)/3600))
     print(min_epo)
     print(min_round)
