@@ -14,6 +14,7 @@ import torch.nn as nn
 from utils.common import count_parameters 
 import psutil
 from pytorch_utils import get_net_info
+from torch2trt import torch2trt
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
@@ -60,6 +61,7 @@ def detect(opt):
     net.eval()
     net = net.cuda()
     get_net_info(net, input_shape=(3, 576, 960))
+    #net = net.get_tensorrt_model()
     #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
 
     # fake input data

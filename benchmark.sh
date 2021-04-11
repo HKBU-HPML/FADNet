@@ -1,5 +1,4 @@
 net=fadnet
-#net=fadnet
 dataset=sceneflow
 
 model=models/${net}-sceneflow-v3/model_best.pth

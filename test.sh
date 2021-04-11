@@ -1,5 +1,5 @@
 net="${net:-fadnet}"
-maxdisp=-1
+#maxdisp=-1
 #net=psmnet
 #maxdisp=192
 datapath=/home/datasets
@@ -9,14 +9,20 @@ datapath=/home/datasets
 dataset=irs
 trainlist=lists/IRS_TRAIN.list
 vallist=lists/IRS_TEST.list
+maxdisp=192
+datapath=/datasets
+dataset=sintel
+trainlist=lists/Sintel_ALL.list
+vallist=lists/Sintel_ALL.list
 #vallist=lists/flying_short.list
 
 loss=loss_configs/test.json
 outf_model=models/test/
-logf=logs/${net}_test_on_${dataset}.log
+#logf=logs/${net}_test_on_${dataset}.log
+logf=logs/${net}_ft3d+irs_len_flare.log
 
 lr=1e-4
-devices=0,1,2,3
+devices=0
 startR=0
 startE=0
 batchSize=16

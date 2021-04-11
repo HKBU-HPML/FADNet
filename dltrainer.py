@@ -235,14 +235,6 @@ class DisparityTrainer(object):
         end = time.time()
         for i, sample_batched in enumerate(self.test_loader):
 
-            #left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
-            #right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
-
-            #input = torch.cat((left_input, right_input), 1)
-            #input_var = torch.autograd.Variable(input, requires_grad=False)
-            #input_var = F.interpolate(input_var, (576, 960), mode='bilinear')
-            ##input_var = F.interpolate(input_var, (448, 1024), mode='bilinear')
-
 
             left_input = sample_batched['img_left'].cuda()
             right_input = sample_batched['img_right'].cuda()
@@ -258,6 +250,7 @@ class DisparityTrainer(object):
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], 540, 960))
+                target_disp = scale_disp(target_disp, (1, 540, 960))
 
                 loss_net1 = self.epe(output_net1, target_disp)
                 loss_net2 = self.epe(output_net2, target_disp)
