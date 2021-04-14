@@ -52,7 +52,7 @@ class DisparityTrainer(object):
             test_dataset = SintelDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         
         self.img_height, self.img_width = train_dataset.get_img_size()
-        self.scale_height, self.scale_width = test_dataset.get_scale_size()
+        self.scale_size = train_dataset.get_scale_size()
 
         datathread=16
         if os.environ.get('datathread') is not None:
@@ -235,13 +235,12 @@ class DisparityTrainer(object):
         end = time.time()
         for i, sample_batched in enumerate(self.test_loader):
 
-            left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
-            right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
 
-            input = torch.cat((left_input, right_input), 1)
-            input_var = torch.autograd.Variable(input, requires_grad=False)
-            #input_var = F.interpolate(input_var, (576, 960), mode='bilinear')
-            input_var = F.interpolate(input_var, (448, 1024), mode='bilinear')
+            left_input = sample_batched['img_left'].cuda()
+            right_input = sample_batched['img_right'].cuda()
+            left_input = F.interpolate(left_input, self.scale_size, mode='bilinear')
+            right_input = F.interpolate(right_input, self.scale_size, mode='bilinear')
+            input_var = torch.cat((left_input, right_input), 1)
 
             target_disp = sample_batched['gt_disp']
             target_disp = target_disp.cuda()

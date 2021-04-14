@@ -13,7 +13,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 from utils.common import count_parameters 
 import psutil
-from torch2trt import torch2trt
+from pytorch_utils import get_net_info
+#from torch2trt import torch2trt
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
@@ -54,20 +55,13 @@ def detect(opt):
     if ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=devices)
 
-    model_data = torch.load(model)
-    print(model_data.keys())
-    if 'state_dict' in model_data.keys():
-        #net.load_state_dict(model_data['state_dict'])
-        load_model_trained_with_DP(net, model_data['state_dict'])
-    else:
-        net.load_state_dict(model_data)
-
     num_of_parameters = count_parameters(net)
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
     net.eval()
     net = net.cuda()
-    net = net.get_tensorrt_model()
+    get_net_info(net, input_shape=(3, 576, 960))
+    #net = net.get_tensorrt_model()
     #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
 
     # fake input data
@@ -78,9 +72,10 @@ def detect(opt):
     repetitions = 30
     timings=np.zeros((repetitions,1))
     #GPU-WARM-UP
-    for _ in range(10):
-        _ = net(dummy_input)
-        # MEASURE PERFORMANCE
+    with torch.no_grad():
+        for _ in range(10):
+            _ = net(dummy_input)
+            # MEASURE PERFORMANCE
     with torch.no_grad():
         for rep in range(repetitions):
             starter.record()

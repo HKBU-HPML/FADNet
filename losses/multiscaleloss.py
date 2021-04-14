@@ -11,10 +11,10 @@ def SL_EPE(input_flow, target_flow):
 
 def EPE(input_flow, target_flow):
     
-    target_valid = target_flow < 192
-    return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
-
-    #return F.smooth_l1_loss(input_flow, target_flow, size_average=True)
+    #target_valid = target_flow < 192
+    target_valid = (target_flow < 192) & (target_flow > 0)
+    #return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
+    return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
     #EPE_map = torch.norm(target_flow - input_flow + 1e-16, 2, 1)
     #return EPE_map.mean()
