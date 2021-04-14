@@ -11,6 +11,7 @@ from net_builder import build_net
 from dataloader.SceneFlowLoader import SceneFlowDataset
 from dataloader.SintelLoader import SintelDataset
 from dataloader.MiddleburyLoader import MiddleburyDataset
+from dataloader import KITTILoader as DA
 from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter
 from utils.common import logger
@@ -50,6 +51,16 @@ class DisparityTrainer(object):
         if self.dataset == 'sintel':
             train_dataset = SintelDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = SintelDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
+        if self.dataset == 'kitti2012':
+            from dataloader import KITTIloader2012 as ls
+            all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls.dataloader(self.datapath)
+            train_dataset = DA.myImageFolder(all_left_img,all_right_img,all_left_disp,True)
+            test_dataset = DA.myImageFolder(test_left_img,test_right_img,test_left_disp,False)
+        if self.dataset == 'kitti2015':
+            from dataloader import KITTIloader2015 as ls
+            all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls.dataloader(self.datapath)
+            train_dataset = DA.myImageFolder(all_left_img,all_right_img,all_left_disp,True)
+            test_dataset = DA.myImageFolder(test_left_img,test_right_img,test_left_disp,False)
         
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_size = train_dataset.get_scale_size()
@@ -62,7 +73,7 @@ class DisparityTrainer(object):
                                 shuffle = True, num_workers = datathread, \
                                 pin_memory = True)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size // 4, \
+        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size, \
                                 shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
@@ -78,7 +89,7 @@ class DisparityTrainer(object):
 
         self.is_pretrain = False
 
-        if self.ngpu > 1:
+        if self.ngpu >= 1:
             self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
         else:
             self.net.cuda()
@@ -236,21 +247,25 @@ class DisparityTrainer(object):
         for i, sample_batched in enumerate(self.test_loader):
 
 
-            left_input = sample_batched['img_left'].cuda()
-            right_input = sample_batched['img_right'].cuda()
+            #left_input = sample_batched['img_left'].cuda()
+            #right_input = sample_batched['img_right'].cuda()
+            left_input = sample_batched[0].cuda() # for KITTI
+            right_input = sample_batched[1].cuda() # for KITTI
             left_input = F.interpolate(left_input, self.scale_size, mode='bilinear')
             right_input = F.interpolate(right_input, self.scale_size, mode='bilinear')
             input_var = torch.cat((left_input, right_input), 1)
 
-            target_disp = sample_batched['gt_disp']
+            #target_disp = sample_batched['gt_disp']
+            target_disp = sample_batched[2] # for KITTI
             target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             if self.net_name in ['fadnet', 'mobilefadnet']:
                 output_net1, output_net2 = self.net(input_var)
-                output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
-                output_net2 = scale_disp(output_net2, (output_net2.size()[0], 540, 960))
-                target_disp = scale_disp(target_disp, (1, 540, 960))
+                output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
+                output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
+                target_disp = target_disp.unsqueeze(1) # for KITTI
+                #target_disp = scale_disp(target_disp, (1, 540, 960))
 
                 loss_net1 = self.epe(output_net1, target_disp)
                 loss_net2 = self.epe(output_net2, target_disp)

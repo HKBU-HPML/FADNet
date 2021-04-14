@@ -26,7 +26,7 @@ def disparity_loader(path):
     #return Image.open(path)
 
 
-class myImageFloder(data.Dataset):
+class myImageFolder(data.Dataset):
     def __init__(self, left, right, left_disparity, training, loader=default_loader, dploader= disparity_loader):
  
         self.left = left
@@ -36,8 +36,14 @@ class myImageFloder(data.Dataset):
         self.dploader = dploader
         self.training = training
 
-        #self.scale_size = (384, 1280)
-        self.scale_size = (1280, 384)
+        self.scale_size = (384, 1280)
+        self.img_size = (384, 1280)
+
+    def get_img_size(self):
+        return self.img_size
+
+    def get_scale_size(self):
+        return self.scale_size
 
     def __getitem__(self, index):
         left  = self.left[index]
