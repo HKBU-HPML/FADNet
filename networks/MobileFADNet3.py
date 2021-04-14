@@ -12,7 +12,7 @@ from networks.MobileDispNetC3 import MobileExtractNet, MobileDispCUNet
 from networks.MobileDispNetRes3 import MobileDispNetRes
 from networks.submodules import *
 import copy
-from torch2trt import torch2trt
+#from torch2trt import torch2trt
 
 class MobileFADNet(nn.Module):
 
