@@ -10,10 +10,11 @@ from torch.utils.data import DataLoader
 from net_builder import build_net
 from dataloader.SceneFlowLoader import SceneFlowDataset
 from dataloader.GANet.data import get_training_set, get_test_set
-from utils.AverageMeter import AverageMeter
-from utils.common import logger
+from utils.AverageMeter import AverageMeter, HVDMetric
+from utils.common import logger, MultiEpochsDataLoader
 from losses.multiscaleloss import EPE
 from utils.preprocess import scale_disp
+from lamb import Lamb
 import skimage
 
 class DisparityTrainer(object):
@@ -48,24 +49,30 @@ class DisparityTrainer(object):
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_height, self.scale_width = test_dataset.get_scale_size()
 
-        datathread=16
+        datathread=8
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
         train_sampler = None
         shuffle = True
-        if self.ngpu > 1: 
+        if self.ngpu > 1 and self.hvd: 
             train_sampler = torch.utils.data.distributed.DistributedSampler(
                 train_dataset, num_replicas=self.ngpu, rank=self.rank)
             train_sampler.set_epoch(0)
             shuffle = False
         self.train_sampler = train_sampler
 
-        self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
+        #self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
+        self.train_loader = MultiEpochsDataLoader(train_dataset, batch_size = self.batch_size, \
                                 shuffle = shuffle, num_workers = datathread, \
                                 pin_memory = True, sampler=train_sampler)
         
-        self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size, \
+        #self.test_loader = DataLoader(test_dataset, batch_size = self.batch_size, \
+        if self.ngpu > 1 and self.hvd: 
+            test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset, num_replicas=self.ngpu, rank=self.rank)
+            self.test_loader = MultiEpochsDataLoader(test_dataset, batch_size=self.batch_size, sampler=test_sampler)
+        else:
+            self.test_loader = MultiEpochsDataLoader(test_dataset, batch_size = self.batch_size, \
                                 shuffle = False, num_workers = datathread, \
                                 pin_memory = True)
         self.num_batches_per_epoch = len(self.train_loader)
@@ -104,7 +111,10 @@ class DisparityTrainer(object):
     def _build_optimizer(self):
         beta = 0.999
         momentum = 0.9
-        self.optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.net.parameters()), self.lr,
+        if self.hvd:
+            self.optimizer = Lamb(filter(lambda p: p.requires_grad, self.net.parameters()), lr=self.lr, betas=(momentum, beta))
+        else:
+            self.optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.net.parameters()), self.lr,
                                         betas=(momentum, beta), amsgrad=True)
 
     def initialize(self):
@@ -221,7 +231,10 @@ class DisparityTrainer(object):
 
     def validate(self):
         batch_time = AverageMeter()
-        flow2_EPEs = AverageMeter()
+        if self.hvd:
+            flow2_EPEs = HVDMetric('val_epe')
+        else:
+            flow2_EPEs = AverageMeter()
         norm_EPEs = AverageMeter()
         angle_EPEs = AverageMeter()
         losses = AverageMeter()
@@ -284,9 +297,12 @@ class DisparityTrainer(object):
                 #    flow2_EPE = self.epe(output, target_disp)
 
             # record loss and EPE
-            if loss.data.item() == loss.data.item():
-                losses.update(loss.data.item(), input_var.size(0))
-            if flow2_EPE.data.item() == flow2_EPE.data.item():
+            #if loss.data.item() == loss.data.item():
+            losses.update(loss.data.item(), input_var.size(0))
+            #if flow2_EPE.data.item() == flow2_EPE.data.item():
+            if self.hvd:
+                flow2_EPEs.update(flow2_EPE, input_var.size(0))
+            else:
                 flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
 
             # measure elapsed time

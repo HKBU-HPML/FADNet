@@ -3,9 +3,9 @@ nworkers="${nworkers:-4}"
 source exp_configs/$dnn.conf
 MPIPATH=/home/esetstore/.local/openmpi-4.0.1
 PY=/home/esetstore/fadnet/bin/python
-lr=6e-4
+lr=1e-4
 
-rdma="${rdma:-0}"
+rdma="${rdma:-1}"
 if [ "$rdma" = "0" ]; then
 params="-mca pml ob1 -mca btl ^openib \
     -mca btl_tcp_if_include 192.168.0.1/24 \

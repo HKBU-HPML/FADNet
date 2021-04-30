@@ -17,7 +17,6 @@ from net_builder import SUPPORT_NETS
 from losses.multiscaleloss import multiscaleloss
 
 cudnn.benchmark = True
-hvd.init()
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
     #if state['epoch'] % 10 == 0:
@@ -58,6 +57,8 @@ def main(opt):
         best_EPE = trainer.validate()
 
     start_epoch = opt.startEpoch
+
+
     for r in range(opt.startRound, train_round):
 
         criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=False)
@@ -70,9 +71,9 @@ def main(opt):
         logger.info('\t'.join(['epoch', 'time_stamp', 'train_loss', 'train_EPE', 'EPE', 'lr']))
         for i in range(start_epoch, end_epoch):
             avg_loss, avg_EPE = trainer.train_one_epoch(i)
+            with torch.no_grad():
+                val_EPE = trainer.validate()
             if rank == 0:
-                with torch.no_grad():
-                    val_EPE = trainer.validate()
                 is_best = best_EPE < 0 or val_EPE < best_EPE
                 if is_best:
                     best_EPE = val_EPE
@@ -85,12 +86,13 @@ def main(opt):
                     'best_EPE': best_EPE,    
                 }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
         
-                logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(avg_EPE), str(val_EPE), str(trainer.current_lr)]))
+                logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(float(avg_EPE)), str(float(val_EPE)), str(trainer.current_lr)]))
         start_epoch = 0
 
 
 if __name__ == '__main__':
-    #torch.multiprocessing.set_start_method('spawn')
+    torch.multiprocessing.set_start_method('spawn')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', type=str, help='indicates the name of net', default='simplenet', choices=SUPPORT_NETS)
     parser.add_argument('--ngpus', type=int, default=1, help='# of GPUs per node')
@@ -119,6 +121,8 @@ if __name__ == '__main__':
     parser.add_argument('--augment', type=int, help='if augment data in training', default=0)
     
     opt = parser.parse_args()
+
+    hvd.init()
     try:
         os.makedirs(opt.outf)
     except OSError:
