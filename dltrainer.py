@@ -39,6 +39,7 @@ class DisparityTrainer(object):
 
         self.criterion = None
         self.epe = EPE
+        self.train_iter = 0
         self.initialize()
 
     def _prepare_dataset(self):
@@ -123,7 +124,14 @@ class DisparityTrainer(object):
         self._build_optimizer()
 
     def adjust_learning_rate(self, epoch):
-        cur_lr = self.lr / (2**(epoch// 10))
+        warmup = 5
+        if epoch < warmup:
+            warmup_total_iters = self.num_batches_per_epoch * warmup
+            min_lr = self.lr / warmup_total_iters 
+            lr_interval = (self.lr - min_lr) / warmup_total_iters
+            cur_lr  = min_lr + lr_interval * self.train_iter
+        else:
+            cur_lr = self.lr / (2**(epoch// 10))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
@@ -216,6 +224,7 @@ class DisparityTrainer(object):
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
+            self.train_iter += 1
 
             if i_batch % 10 == 0:
                 logger.info('Epoch: [{0}][{1}/{2}]\t'
