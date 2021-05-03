@@ -54,7 +54,8 @@ def main(opt):
     # validate the pretrained model on test data
     best_EPE = -1
     if trainer.is_pretrain:
-        best_EPE = trainer.validate()
+        with torch.no_grad():
+            best_EPE = trainer.validate()
 
     start_epoch = opt.startEpoch
 
@@ -88,6 +89,7 @@ def main(opt):
         
                 logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(float(avg_EPE)), str(float(val_EPE)), str(trainer.current_lr)]))
         start_epoch = 0
+        trainer.train_iter = 0
 
 
 if __name__ == '__main__':

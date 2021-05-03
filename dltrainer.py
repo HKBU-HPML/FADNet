@@ -50,7 +50,7 @@ class DisparityTrainer(object):
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_height, self.scale_width = test_dataset.get_scale_size()
 
-        datathread=8
+        datathread=4
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
@@ -159,6 +159,8 @@ class DisparityTrainer(object):
 
             left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
             right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
+            #left_input = sample_batched['img_left'].cuda()
+            #right_input = sample_batched['img_right'].cuda()
             input = torch.cat((left_input, right_input), 1)
 
             target_disp = sample_batched['gt_disp']
@@ -226,7 +228,7 @@ class DisparityTrainer(object):
             end = time.time()
             self.train_iter += 1
 
-            if i_batch % 10 == 0:
+            if self.rank == 0 and i_batch % 1 == 0:
                 logger.info('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
@@ -306,19 +308,19 @@ class DisparityTrainer(object):
                 #    flow2_EPE = self.epe(output, target_disp)
 
             # record loss and EPE
-            #if loss.data.item() == loss.data.item():
-            losses.update(loss.data.item(), input_var.size(0))
-            #if flow2_EPE.data.item() == flow2_EPE.data.item():
-            if self.hvd:
-                flow2_EPEs.update(flow2_EPE, input_var.size(0))
-            else:
-                flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
+            if loss.data.item() == loss.data.item():
+                losses.update(loss.data.item(), input_var.size(0))
+            if flow2_EPE.data.item() == flow2_EPE.data.item():
+                if self.hvd:
+                    flow2_EPEs.update(flow2_EPE, input_var.size(0))
+                else:
+                    flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
     
-            if i % 10 == 0:
+            if i % 1 == 0:
                 logger.info('Test: [{0}/{1}]\t Time {2}\t EPE {3}'
                       .format(i, len(self.test_loader), batch_time.val, flow2_EPEs.val))
 

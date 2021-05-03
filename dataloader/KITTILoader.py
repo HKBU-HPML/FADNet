@@ -36,8 +36,8 @@ class myImageFloder(data.Dataset):
         self.dploader = dploader
         self.training = training
 
-        #self.scale_size = (384, 1280)
-        self.scale_size = (1280, 384)
+        self.scale_size = (384, 1280)
+        #self.scale_size = (1280, 384)
 
     def __getitem__(self, index):
         left  = self.left[index]
@@ -66,7 +66,7 @@ class myImageFloder(data.Dataset):
            #th, tw = 384, 768
  
            x1 = random.randint(0, w - tw)
-           y1 = random.randint(h / 4, h - th)
+           y1 = random.randint(0, h - th)
            #y1 = h - th
            #y1 = random.randint((h-th)/2, h - th)
 
