@@ -1,4 +1,4 @@
-net=fadnet
+net=ganet
 dataset=sceneflow
 
 model=models/${net}-sceneflow-v3/model_best.pth

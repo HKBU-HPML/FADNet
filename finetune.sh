@@ -2,12 +2,13 @@
 python kitti_finetune.py --maxdisp 192 \
                    --model fadnet \
                    --devices 0,1 \
-                   --datatype 2015 \
-                   --datapath ./data/kitti2015/training/ \
+                   --datatype 2012 \
+                   --datapath ./data/kitti2012/training/ \
                    --epochs 600 \
                    --loss loss_configs/fadnet_kitti.json \
-                   --savemodel ./trained/fadnet-imn-KITTI2015-bottom/ \
-                   --loadmodel ./models/fadnet-sf.pth \
+                   --savemodel ./trained/test/ \
+                   --loadmodel ./trained/fadnet-imn-KITTI2012/best.tar
+                   #--loadmodel ./models/fadnet-sf.pth \
                    #--loadmodel  ./trained/fadnet-imn-KITTI2015/finetune_2_501.tar \
                    #--loadmodel ./models/pretrained_sceneflow.tar \
                    #--datapath /datasets/kitti2015/training/ \
