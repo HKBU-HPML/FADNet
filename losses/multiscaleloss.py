@@ -56,8 +56,8 @@ class MultiScaleLoss(nn.Module):
                 self.loss = MAPELoss()
         else:
             self.loss = loss
-        #self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
-        self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        self.multiScales = [nn.AvgPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
+        #self.multiScales = [nn.MaxPool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
         #self.multiScales = [nn.Upsample(scale_factor=self.downscale*(2**i), mode='bilinear', align_corners=True) for i in range(scales)]
         print('self.multiScales: ', self.multiScales, ' self.downscale: ', self.downscale)
         # self.multiScales = [nn.functional.adaptive_avg_pool2d(self.downscale*(2**i), self.downscale*(2**i)) for i in range(scales)]
@@ -78,20 +78,20 @@ class MultiScaleLoss(nn.Module):
                 #target_ = self.multiScales[i](target) / (2**i)
                 #print('target shape: ', target_.shape, ' input shape: ', input_.shape)
                 if self.mask:
-                    ## work for sparse
-                    #mask = target > 0
-                    #mask.detach_()
-                    #
-                    #mask = mask.type(torch.cuda.FloatTensor)
-                    #pooling_mask = self.multiScales[i](mask) 
-
-                    ## use unbalanced avg
-                    #target_ = target_ / pooling_mask
-
-                    mask = target_ > 0
+                    # work for sparse
+                    mask = target > 0
                     mask.detach_()
-                    input_ = input_[mask]
-                    target_ = target_[mask]
+                    
+                    mask = mask.type(torch.cuda.FloatTensor)
+                    pooling_mask = self.multiScales[i](mask) 
+
+                    # use unbalanced avg
+                    target_ = target_ / pooling_mask
+
+                #mask = target_ > 0
+                #mask.detach_()
+                #input_ = input_[mask]
+                #target_ = target_[mask]
 
                 EPE_ = SL_EPE(input_, target_)
                 out += self.weights[i] * EPE_
