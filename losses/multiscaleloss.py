@@ -4,6 +4,22 @@ import math
 import numpy as np
 import torch.nn.functional as F
 
+def d1_metric(d_est, d_gt, use_np=False):
+    mask = (d_gt > 0) & (d_gt < 192)
+    d_est, d_gt = d_est[mask], d_gt[mask]
+    if use_np:
+        e = np.abs(d_gt - d_est)
+    else:
+        e = torch.abs(d_gt - d_est)
+    err_mask = (e > 3) & (e / d_gt > 0.05)
+
+    if use_np:
+        mean = np.mean(err_mask.astype('float'))
+    else:
+        mean = torch.mean(err_mask.float())
+
+    return mean
+
 
 def SL_EPE(input_flow, target_flow):
     target_valid = (target_flow < 192) & (target_flow > 0)

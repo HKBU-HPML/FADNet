@@ -1,4 +1,4 @@
-model_path=./trained/fadnet-imn-KITTI2015/best.tar
+model_path=./models/fadnet-kitti2015.tar
 save_path=./submit_results/fadnet-imn-KITTI2015/
 net=fadnet
 #model_path=./trained/psmnet-imn-KITTI2015-split/best.tar

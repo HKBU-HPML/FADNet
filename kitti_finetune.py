@@ -84,17 +84,31 @@ else:
     print('no model')
     sys.exit(-1)
 
-if args.cuda:
-    model = nn.DataParallel(model, device_ids=devices)
-    model.cuda()
+#if args.cuda:
+#    model = nn.DataParallel(model, device_ids=devices)
+#    model.cuda()
 
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
-    if 'model' in state_dict.keys():
-        state_dict = state_dict["model"]
-    if 'state_dict' in state_dict.keys():
-        state_dict = state_dict["state_dict"]
-    model.load_state_dict(state_dict)
+    #if 'model' in state_dict.keys():
+    #    state_dict = state_dict["model"]
+    #if 'state_dict' in state_dict.keys():
+    #state_dict = state_dict["state_dict"]
+    model.load_state_dict(state_dict['state_dict'])
+
+if args.cuda:
+    if len(devices) > 1:
+        model = nn.DataParallel(model, device_ids=devices)
+    model.cuda()
+
+
+#if args.loadmodel is not None:
+#    state_dict = torch.load(args.loadmodel)
+#    if 'model' in state_dict.keys():
+#        state_dict = state_dict["model"]
+#    if 'state_dict' in state_dict.keys():
+#        state_dict = state_dict["state_dict"]
+#    model.load_state_dict(state_dict)
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 

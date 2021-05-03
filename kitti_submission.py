@@ -10,9 +10,8 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 import torch.nn.functional as F
-import skimage
 import skimage.io
-import skimage.transform
+from PIL import Image
 import numpy as np
 import time
 import math
@@ -110,9 +109,11 @@ def main():
    for inx in range(len(test_left_img)):
        print('image: %s'%test_left_img[inx])
 
-       imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
-       imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
-
+       #imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
+       #imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
+       imgL_o = np.array(Image.open(test_left_img[inx]).convert('RGB'))
+       imgR_o = np.array(Image.open(test_right_img[inx]).convert('RGB'))
+ 
        rgb_transform = default_transform()
        imgL = rgb_transform(imgL_o).numpy()
        imgR = rgb_transform(imgR_o).numpy()
