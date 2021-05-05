@@ -160,7 +160,10 @@ class DisparityTrainer(object):
             lr_interval = (self.lr - min_lr) / warmup_total_iters
             cur_lr  = min_lr + lr_interval * self.train_iter
         else:
-            cur_lr = self.lr / (2**(epoch// 10))
+            if self.dataset.find('kitti') >= 0:
+                cur_lr = self.lr / (2**(epoch// 200))
+            else:
+                cur_lr = self.lr / (2**(epoch// 10))
         #cur_lr = self.lr / (2**(epoch// 10))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
@@ -187,16 +190,18 @@ class DisparityTrainer(object):
 
         for i_batch, sample_batched in enumerate(self.train_loader):
 
-            left_input = torch.autograd.Variable(sample_batched['img_left'].cuda(), requires_grad=False)
-            right_input = torch.autograd.Variable(sample_batched['img_right'].cuda(), requires_grad=False)
+            if self.dataset.find('kitti') >= 0:
+                left_input = sample_batched[0].cuda()
+                right_input = sample_batched[1].cuda()
+                target_disp = sample_batched[2].cuda()
+                target_disp = target_disp.unsqueeze(1)
+            else:
+                left_input = sample_batched['img_left'].cuda()
+                right_input = sample_batched['img_right'].cuda()
+                target_disp = sample_batched['gt_disp'].cuda()
             input = torch.cat((left_input, right_input), 1)
+            input_var = input 
 
-            #target_disp = sample_batched['gt_disp']
-            target_disp = sample_batched[2].cuda()
-            target_disp = target_disp.cuda()
-            target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
-
-            input_var = torch.autograd.Variable(input, requires_grad=False)
             data_time.update(time.time() - end)
 
             self.optimizer.zero_grad()
@@ -293,17 +298,18 @@ class DisparityTrainer(object):
         for i, sample_batched in enumerate(self.test_loader):
 
 
-            #left_input = sample_batched['img_left'].cuda()
-            #right_input = sample_batched['img_right'].cuda()
-            left_input = sample_batched[0].cuda() # for KITTI
-            right_input = sample_batched[1].cuda() # for KITTI
+            if self.dataset.find('kitti') >= 0:
+                left_input = sample_batched[0].cuda() # for KITTI
+                right_input = sample_batched[1].cuda() # for KITTI
+                target_disp = sample_batched[2].cuda() # for KITTI
+            else:
+                left_input = sample_batched['img_left'].cuda()
+                right_input = sample_batched['img_right'].cuda()
+                target_disp = sample_batched['gt_disp'].cuda()
             left_input = F.interpolate(left_input, self.scale_size, mode='bilinear')
             right_input = F.interpolate(right_input, self.scale_size, mode='bilinear')
             input_var = torch.cat((left_input, right_input), 1)
 
-            #target_disp = sample_batched['gt_disp']
-            target_disp = sample_batched[2] # for KITTI
-            target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             if self.net_name in ['fadnet', 'mobilefadnet']:

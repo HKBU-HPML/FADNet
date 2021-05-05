@@ -105,7 +105,12 @@ class myImageFolder(data.Dataset):
            processed = preprocess.get_transform(augment=False)  
            left_img       = processed(left_img)
            right_img      = processed(right_img)
-
+           #sample = {  'img_left': left_img, 
+           #         'img_right': right_img, 
+           #         'img_names': left,
+           #         'gt_disp': dataL
+           #      }
+           #return sample
            return left_img, right_img, dataL
 
     def __len__(self):
