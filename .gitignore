@@ -16,6 +16,10 @@
 *.npy
 *.o
 *.egg
+*.tar
+*.tar.gz
+wandb/
+wandb/runs*
 tmp
 ./data
 data
@@ -33,3 +37,7 @@ runs/
 runs
 tools/openexr-*
 
+*.tar.gz
+pdfresults/
+wandb/
+wandb/runs*

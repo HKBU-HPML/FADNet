@@ -12,8 +12,10 @@ maxdisp=-1
 #dataset=sintel
 #trainlist=lists/Sintel_ALL.list
 #vallist=lists/Sintel_ALL.list
-datapath=/datasets/kitti2012/training/
-dataset=kitti2012
+#datapath=/datasets/kitti2012/training/
+#dataset=kitti2012
+datapath=/datasets/kitti2015/training/
+dataset=kitti2015
 trainlist=KITTI_TRAIN.list
 vallist=KITTI_TEST.list
 

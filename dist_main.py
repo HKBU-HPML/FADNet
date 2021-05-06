@@ -15,6 +15,7 @@ from utils.common import *
 from dltrainer import DisparityTrainer
 from net_builder import SUPPORT_NETS
 from losses.multiscaleloss import multiscaleloss
+import wandb
 
 cudnn.benchmark = True
 
@@ -90,6 +91,8 @@ def main(opt):
                 }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
         
                 logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(float(avg_EPE)), str(float(val_EPE)), str(trainer.current_lr)]))
+
+                wandb.log({'train-epe': float(avg_EPE), 'val-epe': float(val_EPE), 'epoch': i+1, 'round': r+1})
         start_epoch = 0
         trainer.train_iter = 0
 
@@ -136,6 +139,9 @@ if __name__ == '__main__':
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr) 
     logger.info('Configurations: %s', opt)
+    
+    if hvd.rank() == 0:
+        wandb.init(project='fadnet', entity='hpml-hkbu', name=logfile, config=opt)
     
     if opt.manualSeed is None:
         opt.manualSeed = random.randint(1, 10000)
