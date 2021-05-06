@@ -83,14 +83,22 @@ class myImageFolder(data.Dataset):
            dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256
            #dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256 * 1.0 * scale_width / origin_width
            dataL = dataL[y1:y1 + th, x1:x1 + tw]
+           dataL = dataL[np.newaxis, :]
 
            processed = preprocess.get_transform(augment=False)  
            #processed = preprocess.get_transform(augment=True)  
            left_img   = processed(left_img)
            right_img  = processed(right_img)
            #print('[index:%d]left: %s, rect(%d,%d,%d,%d)'%(index, self.left[index], x1,y1,x1+tw,y1+th))
+           sample = {  'img_left': left_img, 
+                       'img_right': right_img, 
+                       'img_names': [left, right, disp_L],
+                       'gt_disp': dataL
+                    }
 
-           return left_img, right_img, dataL
+           #return left_img, right_img, dataL
+           return sample
+
         else:
            w, h = left_img.size
 
@@ -101,17 +109,20 @@ class myImageFolder(data.Dataset):
            dataL = dataL.crop((w-1280, h-384, w, h))
            #dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256 * 1.0 * scale_width / origin_width
            dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256
+           dataL = dataL[np.newaxis, :]
 
            processed = preprocess.get_transform(augment=False)  
            left_img       = processed(left_img)
            right_img      = processed(right_img)
-           #sample = {  'img_left': left_img, 
-           #         'img_right': right_img, 
-           #         'img_names': left,
-           #         'gt_disp': dataL
-           #      }
-           #return sample
-           return left_img, right_img, dataL
+
+           sample = {  'img_left': left_img, 
+                       'img_right': right_img, 
+                       'img_names': [left, right, disp_L],
+                       'gt_disp': dataL
+                    }
+
+           #return left_img, right_img, dataL
+           return sample
 
     def __len__(self):
         return len(self.left)

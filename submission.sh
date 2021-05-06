@@ -1,7 +1,7 @@
-model_path=/home/esetstore/repos/fadnet-shyhuai/models/fadnet-sceneflow-n32sf/model_best.pth
-#model_path=./models/fadnet-kitti2015.tar
-#save_path=./submit_results/fadnet-imn-KITTI2015/
-save_path=./submit_results/fadnet-ft-kitti-KITTI2015/
+#model_path=/home/esetstore/repos/fadnet-shyhuai/models/fadnet-sceneflow-n32sf/model_best.pth
+#save_path=./submit_results/fadnet-ft-kitti-KITTI2015/
+model_path=./models/fadnet-kitti2015/model_best.pth
+save_path=./submit_results/fadnet-dist/
 net=fadnet
 #model_path=./trained/psmnet-imn-KITTI2015-split/best.tar
 #save_path=./submit_results/psmnet-imn-KITTI2015-split/

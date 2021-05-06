@@ -6,7 +6,7 @@ python kitti_finetune.py --maxdisp 192 \
                    --datapath ./data/kitti2012/training/ \
                    --epochs 600 \
                    --loss loss_configs/fadnet_kitti.json \
-                   --loadmodel ./trained/fadnet-imn-KITTI2012/best.tar \
+                   --loadmodel ./models/dist_best.pth \
                    --savemodel ./trained/fadnet-imn-KITTI2012/ \
                    #--loadmodel  ./trained/fadnet-imn-KITTI2015/finetune_2_501.tar \
                    #--loadmodel ./models/pretrained_sceneflow.tar \

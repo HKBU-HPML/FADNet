@@ -65,11 +65,11 @@ all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_
 
 TrainImgLoader = torch.utils.data.DataLoader(
          DA.myImageFolder(all_left_img,all_right_img,all_left_disp, True), 
-         batch_size= 1, shuffle= True, num_workers= 8, drop_last=False)
+         batch_size= 8, shuffle= True, num_workers= 8, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFolder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 1, shuffle= False, num_workers= 4, drop_last=False)
+         batch_size= 8, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
@@ -147,15 +147,15 @@ def train(imgL,imgR,disp_L, criterion):
         output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
 
         # multi-scale loss
-        #disp_true = disp_true.unsqueeze(1)
-        #loss_net1 = criterion(output_net1, disp_true)
-        #loss_net2 = criterion(output_net2, disp_true)
-        #loss = loss_net1 + loss_net2 
+        disp_true = disp_true.unsqueeze(1)
+        loss_net1 = criterion(output_net1, disp_true)
+        loss_net2 = criterion(output_net2, disp_true)
+        loss = loss_net1 + loss_net2 
 
-        # only the last scale
-        output1 = output_net1[0].squeeze(1)
-        output2 = output_net2[0].squeeze(1)
-        loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
+        ## only the last scale
+        #output1 = output_net1[0].squeeze(1)
+        #output2 = output_net2[0].squeeze(1)
+        #loss = 0.5*F.smooth_l1_loss(output1[mask], disp_true[mask], size_average=True) + F.smooth_l1_loss(output2[mask], disp_true[mask], size_average=True) 
 
     loss.backward()
     optimizer.step()
@@ -169,11 +169,6 @@ def test(imgL,imgR,disp_true):
     if args.cuda:
         imgL, imgR = imgL.cuda(), imgR.cuda()
 
-    #print(imgL.size())
-    #imgL = F.pad(imgL, (0, 48, 0, 16), "constant", 0)
-    #imgR = F.pad(imgR, (0, 48, 0, 16), "constant", 0)
-    #print(imgL.size())
-
     with torch.no_grad():
         if args.model == "psmnet" or args.model == "gwcnet":
             output_net = model(torch.cat((imgL, imgR), 1))
@@ -183,8 +178,6 @@ def test(imgL,imgR,disp_true):
             pred_disp = output_net2.squeeze(1)
 
     pred_disp = pred_disp.data.cpu()
-    #pred_disp = pred_disp[:, :368, :1232]
-    #epe = EPE(pred_disp, disp_true)
     epe = np.abs(disp_true - pred_disp)
     epe = torch.mean(epe[disp_true > 0])
 

@@ -155,7 +155,7 @@ class DisparityTrainer(object):
         self._build_optimizer()
 
     def adjust_learning_rate(self, epoch):
-        warmup = 5
+        warmup = 0
         if epoch < warmup:
             warmup_total_iters = self.num_batches_per_epoch * warmup
             min_lr = self.lr / warmup_total_iters 
@@ -167,7 +167,6 @@ class DisparityTrainer(object):
                 #cur_lr = self.lr
             else:
                 cur_lr = self.lr / (2**(epoch// 10))
-        #cur_lr = self.lr / (2**(epoch// 10))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
@@ -181,6 +180,7 @@ class DisparityTrainer(object):
         data_time = AverageMeter()
         losses = AverageMeter()
         flow2_EPEs = AverageMeter()
+        d1_metrics = AverageMeter()
         norm_EPEs = AverageMeter()
         angle_EPEs = AverageMeter()
         # switch to train mode
@@ -193,20 +193,15 @@ class DisparityTrainer(object):
 
         for i_batch, sample_batched in enumerate(self.train_loader):
 
-            if self.dataset.find('kitti') >= 0:
-                left_input = sample_batched[0].cuda()
-                right_input = sample_batched[1].cuda()
-                target_disp = sample_batched[2].cuda()
-                target_disp = target_disp.unsqueeze(1)
-            else:
-                left_input = sample_batched['img_left'].cuda()
-                right_input = sample_batched['img_right'].cuda()
-                target_disp = sample_batched['gt_disp'].cuda()
-            input = torch.cat((left_input, right_input), 1)
-            input_var = input 
+            left_input = sample_batched['img_left'].cuda()
+            right_input = sample_batched['img_right'].cuda()
+            target_disp = sample_batched['gt_disp'].cuda()
+            
+            input_var = torch.cat((left_input, right_input), 1)
+            input_var = torch.autograd.Variable(input_var, requires_grad=False)
+            target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             data_time.update(time.time() - end)
-
             self.optimizer.zero_grad()
 
             if self.net_name in ["fadnet", "mobilefadnet"]:
@@ -216,6 +211,7 @@ class DisparityTrainer(object):
                 loss = loss_net1 + loss_net2
                 output_net2_final = output_net2[0]
                 flow2_EPE = self.epe(output_net2_final, target_disp)
+                d1m = d1_metric(output_net2_final, target_disp)
             elif self.net_name == "dispnetcs":
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
@@ -263,6 +259,7 @@ class DisparityTrainer(object):
             # record loss and EPE
             losses.update(loss.data.item(), input_var.size(0))
             flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
+            d1_metrics.update(d1m.data.item(), input_var.size(0))
 
             # compute gradient and do SGD step
             loss.backward()
@@ -278,9 +275,10 @@ class DisparityTrainer(object):
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
-                  'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'.format(
+                  'EPE {flow2_EPE.val:.3f} ({flow2_EPE.avg:.3f})\t'
+                  'D1-All {d1_metrics.val:.3f} ({d1_metrics.avg:.3f})\t'.format(
                   epoch, i_batch, self.num_batches_per_epoch, batch_time=batch_time, 
-                  data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs))
+                  data_time=data_time, loss=losses, flow2_EPE=flow2_EPEs, d1_metrics=d1_metrics))
 
 
         return losses.avg, flow2_EPEs.avg
@@ -289,38 +287,30 @@ class DisparityTrainer(object):
         batch_time = AverageMeter()
         if self.hvd:
             flow2_EPEs = HVDMetric('val_epe')
+            d1_metrics = HVDMetric('val_d1')
         else:
             flow2_EPEs = AverageMeter()
-        d1_metrics = AverageMeter()
-        norm_EPEs = AverageMeter()
-        angle_EPEs = AverageMeter()
+            d1_metrics = AverageMeter()
         losses = AverageMeter()
         # switch to evaluate mode
         self.net.eval()
         end = time.time()
         for i, sample_batched in enumerate(self.test_loader):
 
-
-            if self.dataset.find('kitti') >= 0:
-                left_input = sample_batched[0].cuda() # for KITTI
-                right_input = sample_batched[1].cuda() # for KITTI
-                target_disp = sample_batched[2].cuda() # for KITTI
-            else:
-                left_input = sample_batched['img_left'].cuda()
-                right_input = sample_batched['img_right'].cuda()
-                target_disp = sample_batched['gt_disp'].cuda()
+            left_input = sample_batched['img_left'].cuda()
+            right_input = sample_batched['img_right'].cuda()
             left_input = F.interpolate(left_input, self.scale_size, mode='bilinear')
             right_input = F.interpolate(right_input, self.scale_size, mode='bilinear')
             input_var = torch.cat((left_input, right_input), 1)
 
+            target_disp = sample_batched['gt_disp']
+            target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             if self.net_name in ['fadnet', 'mobilefadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
-                if self.dataset.find('kitti') >= 0:
-                    target_disp = target_disp.unsqueeze(1) # for KITTI
                 #target_disp = scale_disp(target_disp, (1, 540, 960))
 
                 loss_net1 = self.epe(output_net1, target_disp)
@@ -374,18 +364,20 @@ class DisparityTrainer(object):
                 else:
                     flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
             if d1m.data.item() == d1m.data.item():
-                d1_metrics.update(d1m.data.item(), input_var.size(0))
+                if self.hvd:
+                    d1_metrics.update(d1m.data, input_var.size(0))
+                else:
+                    d1_metrics.update(d1m.data.item(), input_var.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
     
             if i % 10 == 0:
-                logger.info('Test: [{0}/{1}]\t Time {2}\t EPE {3}'
-                      .format(i, len(self.test_loader), batch_time.val, flow2_EPEs.val))
-            #print(d1_metrics.avg)
+                logger.info('Test: [{0}/{1}]\t Time {2}\t EPE {3}\t D1-All {4}'
+                      .format(i, len(self.test_loader), batch_time.val, flow2_EPEs.val, d1_metrics.val))
 
-        logger.info(' * EPE {:.3f}'.format(flow2_EPEs.avg))
+        logger.info(' * EPE {:.3f}, D1-All {:.3f}'.format(flow2_EPEs.avg, d1_metrics.avg))
         return flow2_EPEs.avg
 
     def get_model(self):
