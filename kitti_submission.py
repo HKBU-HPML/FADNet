@@ -69,12 +69,12 @@ else:
     print('no model')
     sys.exit(-1)
 
-model = nn.DataParallel(model, device_ids=devices)
-model.cuda()
-
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
     model.load_state_dict(state_dict['state_dict'])
+
+model = nn.DataParallel(model, device_ids=devices)
+model.cuda()
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
@@ -118,10 +118,8 @@ def main():
        imgL = rgb_transform(imgL_o).numpy()
        imgR = rgb_transform(imgR_o).numpy()
 
-       # resize
-       imgsize = imgL_o.shape[:2]
-
        # scale to resize
+       #imgsize = imgL_o.shape[:2]
        ##target_size = (512, 1792)
        #target_size = (384, 1344)
        #scale_h = imgsize[0]*1.0/target_size[0]

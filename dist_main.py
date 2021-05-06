@@ -19,8 +19,8 @@ from losses.multiscaleloss import multiscaleloss
 cudnn.benchmark = True
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
-    #if state['epoch'] % 10 == 0:
-    torch.save(state, os.path.join(opt.outf,filename))
+    if state['epoch'] % 100 == 0:
+        torch.save(state, os.path.join(opt.outf,filename))
     if is_best:
         torch.save(state, os.path.join(opt.outf,'model_best.pth'))
         #shutil.copyfile(os.path.join(opt.outf,filename), os.path.join(opt.outf,'model_best.pth'))
@@ -59,10 +59,12 @@ def main(opt):
 
     start_epoch = opt.startEpoch
 
-
+    is_sparse = False
+    if 'kitti' in opt.dataset:
+        is_sparse = True
     for r in range(opt.startRound, train_round):
 
-        criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=False)
+        criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=is_sparse)
         trainer.set_criterion(criterion)
         end_epoch = epoches[r]
         #end_epoch = min(epoches[r], opt.endEpoch)
