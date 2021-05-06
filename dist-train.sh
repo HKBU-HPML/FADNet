@@ -3,7 +3,7 @@ nworkers="${nworkers:-4}"
 source exp_configs/$dnn.conf
 MPIPATH=/home/esetstore/.local/openmpi-4.0.1
 PY=/home/esetstore/fadnet/bin/python
-lr=1e-3
+#lr=1e-3
 
 rdma="${rdma:-1}"
 if [ "$rdma" = "0" ]; then

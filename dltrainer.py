@@ -71,7 +71,7 @@ class DisparityTrainer(object):
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_size = train_dataset.get_scale_size()
 
-        datathread=4
+        datathread=2
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
@@ -86,6 +86,7 @@ class DisparityTrainer(object):
             train_sampler.set_epoch(0)
             shuffle = False
         self.train_sampler = train_sampler
+        #self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
         self.train_loader = MultiEpochsDataLoader(train_dataset, batch_size = self.batch_size, \
                                 shuffle = shuffle, num_workers = datathread, \
                                 pin_memory = True, sampler=train_sampler)
@@ -96,6 +97,7 @@ class DisparityTrainer(object):
         #                        pin_memory = True)
         if self.ngpu > 1 and self.hvd: 
             test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset, num_replicas=self.ngpu, rank=self.rank)
+            #self.test_loader = DataLoader(test_dataset, batch_size=self.batch_size, sampler=test_sampler)
             self.test_loader = MultiEpochsDataLoader(test_dataset, batch_size=self.batch_size, sampler=test_sampler)
         else:
             self.test_loader = MultiEpochsDataLoader(test_dataset, batch_size = self.batch_size, \
@@ -161,7 +163,8 @@ class DisparityTrainer(object):
             cur_lr  = min_lr + lr_interval * self.train_iter
         else:
             if self.dataset.find('kitti') >= 0:
-                cur_lr = self.lr / (2**(epoch// 200))
+                cur_lr = self.lr / (2**(epoch// 300))
+                #cur_lr = self.lr
             else:
                 cur_lr = self.lr / (2**(epoch// 10))
         #cur_lr = self.lr / (2**(epoch// 10))
@@ -316,7 +319,8 @@ class DisparityTrainer(object):
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
-                target_disp = target_disp.unsqueeze(1) # for KITTI
+                if self.dataset.find('kitti') >= 0:
+                    target_disp = target_disp.unsqueeze(1) # for KITTI
                 #target_disp = scale_disp(target_disp, (1, 540, 960))
 
                 loss_net1 = self.epe(output_net1, target_disp)

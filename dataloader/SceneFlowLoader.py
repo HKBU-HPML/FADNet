@@ -21,7 +21,7 @@ class SceneFlowDataset(Dataset):
             transform (callable, optional): Optional transform to be applied                on a sample
         """
         with open(txt_file, "r") as f:
-            self.imgPairs = f.readlines()
+            self.imgPairs = np.array(f.readlines())
 
         self.root_dir = root_dir
         self.phase = phase
