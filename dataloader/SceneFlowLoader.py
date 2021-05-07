@@ -57,7 +57,9 @@ class SceneFlowDataset(Dataset):
             if filename.find('.npy') > 0:
                 img = np.load(filename)
             else:
-                img = io.imread(filename)
+                img = Image.open(filename)
+                img = np.array(img)
+                #img = io.imread(filename)
                 if len(img.shape) == 2:
                     img = img[:,:,np.newaxis]
                     img = np.pad(img, ((0, 0), (0, 0), (0, 2)), 'constant')
@@ -101,37 +103,30 @@ class SceneFlowDataset(Dataset):
             return gt_norm
 
         s = time.time()
-        img_left = load_rgb(img_left_name)
-        img_right = load_rgb(img_right_name)
+        left = load_rgb(img_left_name)
+        right = load_rgb(img_right_name)
         if self.load_disp:
             gt_disp = load_disp(gt_disp_name)
         if self.load_norm:
             gt_norm = load_norm(gt_norm_name)
-        #print("load data in %f s." % (time.time() - s))
 
         s = time.time()
 
+        ## normalize with imagenet stats and tensor()
         #if self.phase == 'detect' or self.phase == 'test':
-            #img_left = transform.resize(img_left, self.scale_size, preserve_range=True)
-            #img_right = transform.resize(img_right, self.scale_size, preserve_range=True)
+        #    rgb_transform = default_transform()
+        #else:
+        #    rgb_transform = inception_color_preproccess()
+        #img_left = rgb_transform(img_left)
+        #img_right = rgb_transform(img_right)
 
-            # change image pixel value type ot float32
-            #img_left = img_left.astype(np.float32)
-            #img_right = img_right.astype(np.float32)
-            #scale = RandomRescale((1024, 1024))
-            #sample = scale(sample)
-
-        if self.phase == 'detect' or self.phase == 'test':
-            rgb_transform = default_transform()
-        else:
-            rgb_transform = inception_color_preproccess()
-
-        img_left = rgb_transform(img_left)
-        img_right = rgb_transform(img_right)
-
-        #if self.phase == 'detect' or self.phase == 'test':
-        #    img_left = F.interpolate(img_left, (576, 960), mode='nearest')
-        #    img_right = F.interpolate(img_right, (576, 960), mode='nearest')
+        # instance normalization
+        h, w, _ = left.shape
+        img_left = np.zeros([3, h, w], 'float32')
+        img_right = np.zeros([3, h, w], 'float32')
+        for c in range(3):
+            img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
+            img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
         if self.load_disp:
             gt_disp = gt_disp[np.newaxis, :]
@@ -174,8 +169,6 @@ class SceneFlowDataset(Dataset):
                 sample['gt_angle'] = gt_angle
             else:
                 sample['gt_norm'] = gt_norm
-
-        #print("deal data in %f s." % (time.time() - s))
 
         return sample
 

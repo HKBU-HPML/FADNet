@@ -13,14 +13,13 @@ from dataloader.SintelLoader import SintelDataset
 from dataloader.MiddleburyLoader import MiddleburyDataset
 from dataloader import KITTILoader as DA
 from dataloader.GANet.data import get_training_set, get_test_set
-#from utils.AverageMeter import AverageMeter
-#from utils.common import logger
 from utils.AverageMeter import AverageMeter, HVDMetric
 from utils.common import logger, MultiEpochsDataLoader
 from losses.multiscaleloss import EPE, d1_metric
 from utils.preprocess import scale_disp
 from lamb import Lamb
 import skimage
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None, ngpu=1, rank=0, hvd=False):
@@ -308,7 +307,6 @@ class DisparityTrainer(object):
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
-                #target_disp = scale_disp(target_disp, (1, 540, 960))
 
                 loss_net1 = self.epe(output_net1, target_disp)
                 loss_net2 = self.epe(output_net2, target_disp)

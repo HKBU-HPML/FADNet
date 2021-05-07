@@ -88,6 +88,11 @@ else:
 #    model = nn.DataParallel(model, device_ids=devices)
 #    model.cuda()
 
+if args.cuda:
+    if len(devices) > 1:
+        model = nn.DataParallel(model, device_ids=devices)
+    model.cuda()
+
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
     #if 'model' in state_dict.keys():
@@ -95,11 +100,6 @@ if args.loadmodel is not None:
     #if 'state_dict' in state_dict.keys():
     #state_dict = state_dict["state_dict"]
     model.load_state_dict(state_dict['state_dict'])
-
-if args.cuda:
-    if len(devices) > 1:
-        model = nn.DataParallel(model, device_ids=devices)
-    model.cuda()
 
 
 #if args.loadmodel is not None:
@@ -177,6 +177,7 @@ def test(imgL,imgR,disp_true):
             output_net1, output_net2 = model(torch.cat((imgL, imgR), 1))
             pred_disp = output_net2.squeeze(1)
 
+    disp_true = disp_true.squeeze(1)
     pred_disp = pred_disp.data.cpu()
     epe = np.abs(disp_true - pred_disp)
     epe = torch.mean(epe[disp_true > 0])
@@ -210,7 +211,10 @@ def main():
     # test on the loaded model
     total_test_loss = 0
     total_epe = 0
-    for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
+    for batch_idx, sample in enumerate(TestImgLoader):
+        imgL = sample['img_left']
+        imgR = sample['img_right']
+        disp_L = sample['gt_disp']
         test_loss, test_epe = test(imgL,imgR, disp_L)
         print('Iter %d 3-px error in val = %.3f' %(batch_idx, test_loss*100))
         total_test_loss += test_loss
@@ -232,7 +236,10 @@ def main():
            adjust_learning_rate(optimizer,epoch)
                
            ## training ##
-           for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(TrainImgLoader):
+           for batch_idx, sample in enumerate(TrainImgLoader):
+               imgL_crop = sample['img_left']
+               imgR_crop = sample['img_right']
+               disp_crop_L = sample['gt_disp']
                start_time = time.time() 
 
                loss = train(imgL_crop,imgR_crop, disp_crop_L, criterion)
