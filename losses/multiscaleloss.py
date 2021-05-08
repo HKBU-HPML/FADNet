@@ -4,8 +4,10 @@ import math
 import numpy as np
 import torch.nn.functional as F
 
+MAXDISP=192
+
 def d1_metric(d_est, d_gt, use_np=False):
-    mask = (d_gt > 0) & (d_gt < 192)
+    mask = (d_gt > 0) & (d_gt < MAXDISP)
     d_est, d_gt = d_est[mask], d_gt[mask]
     if use_np:
         e = np.abs(d_gt - d_est)
@@ -22,11 +24,11 @@ def d1_metric(d_est, d_gt, use_np=False):
 
 
 def SL_EPE(input_flow, target_flow):
-    target_valid = (target_flow < 192) & (target_flow > 0)
+    target_valid = (target_flow < MAXDISP) & (target_flow > 0)
     return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
 def EPE(input_flow, target_flow):
-    target_valid = (target_flow < 192) & (target_flow > 0)
+    target_valid = (target_flow < MAXDISP) & (target_flow > 0)
     return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
 class MultiScaleLoss(nn.Module):

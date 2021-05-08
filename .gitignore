@@ -41,3 +41,5 @@ tools/openexr-*
 pdfresults/
 wandb/
 wandb/runs*
+predict/
+predict

@@ -69,12 +69,12 @@ else:
     print('no model')
     sys.exit(-1)
 
+model = nn.DataParallel(model, device_ids=devices)
+model.cuda()
+
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
     model.load_state_dict(state_dict['state_dict'])
-
-model = nn.DataParallel(model, device_ids=devices)
-model.cuda()
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
@@ -113,7 +113,16 @@ def main():
        #imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
        imgL_o = np.array(Image.open(test_left_img[inx]).convert('RGB'))
        imgR_o = np.array(Image.open(test_right_img[inx]).convert('RGB'))
- 
+
+       ## pre-process with instance normalization
+       #h, w, _ = imgL_o.shape
+       #imgL = np.zeros([3, h, w], 'float')
+       #imgR = np.zeros([3, h, w], 'float')
+       #for c in range(3):
+       #    imgL[c, :, :] = (imgL_o[:, :, c] - np.mean(imgL_o[:, :, c])) / np.std(imgL_o[:, :, c])
+       #    imgR[c, :, :] = (imgR_o[:, :, c] - np.mean(imgR_o[:, :, c])) / np.std(imgR_o[:, :, c])
+
+       # pre-process with imagenet stats
        rgb_transform = default_transform()
        imgL = rgb_transform(imgL_o).numpy()
        imgR = rgb_transform(imgR_o).numpy()
@@ -124,10 +133,8 @@ def main():
        #target_size = (384, 1344)
        #scale_h = imgsize[0]*1.0/target_size[0]
        #scale_w = imgsize[1]*1.0/target_size[1]
-
        ##imgL_o = skimage.transform.resize(imgL_o, target_size, preserve_range=True)
        ##imgR_o = skimage.transform.resize(imgR_o, target_size, preserve_range=True)
-
        #imgL = processed(imgL_o).numpy()
        #imgR = processed(imgR_o).numpy()
 
@@ -137,8 +144,8 @@ def main():
        # pad to resize (384, 1280)
        top_pad = 384-imgL.shape[2]
        left_pad = 1280-imgL.shape[3]
-       imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
-       imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
+       imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(left_pad, 0)),mode='constant',constant_values=0)
+       imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(left_pad, 0)),mode='constant',constant_values=0)
 
        start_time = time.time()
        pred_disp = test(imgL,imgR)
@@ -146,7 +153,7 @@ def main():
 
        top_pad   = 384-imgL_o.shape[0]
        left_pad  = 1280-imgL_o.shape[1]
-       img = pred_disp[top_pad:,:-left_pad]
+       img = pred_disp[top_pad:,left_pad:]
 
        # scale back
        #img = pred_disp
