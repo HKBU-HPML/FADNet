@@ -132,13 +132,19 @@ class MiddleburyDataset(Dataset):
                 img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
         if self.load_disp:
-            gt_disp = gt_disp[np.newaxis, :]
-            gt_disp = torch.from_numpy(gt_disp.copy()).float()
-
+            tmp_disp = np.zeros([1, h, w], 'float32')
+            tmp_disp[0, :, :] = w * 2
+            tmp_disp[0, :, :] = gt_disp[:, :]
+            temp = tmp_disp[0, :, :]
+            temp[temp < 0.1] = w * 2 * 256
+            tmp_disp[0, :, :] = temp
+            gt_disp = tmp_disp
+            gt_disp[np.isinf(gt_disp)] = 0
         if self.load_norm:
             gt_norm = gt_norm.transpose([2, 0, 1])
             gt_norm = torch.from_numpy(gt_norm.copy()).float()
-
+        
+        #print(h, w, np.mean(gt_disp))
         bottom_pad = 1024-h
         right_pad = 1536-w
         img_left = np.lib.pad(img_left,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
@@ -150,10 +156,12 @@ class MiddleburyDataset(Dataset):
             top = random.randint(0, h - th)
             left = random.randint(0, w - tw)
 
-            img_left = img_left[:, top: top + th, left: left + tw]
+            shift_x = 0
+            #shift_x = random.randint(-3, 3)
+            img_left = img_left[:, top: top + th, left+shift_x: left+shift_x + tw]
             img_right = img_right[:, top: top + th, left: left + tw]
             if self.load_disp:
-                gt_disp = gt_disp[:, top: top + th, left: left + tw]
+                gt_disp = gt_disp[:, top: top + th, left+shift_x: left+shift_x + tw]
             if self.load_norm:
                 gt_norm = gt_norm[:, top: top + th, left: left + tw]
 
