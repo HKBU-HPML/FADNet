@@ -163,7 +163,15 @@ class DisparityTrainer(object):
             cur_lr  = min_lr + lr_interval * self.train_iter
         else:
             if self.dataset.find('kitti') >= 0:
-                cur_lr = self.lr / (2**(epoch// 300))
+                #cur_lr = self.lr / (2**(epoch// 200))
+                if epoch <= 300:
+                    cur_lr = self.lr 
+                elif epoch <= 500:
+                    cur_lr = self.lr * 0.1
+                elif epoch <= 600:
+                    cur_lr = self.lr * 0.01
+                else:
+                    cur_lr = self.lr * 0.001
                 #cur_lr = self.lr
             else:
                 cur_lr = self.lr / (2**(epoch// 10))
