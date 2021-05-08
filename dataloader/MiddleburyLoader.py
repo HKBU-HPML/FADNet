@@ -10,15 +10,11 @@ from utils.preprocess import *
 from torchvision import transforms
 import time
 from dataloader.EXRloader import load_exr
-
-#scale_size = (896, 1664)
-#scale_size = (576, 960)
-scale_size = (512, 768)
-#scale_size = (1024, 1536)
+from dataloader.commons import normalize_method
 
 class MiddleburyDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, scale_size=scale_size):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, scale_size=(1024, 1536), normalize=normalize_method):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -33,19 +29,15 @@ class MiddleburyDataset(Dataset):
         self.load_norm = load_norm
         self.to_angle = to_angle
         self.scale_size = scale_size
-        self.fx = 1307.839
-        self.fy = 1011.728
-        self.sx = 1924  # height
-        self.sy = 2960  # width
+        self.img_size = (1024, 1536)
+
+        self.normalize = normalize
 
     def get_scale_size(self):
         return self.scale_size
 
-    def get_focal_length(self):
-        return self.fx, self.fy
-
     def get_img_size(self):
-        return self.sx, self.sy
+        return self.img_size
 
     def __len__(self):
         return len(self.imgPairs)
@@ -111,8 +103,8 @@ class MiddleburyDataset(Dataset):
             return gt_norm
 
         s = time.time()
-        img_left = load_rgb(img_left_name)
-        img_right = load_rgb(img_right_name)
+        left = load_rgb(img_left_name)
+        right = load_rgb(img_right_name)
         if self.load_disp:
             gt_disp = load_disp(gt_disp_name)
         if self.load_norm:
@@ -126,8 +118,18 @@ class MiddleburyDataset(Dataset):
         else:
             rgb_transform = inception_color_preproccess()
 
-        img_left = rgb_transform(img_left)
-        img_right = rgb_transform(img_right)
+        h, w, _ = left.shape
+        th, tw = 384, 576
+
+        if self.normalize == 'imagenet':
+            img_left = rgb_transform(left)
+            img_right = rgb_transform(right)
+        else:
+            img_left = np.zeros([3, h, w], 'float32')
+            img_right = np.zeros([3, h, w], 'float32')
+            for c in range(3):
+                img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
+                img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
         if self.load_disp:
             gt_disp = gt_disp[np.newaxis, :]
@@ -137,10 +139,14 @@ class MiddleburyDataset(Dataset):
             gt_norm = gt_norm.transpose([2, 0, 1])
             gt_norm = torch.from_numpy(gt_norm.copy()).float()
 
+        bottom_pad = 1024-h
+        right_pad = 1536-w
+        img_left = np.lib.pad(img_left,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
+        img_right = np.lib.pad(img_right,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
+        gt_disp = np.lib.pad(gt_disp, ((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
+
         if self.phase == 'train':
 
-            h, w = img_left.shape[1:3]
-            th, tw = 384, 768
             top = random.randint(0, h - th)
             left = random.randint(0, w - tw)
 
@@ -150,13 +156,6 @@ class MiddleburyDataset(Dataset):
                 gt_disp = gt_disp[:, top: top + th, left: left + tw]
             if self.load_norm:
                 gt_norm = gt_norm[:, top: top + th, left: left + tw]
-    
-        if self.to_angle:
-            norm_size = gt_norm.size()
-            gt_angle = torch.empty(2, norm_size[1], norm_size[2], dtype=torch.float)
-            gt_angle[0, :, :] = torch.atan(gt_norm[0, :, :] / gt_norm[2, :, :])
-            gt_angle[1, :, :] = torch.atan(gt_norm[1, :, :] / gt_norm[2, :, :])
- 
 
         sample = {  'img_left': img_left, 
                     'img_right': img_right, 

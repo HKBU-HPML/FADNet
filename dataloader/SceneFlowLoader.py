@@ -11,10 +11,11 @@ from torchvision import transforms
 import time
 from dataloader.EXRloader import load_exr
 import torch.nn.functional as F
+from dataloader.commons import normalize_method
 
 class SceneFlowDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, scale_size=(576, 960)):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, scale_size=(576, 960), normalize=normalize_method):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -30,6 +31,8 @@ class SceneFlowDataset(Dataset):
         self.to_angle = to_angle
         self.scale_size = scale_size
         self.img_size = (540, 960)
+
+        self.normalize = normalize
 
     def get_img_size(self):
         return self.img_size
@@ -112,21 +115,22 @@ class SceneFlowDataset(Dataset):
 
         s = time.time()
 
-        ## normalize with imagenet stats and tensor()
-        #if self.phase == 'detect' or self.phase == 'test':
-        #    rgb_transform = default_transform()
-        #else:
-        #    rgb_transform = inception_color_preproccess()
-        #img_left = rgb_transform(img_left)
-        #img_right = rgb_transform(img_right)
-
-        # instance normalization
         h, w, _ = left.shape
-        img_left = np.zeros([3, h, w], 'float32')
-        img_right = np.zeros([3, h, w], 'float32')
-        for c in range(3):
-            img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
-            img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
+        # normalize with imagenet stats and tensor()
+        if self.normalize == 'imagenet':
+            if self.phase == 'detect' or self.phase == 'test':
+                rgb_transform = default_transform()
+            else:
+                rgb_transform = inception_color_preproccess()
+            img_left = rgb_transform(left)
+            img_right = rgb_transform(right)
+        # instance normalization
+        else:
+            img_left = np.zeros([3, h, w], 'float32')
+            img_right = np.zeros([3, h, w], 'float32')
+            for c in range(3):
+                img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
+                img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
         if self.load_disp:
             gt_disp = gt_disp[np.newaxis, :]

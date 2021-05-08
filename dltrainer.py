@@ -159,10 +159,10 @@ class DisparityTrainer(object):
             lr_interval = (self.lr - min_lr) / warmup_total_iters
             cur_lr  = min_lr + lr_interval * self.train_iter
         else:
-            if self.dataset.find('kitti') >= 0:
-                cur_lr = self.lr / (2**(epoch// 200))
-            else:
+            if self.dataset.find('sceneflow') >= 0:
                 cur_lr = self.lr / (2**(epoch// 10))
+            else:
+                cur_lr = self.lr / (2**(epoch// 200))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
