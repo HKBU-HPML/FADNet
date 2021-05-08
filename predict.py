@@ -204,7 +204,7 @@ def load_data_imn(leftname, rightname):
     img_right = np.lib.pad(img_right,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
     return torch.from_numpy(img_left).float(), torch.from_numpy(img_right).float(), h, w
 
-def test_md(leftname, rightname, savename, imgname):
+def test_md(leftname, rightname, savename):
 
     input1, input2, height, width = load_data_imn(leftname, rightname)
 
@@ -331,8 +331,7 @@ if __name__ == "__main__":
             temppath = opt.savepath.replace(opt.savepath.split("/")[-2], opt.savepath.split("/")[-2]+"/images")     
             img_path = Path(temppath)
             img_path.makedirs_p()
-            savename = opt.savepath + leftname[0: len(leftname) - 8] + ".png"
-            img_name = img_path + leftname[0: len(leftname) - 8] + ".png"
-            print(img_name, savename)
-            test_md(leftname, rightname, savename, img_name)
+            savename = opt.savepath + "/".join(leftname.split("/")[-4:-1]) + ".png"
+            print(savename)
+            test_md(leftname, rightname, savename)
 
