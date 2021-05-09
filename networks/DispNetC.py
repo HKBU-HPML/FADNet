@@ -19,6 +19,8 @@ class DispNetC(nn.Module):
         self.maxdisp = maxdisp
         self.get_features = get_features
         self.relu = nn.ReLU(inplace=False)
+        #self.disp_width=40
+        self.disp_width=60
 
         # shrink and extract features
         self.conv1   = conv(self.input_channel, 64, 7, 2)
@@ -38,7 +40,7 @@ class DispNetC(nn.Module):
         self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         if resBlock:
-            self.conv3_1 = ResBlock(72, 256)
+            self.conv3_1 = ResBlock(self.disp_width+32, 256)
             self.conv4   = ResBlock(256, 512, stride=2)
             self.conv4_1 = ResBlock(512, 512)
             self.conv5   = ResBlock(512, 512, stride=2)
@@ -46,7 +48,7 @@ class DispNetC(nn.Module):
             self.conv6   = ResBlock(512, 1024, stride=2)
             self.conv6_1 = ResBlock(1024, 1024)
         else:
-            self.conv3_1 = conv(72, 256)
+            self.conv3_1 = conv(self.disp_width+32, 256)
             self.conv4   = conv(256, 512, stride=2)
             self.conv4_1 = conv(512, 512)
             self.conv5   = conv(512, 512, stride=2)
@@ -140,7 +142,7 @@ class DispNetC(nn.Module):
 
         # Correlate corr3a_l and corr3a_r
         #out_corr = self.corr(conv3a_l, conv3a_r)
-        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.disp_width)
         out_corr = self.corr_activation(out_corr)
         out_conv3a_redir = self.conv_redir(conv3a_l)
         in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)

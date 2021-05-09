@@ -4,7 +4,8 @@ import math
 import numpy as np
 import torch.nn.functional as F
 
-MAXDISP=192
+#MAXDISP=192
+MAXDISP=408
 
 def d1_metric(d_est, d_gt, use_np=False):
     mask = (d_gt > 0) & (d_gt < MAXDISP)

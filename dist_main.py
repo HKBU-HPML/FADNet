@@ -92,7 +92,7 @@ def main(opt):
         
                 logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(float(avg_EPE)), str(float(val_EPE)), str(trainer.current_lr)]))
 
-                wandb.log({'train-epe': float(avg_EPE), 'val-epe': float(val_EPE), 'epoch': i+1, 'round': r+1})
+                wandb.log({'train-epe': float(avg_EPE), 'val-epe': float(val_EPE), 'epoch': i+1, 'round': r+1, 'curr_lr': trainer.current_lr})
         start_epoch = 0
         trainer.train_iter = 0
 
