@@ -70,7 +70,7 @@ class DisparityTrainer(object):
         self.img_height, self.img_width = train_dataset.get_img_size()
         self.scale_size = train_dataset.get_scale_size()
 
-        datathread=4
+        datathread=2
         if os.environ.get('datathread') is not None:
             datathread = int(os.environ.get('datathread'))
         logger.info("Use %d processes to load data..." % datathread)
@@ -85,6 +85,7 @@ class DisparityTrainer(object):
             train_sampler.set_epoch(0)
             shuffle = False
         self.train_sampler = train_sampler
+        #self.train_loader = DataLoader(train_dataset, batch_size = self.batch_size, \
         self.train_loader = MultiEpochsDataLoader(train_dataset, batch_size = self.batch_size, \
                                 shuffle = shuffle, num_workers = datathread, \
                                 pin_memory = True, sampler=train_sampler)
@@ -95,6 +96,7 @@ class DisparityTrainer(object):
         #                        pin_memory = True)
         if self.ngpu > 1 and self.hvd: 
             test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset, num_replicas=self.ngpu, rank=self.rank)
+            #self.test_loader = DataLoader(test_dataset, batch_size=self.batch_size, sampler=test_sampler)
             self.test_loader = MultiEpochsDataLoader(test_dataset, batch_size=self.batch_size, sampler=test_sampler)
         else:
             self.test_loader = MultiEpochsDataLoader(test_dataset, batch_size = self.batch_size, \
@@ -159,7 +161,18 @@ class DisparityTrainer(object):
             lr_interval = (self.lr - min_lr) / warmup_total_iters
             cur_lr  = min_lr + lr_interval * self.train_iter
         else:
-            if self.dataset.find('sceneflow') >= 0:
+            if self.dataset.find('kitti') >= 0:
+                #cur_lr = self.lr / (2**(epoch// 200))
+                if epoch <= 300:
+                    cur_lr = self.lr 
+                elif epoch <= 500:
+                    cur_lr = self.lr * 0.1
+                elif epoch <= 600:
+                    cur_lr = self.lr * 0.01
+                else:
+                    cur_lr = self.lr * 0.001
+                #cur_lr = self.lr
+            elif self.dataset.find('sceneflow') >= 0:
                 cur_lr = self.lr / (2**(epoch// 10))
             else:
                 cur_lr = self.lr / (2**(epoch// 200))

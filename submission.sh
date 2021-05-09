@@ -1,3 +1,5 @@
+#model_path=/home/esetstore/repos/fadnet-shyhuai/models/fadnet-sceneflow-n32sf/model_best.pth
+#save_path=./submit_results/fadnet-ft-kitti-KITTI2015/
 model_path=./models/fadnet-kitti2015/model_best.pth
 save_path=./submit_results/fadnet-dist/
 net=fadnet
@@ -7,6 +9,6 @@ net=fadnet
 python kitti_submission.py --maxdisp 192 \
                      --model $net \
                      --KITTI 2015 \
-                     --datapath ./data/kitti2015/testing/ \
+                     --datapath /datasets/kitti2015/testing/ \
                      --savepath $save_path \
                      --loadmodel $model_path \

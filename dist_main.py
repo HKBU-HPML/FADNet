@@ -135,9 +135,10 @@ if __name__ == '__main__':
     except OSError:
         pass
     logfile = opt.logFile.replace('.log', '-%d.log' % hvd.rank())
-    hdlr = logging.FileHandler(logfile)
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr) 
+    if hvd.rank() == 0:
+        hdlr = logging.FileHandler(logfile)
+        hdlr.setFormatter(formatter)
+        logger.addHandler(hdlr) 
     logger.info('Configurations: %s', opt)
     
     if hvd.rank() == 0:
