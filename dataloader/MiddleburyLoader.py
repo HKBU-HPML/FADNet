@@ -50,6 +50,8 @@ class MiddleburyDataset(Dataset):
         img_right_name = os.path.join(self.root_dir, img_names[1])
         if self.load_disp:
             gt_disp_name = os.path.join(self.root_dir, img_names[2])
+            #gt_disp_name = gt_disp_name[:-6] + 'LEAStereo.pfm'
+            #gt_disp_name = gt_disp_name[:-6] + 'AANet_RVC.pfm'
         if self.load_norm:
             gt_norm_name = os.path.join(self.root_dir, img_names[3])
 
@@ -132,19 +134,22 @@ class MiddleburyDataset(Dataset):
                 img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
         if self.load_disp:
-            tmp_disp = np.zeros([1, h, w], 'float32')
-            tmp_disp[0, :, :] = w * 2
-            tmp_disp[0, :, :] = gt_disp[:, :]
-            temp = tmp_disp[0, :, :]
-            temp[temp < 0.1] = w * 2 * 256
-            tmp_disp[0, :, :] = temp
-            gt_disp = tmp_disp
+            #tmp_disp = np.zeros([1, h, w], 'float32')
+            #tmp_disp[0, :, :] = w * 2
+            #tmp_disp[0, :, :] = gt_disp[:, :]
+            #temp = tmp_disp[0, :, :]
+            #temp[temp < 0.1] = w * 2 * 256
+            #tmp_disp[0, :, :] = temp
+            #gt_disp = tmp_disp
+            #gt_disp[np.isinf(gt_disp)] = 0
+
+            gt_disp = gt_disp[np.newaxis, :, :]
             gt_disp[np.isinf(gt_disp)] = 0
         if self.load_norm:
             gt_norm = gt_norm.transpose([2, 0, 1])
             gt_norm = torch.from_numpy(gt_norm.copy()).float()
         
-        #print(h, w, np.mean(gt_disp))
+        #print(h, w, np.mean(gt_disp), np.min(gt_disp), np.max(gt_disp))
         bottom_pad = 1024-h
         right_pad = 1536-w
         img_left = np.lib.pad(img_left,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
