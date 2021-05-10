@@ -3,6 +3,7 @@ import skimage
 import skimage.io
 import skimage.transform
 from PIL import Image
+from skimage import io
 from math import log10
 
 import sys
@@ -190,13 +191,24 @@ def load_data(leftname, rightname):
     return temp_data
 
 def load_data_imn(leftname, rightname):
-    left = Image.open(leftname)
-    right = Image.open(rightname)
-    h, w, c = np.shape(left)
+    #left = Image.open(leftname)
+    #right = Image.open(rightname)
+    #h, w, c = np.shape(left)
+    left = io.imread(leftname)
+    right = io.imread(rightname)
+    h, w, _ = left.shape
 
-    rgb_transform = default_transform()
-    img_left = rgb_transform(left)
-    img_right = rgb_transform(right)
+    normalize = 'instnorm'
+    if normalize == 'imagenet':
+        rgb_transform = default_transform()
+        img_left = rgb_transform(left)
+        img_right = rgb_transform(right)
+    else:
+        img_left = np.zeros([3, h, w], 'float32')
+        img_right = np.zeros([3, h, w], 'float32')
+        for c in range(3):
+            img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
+            img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
     bottom_pad = 1024-h
     right_pad = 1536-w
@@ -206,6 +218,7 @@ def load_data_imn(leftname, rightname):
 
 def test_md(leftname, rightname, savename):
 
+    print(savename)
     input1, input2, height, width = load_data_imn(leftname, rightname)
 
     input1 = Variable(input1, requires_grad = False)
@@ -229,6 +242,14 @@ def test_md(leftname, rightname, savename):
     temp = prediction.cpu()
     temp = temp.detach().numpy()
     temp = temp[0, :height, :width]
+
+    ## print epe
+    #gt_disp, _, _ = readPFM(leftname.replace('im0.png', 'disp0GT.pfm'))
+    #gt_disp[np.isinf(gt_disp)] = 0
+    #mask = (gt_disp > 0) & (gt_disp < 400)
+    #error = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
+    #print(savename, error, np.min(gt_disp), np.max(gt_disp))
+
     savepfm_path = savename.replace('.png','') 
     temp = np.flipud(temp)
 
@@ -329,9 +350,8 @@ if __name__ == "__main__":
             rightname = file_path + current_file[1]
 
             temppath = opt.savepath.replace(opt.savepath.split("/")[-2], opt.savepath.split("/")[-2]+"/images")     
-            img_path = Path(temppath)
-            img_path.makedirs_p()
+            #img_path = Path(temppath)
+            #img_path.makedirs_p()
             savename = opt.savepath + "/".join(leftname.split("/")[-4:-1]) + ".png"
-            print(savename)
             test_md(leftname, rightname, savename)
 
