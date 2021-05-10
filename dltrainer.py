@@ -110,8 +110,16 @@ class DisparityTrainer(object):
         # build net according to the net name
         if self.net_name in ["psmnet", "ganet", "gwcnet"]:
             self.net = build_net(self.net_name)(self.maxdisp)
-        else:
-            self.net = build_net(self.net_name)(batchNorm=False, lastRelu=True, maxdisp=self.maxdisp)
+        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet']:
+            eratio = 4
+            dratio = 4
+            if self.net_name == 'mobilefadnet':
+                eratio = 2
+                dratio = 2
+            if self.net_name == 'slightfadnet':
+                eratio = 1
+                dratio = 1
+            self.net = build_net(self.net_name)(maxdisp=self.maxdisp, encoder_ratio=eratio, decoder_ratio=dratio)
 
         self.is_pretrain = False
 
@@ -175,7 +183,7 @@ class DisparityTrainer(object):
             elif self.dataset.find('sceneflow') >= 0:
                 cur_lr = self.lr / (2**(epoch// 10))
             else:
-                cur_lr = self.lr / (2**(epoch// 200))
+                cur_lr = self.lr / (2**(epoch// 150))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = cur_lr
         self.current_lr = cur_lr
@@ -219,8 +227,8 @@ class DisparityTrainer(object):
                 loss_net2 = self.criterion(output_net2, target_disp)
                 loss = loss_net1 + loss_net2
                 output_net2_final = output_net2[0]
-                flow2_EPE = self.epe(output_net2_final, target_disp)
-                d1m = d1_metric(output_net2_final, target_disp)
+                flow2_EPE = self.epe(output_net2_final, target_disp, maxdisp=self.maxdisp)
+                d1m = d1_metric(output_net2_final, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "dispnetcs":
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
@@ -321,11 +329,11 @@ class DisparityTrainer(object):
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
 
-                loss_net1 = self.epe(output_net1, target_disp)
-                loss_net2 = self.epe(output_net2, target_disp)
+                loss_net1 = self.epe(output_net1, target_disp, maxdisp=self.maxdisp)
+                loss_net2 = self.epe(output_net2, target_disp, maxdisp=self.maxdisp)
                 loss = loss_net1 + loss_net2
-                flow2_EPE = self.epe(output_net2, target_disp)
-                d1m = d1_metric(output_net2, target_disp)
+                flow2_EPE = self.epe(output_net2, target_disp, maxdisp=self.maxdisp)
+                d1m = d1_metric(output_net2, target_disp, maxdisp=self.maxdisp)
             elif self.net_name in ['psmnet', 'ganet', 'gwcnet']: 
                 with torch.no_grad():
                     output_net3 = self.net(input_var)

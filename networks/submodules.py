@@ -10,6 +10,45 @@ from torchvision.utils import save_image
 #from layers_package.channelnorm_package.channelnorm import ChannelNorm
 #from layers_package.resample2d_package.resample2d import Resample2d
 
+class DynamicConv2d(nn.Module):
+
+    def __init__(self, max_in_channels, max_out_channels, kernel_size=1, stride=1, dilation=1):
+        super(DynamicConv2d, self).__init__()
+
+        self.max_in_channels = max_in_channels
+        self.max_out_channels = max_out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.dilation = dilation
+
+        self.conv = nn.Conv2d(
+            self.max_in_channels, self.max_out_channels, self.kernel_size, stride=self.stride, bias=False,
+        )
+
+        self.active_out_channel = self.max_out_channels
+
+    def get_active_filter(self, out_channel, in_channel):
+        return self.conv.weight[:out_channel, :in_channel, :, :]
+
+    def forward(self, x):
+        in_channel = x.size(1)
+        filters = self.get_active_filter(out_channel, in_channel).contiguous()
+
+        def get_same_padding(kernel_size):
+            if isinstance(kernel_size, tuple):
+                assert len(kernel_size) == 2, 'invalid kernel size: %s' % kernel_size
+                p1 = get_same_padding(kernel_size[0])
+                p2 = get_same_padding(kernel_size[1])
+                return p1, p2
+            assert isinstance(kernel_size, int), 'kernel size should be either `int` or `tuple`'
+            assert kernel_size % 2 > 0, 'kernel size should be odd number'
+            return kernel_size // 2
+
+        padding = get_same_padding(self.kernel_size)
+        filters = self.conv.weight_standardization(filters) if isinstance(self.conv, MyConv2d) else filters
+        y = F.conv2d(x, filters, None, self.stride, padding, self.dilation, 1)
+        return y
+
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
         super(ResBlock, self).__init__()

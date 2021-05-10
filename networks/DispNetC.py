@@ -11,25 +11,30 @@ from networks.submodules import *
 
 class DispNetC(nn.Module):
 
-    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3, get_features = False):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
         super(DispNetC, self).__init__()
         
-        self.batchNorm = batchNorm
         self.input_channel = input_channel
         self.maxdisp = maxdisp
-        self.get_features = get_features
         self.relu = nn.ReLU(inplace=False)
+        self.basicC = 8
+        self.eratio = encoder_ratio
+        self.dratio = decoder_ratio
+        self.basicE = self.basicC*self.eratio
+        self.basicD = self.basicC*self.dratio
+
+        self.disp_width = maxdisp // 8
 
         # shrink and extract features
-        self.conv1   = conv(self.input_channel, 64, 7, 2)
+        self.conv1   = conv(self.input_channel, self.basicE, 7, 2)
         if resBlock:
-            self.conv2   = ResBlock(64, 128, stride=2)
-            self.conv3   = ResBlock(128, 256, stride=2)
-            self.conv_redir = ResBlock(256, 32, stride=1)
+            self.conv2   = ResBlock(self.basicE, self.basicE*2, stride=2)
+            self.conv3   = ResBlock(self.basicE*2, self.basicE*4, stride=2)
+            self.conv_redir = ResBlock(self.basicE*4, self.basicE, stride=1)
         else:
-            self.conv2   = conv(64, 128, stride=2)
-            self.conv3   = conv(128, 256, stride=2)
-            self.conv_redir = conv(256, 32, stride=1)
+            self.conv2   = conv(self.basicE, self.basicE*2, stride=2)
+            self.conv3   = conv(self.basicE*2, self.basicE*4, stride=2)
+            self.conv_redir = conv(self.basicE*4, self.basicE, stride=1)
 
         # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
         #self.conv_redir = ResBlock(256, 32, stride=1)
@@ -38,13 +43,14 @@ class DispNetC(nn.Module):
         self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         if resBlock:
-            self.conv3_1 = ResBlock(72, 256)
-            self.conv4   = ResBlock(256, 512, stride=2)
-            self.conv4_1 = ResBlock(512, 512)
-            self.conv5   = ResBlock(512, 512, stride=2)
-            self.conv5_1 = ResBlock(512, 512)
-            self.conv6   = ResBlock(512, 1024, stride=2)
-            self.conv6_1 = ResBlock(1024, 1024)
+            #self.conv3_1 = ResBlock(72, 256)
+            self.conv3_1 = ResBlock(self.disp_width+self.basicE, self.basicE*4)
+            self.conv4   = ResBlock(self.basicE*4, self.basicE*8, stride=2)
+            self.conv4_1 = ResBlock(self.basicE*8, self.basicE*8)
+            self.conv5   = ResBlock(self.basicE*8, self.basicE*16, stride=2)
+            self.conv5_1 = ResBlock(self.basicE*16, self.basicE*16)
+            self.conv6   = ResBlock(self.basicE*16, self.basicE*32, stride=2)
+            self.conv6_1 = ResBlock(self.basicE*32, self.basicE*32)
         else:
             self.conv3_1 = conv(72, 256)
             self.conv4   = conv(256, 512, stride=2)
@@ -54,7 +60,7 @@ class DispNetC(nn.Module):
             self.conv6   = conv(512, 1024, stride=2)
             self.conv6_1 = conv(1024, 1024)
 
-        self.pred_flow6 = predict_flow(1024)
+        self.pred_flow6 = predict_flow(self.basicE*32)
 
         # # iconv with resblock
         # self.iconv5 = ResBlock(1025, 512, 1)
@@ -65,48 +71,41 @@ class DispNetC(nn.Module):
         # self.iconv0 = ResBlock(20, 16, 1)
 
         # iconv with deconv
-        self.iconv5 = nn.ConvTranspose2d(1025, 512, 3, 1, 1)
-        self.iconv4 = nn.ConvTranspose2d(769, 256, 3, 1, 1)
-        self.iconv3 = nn.ConvTranspose2d(385, 128, 3, 1, 1)
-        self.iconv2 = nn.ConvTranspose2d(193, 64, 3, 1, 1)
-        self.iconv1 = nn.ConvTranspose2d(97, 32, 3, 1, 1)
-        self.iconv0 = nn.ConvTranspose2d(17+self.input_channel, 16, 3, 1, 1)
+        self.iconv5 = nn.ConvTranspose2d(self.basicD*32+1, self.basicD*16, 3, 1, 1)
+        self.iconv4 = nn.ConvTranspose2d(self.basicD*16+1, self.basicD*8, 3, 1, 1)
+        self.iconv3 = nn.ConvTranspose2d(self.basicD*8+1, self.basicD*4, 3, 1, 1)
+        self.iconv2 = nn.ConvTranspose2d(self.basicD*4+1, self.basicD*2, 3, 1, 1)
+        self.iconv1 = nn.ConvTranspose2d(self.basicD*2+1, self.basicD, 3, 1, 1)
+        self.iconv0 = nn.ConvTranspose2d(self.basicD+self.input_channel+1, self.basicD, 3, 1, 1)
 
-        # # original iconv with conv
-        # self.iconv5 = conv(self.batchNorm, 1025, 512, 3, 1)
-        # self.iconv4 = conv(self.batchNorm, 769, 256, 3, 1)
-        # self.iconv3 = conv(self.batchNorm, 385, 128, 3, 1)
-        # self.iconv2 = conv(self.batchNorm, 193, 64, 3, 1)
-        # self.iconv1 = conv(self.batchNorm, 97, 32, 3, 1)
-        # self.iconv0 = conv(self.batchNorm, 20, 16, 3, 1)
-        
         # expand and produce disparity
-        self.upconv5 = deconv(1024, 512)
+        self.upconv5 = deconv(self.basicD*32, self.basicD*16)
         self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.pred_flow5 = predict_flow(512)
+        self.pred_flow5 = predict_flow(self.basicD*16)
 
-        self.upconv4 = deconv(512, 256)
+        self.upconv4 = deconv(self.basicD*16, self.basicD*8)
         self.upflow5to4 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.pred_flow4 = predict_flow(256)
+        self.pred_flow4 = predict_flow(self.basicD*8)
 
-        self.upconv3 = deconv(256, 128)
+        self.upconv3 = deconv(self.basicD*8, self.basicD*4)
         self.upflow4to3 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.pred_flow3 = predict_flow(128)
+        self.pred_flow3 = predict_flow(self.basicD*4)
 
-        self.upconv2 = deconv(128, 64)
+        self.upconv2 = deconv(self.basicD*4, self.basicD*2)
         self.upflow3to2 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.pred_flow2 = predict_flow(64)
+        self.pred_flow2 = predict_flow(self.basicD*2)
 
-        self.upconv1 = deconv(64, 32)
+        self.upconv1 = deconv(self.basicD*2, self.basicD)
         self.upflow2to1 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        self.pred_flow1 = predict_flow(32)
+        self.pred_flow1 = predict_flow(self.basicD)
 
-        self.upconv0 = deconv(32, 16)
+        self.upconv0 = deconv(self.basicD, self.basicD)
         self.upflow1to0 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
-        if self.maxdisp == -1:
-            self.pred_flow0 = predict_flow(16)
-        else:
-            self.disp_expand = ResBlock(16, self.maxdisp)
+        self.pred_flow0 = predict_flow(self.basicD)
+        #if self.maxdisp == -1:
+        #    self.pred_flow0 = predict_flow(16)
+        #else:
+        #    self.disp_expand = ResBlock(16, self.maxdisp)
 
         # weight initialization
         for m in self.modules():
@@ -123,7 +122,7 @@ class DispNetC(nn.Module):
 
         #self.freeze()
         
-    def forward(self, input):
+    def forward(self, input, get_features=False):
 
         # split left image and right image
         imgs = torch.chunk(input, 2, dim = 1)
@@ -140,7 +139,8 @@ class DispNetC(nn.Module):
 
         # Correlate corr3a_l and corr3a_r
         #out_corr = self.corr(conv3a_l, conv3a_r)
-        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+        #out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.disp_width)
         out_corr = self.corr_activation(out_corr)
         out_conv3a_redir = self.conv_redir(conv3a_l)
         in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
@@ -190,13 +190,15 @@ class DispNetC(nn.Module):
         iconv0 = self.iconv0(concat0)
 
         # predict flow
-        if self.maxdisp == -1:
-            pr0 = self.pred_flow0(iconv0)
-            pr0 = self.relu(pr0)
-        else:
-            pr0 = self.disp_expand(iconv0)
-            pr0 = F.softmax(pr0, dim=1)
-            pr0 = disparity_regression(pr0, self.maxdisp)
+        pr0 = self.pred_flow0(iconv0)
+        pr0 = self.relu(pr0)
+        #if self.maxdisp == -1:
+        #    pr0 = self.pred_flow0(iconv0)
+        #    pr0 = self.relu(pr0)
+        #else:
+        #    pr0 = self.disp_expand(iconv0)
+        #    pr0 = F.softmax(pr0, dim=1)
+        #    pr0 = disparity_regression(pr0, self.maxdisp)
 
         # predict flow from dropout output
         # pr6 = self.pred_flow6(F.dropout2d(conv6b))
@@ -217,7 +219,7 @@ class DispNetC(nn.Module):
 
 
         # can be chosen outside
-        if self.get_features:
+        if get_features:
             features = (iconv5, iconv4, iconv3, iconv2, iconv1, iconv0)
             return disps, features
         else:

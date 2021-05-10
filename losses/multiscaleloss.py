@@ -4,10 +4,8 @@ import math
 import numpy as np
 import torch.nn.functional as F
 
-MAXDISP=408
-
-def d1_metric(d_est, d_gt, use_np=False):
-    mask = (d_gt > 0) & (d_gt < MAXDISP)
+def d1_metric(d_est, d_gt, maxdisp=192, use_np=False):
+    mask = (d_gt > 0) & (d_gt < maxdisp)
     d_est, d_gt = d_est[mask], d_gt[mask]
     if use_np:
         e = np.abs(d_gt - d_est)
@@ -23,20 +21,21 @@ def d1_metric(d_est, d_gt, use_np=False):
     return mean
 
 
-def SL_EPE(input_flow, target_flow):
-    target_valid = (target_flow < MAXDISP) & (target_flow > 0)
+def SL_EPE(input_flow, target_flow, maxdisp=192):
+    target_valid = (target_flow < maxdisp) & (target_flow > 0)
     return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
-def EPE(input_flow, target_flow):
-    target_valid = (target_flow < MAXDISP) & (target_flow > 0)
+def EPE(input_flow, target_flow, maxdisp=192):
+    target_valid = (target_flow < maxdisp) & (target_flow > 0)
     return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
 class MultiScaleLoss(nn.Module):
 
-    def __init__(self, scales, downscale, weights=None, loss='L1', mask=False):
+    def __init__(self, scales, downscale, weights=None, loss='L1', maxdisp=192, mask=False):
         super(MultiScaleLoss, self).__init__()
         self.downscale = downscale
         self.mask = mask
+        self.maxdisp = maxdisp
         self.weights = torch.Tensor(scales).fill_(1).cuda() if weights is None else torch.Tensor(weights).cuda()
         assert(len(self.weights) == scales)
 
@@ -74,15 +73,15 @@ class MultiScaleLoss(nn.Module):
                     # use unbalanced avg
                     target_ = target_ / pooling_mask
 
-                EPE_ = SL_EPE(input_, target_)
+                EPE_ = SL_EPE(input_, target_, self.maxdisp)
                 out += self.weights[i] * EPE_
         else:
             out = self.loss(input, self.multiScales[0](target))
         return out
 
-def multiscaleloss(scales=5, downscale=4, weights=None, loss='L1', sparse=False, mask=False):
+def multiscaleloss(scales=5, downscale=4, weights=None, loss='L1', maxdisp=192, sparse=False):
     if weights is None:
         weights = (0.005, 0.01, 0.02, 0.08, 0.32)
     if scales == 1 and type(weights) is not tuple:
         weights = (weights, )
-    return MultiScaleLoss(scales, downscale, weights, loss, mask)
+    return MultiScaleLoss(scales, downscale, weights, loss, maxdisp=192, mask=sparse)

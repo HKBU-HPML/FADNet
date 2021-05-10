@@ -12,20 +12,20 @@ from networks.submodules import *
 
 class FADNet(nn.Module):
 
-    def __init__(self, batchNorm=True, lastRelu=False, resBlock=True, maxdisp=-1, input_channel=3):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
         super(FADNet, self).__init__()
         self.input_channel = input_channel
-        self.batchNorm = batchNorm
-        self.lastRelu = lastRelu
         self.maxdisp = maxdisp
         self.resBlock = resBlock
+        self.eratio = encoder_ratio
+        self.dratio = decoder_ratio
 
         # First Block (DispNetC)
-        self.dispnetc = DispNetC(self.batchNorm, maxdisp=self.maxdisp, input_channel=input_channel)
+        self.dispnetc = DispNetC(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
         # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
         in_planes = 3 * 3 + 1 + 1
-        self.dispnetres = DispNetRes(in_planes, self.batchNorm, lastRelu=self.lastRelu, maxdisp=self.maxdisp, input_channel=input_channel)
+        self.dispnetres = DispNetRes(in_planes, resBlock=resBlock, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
         self.relu = nn.ReLU(inplace=False)
 
