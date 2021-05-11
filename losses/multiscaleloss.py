@@ -26,8 +26,21 @@ def SL_EPE(input_flow, target_flow, maxdisp=192):
     return F.smooth_l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
 
 def EPE(input_flow, target_flow, maxdisp=192):
-    target_valid = (target_flow < maxdisp) & (target_flow > 0)
-    return F.l1_loss(input_flow[target_valid], target_flow[target_valid], size_average=True)
+    total_epe = 0
+    batchnum = 0
+    if type(input_flow) == torch.Tensor:
+        batchnum = input_flow.size()[0]
+    elif type(input_flow) == np.ndarray:
+        batchnum = input_flow.shape[0]
+
+    for i in range(batchnum):
+        mask = (target_flow[i, :] < maxdisp) & (target_flow[i, :] > 0)
+        mask.detach_()
+        valid=target_flow[i, :][mask].size()[0]
+        if valid > 0:
+            total_epe += F.l1_loss(input_flow[i, :][mask], target_flow[i, :][mask], size_average=True)
+
+    return total_epe / batchnum
 
 class MultiScaleLoss(nn.Module):
 
