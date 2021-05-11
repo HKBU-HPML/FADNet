@@ -43,3 +43,4 @@ wandb/
 wandb/runs*
 predict/
 predict
+weights

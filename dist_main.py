@@ -19,6 +19,7 @@ import wandb
 
 cudnn.benchmark = True
 
+
 def save_checkpoint(state, is_best, filename='checkpoint.pth'):
     if state['epoch'] % 100 == 0:
         torch.save(state, os.path.join(opt.outf,filename))
