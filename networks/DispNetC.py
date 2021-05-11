@@ -43,7 +43,6 @@ class DispNetC(nn.Module):
         self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         if resBlock:
-            #self.conv3_1 = ResBlock(72, 256)
             self.conv3_1 = ResBlock(self.disp_width+self.basicE, self.basicE*4)
             self.conv4   = ResBlock(self.basicE*4, self.basicE*8, stride=2)
             self.conv4_1 = ResBlock(self.basicE*8, self.basicE*8)
@@ -52,7 +51,7 @@ class DispNetC(nn.Module):
             self.conv6   = ResBlock(self.basicE*16, self.basicE*32, stride=2)
             self.conv6_1 = ResBlock(self.basicE*32, self.basicE*32)
         else:
-            self.conv3_1 = conv(72, 256)
+            self.conv3_1 = conv(self.disp_width+32, 256)
             self.conv4   = conv(256, 512, stride=2)
             self.conv4_1 = conv(512, 512)
             self.conv5   = conv(512, 512, stride=2)
@@ -139,7 +138,6 @@ class DispNetC(nn.Module):
 
         # Correlate corr3a_l and corr3a_r
         #out_corr = self.corr(conv3a_l, conv3a_r)
-        #out_corr = build_corr(conv3a_l, conv3a_r, max_disp=40)
         out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.disp_width)
         out_corr = self.corr_activation(out_corr)
         out_conv3a_redir = self.conv_redir(conv3a_l)
