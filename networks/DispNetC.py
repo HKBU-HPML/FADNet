@@ -23,7 +23,7 @@ class DispNetC(nn.Module):
         self.basicE = self.basicC*self.eratio
         self.basicD = self.basicC*self.dratio
 
-        self.disp_width = maxdisp // 8
+        self.disp_width = maxdisp // 8 + 16
 
         # shrink and extract features
         self.conv1   = conv(self.input_channel, self.basicE, 7, 2)
