@@ -12,9 +12,13 @@ import time
 from dataloader.EXRloader import load_exr
 from dataloader.commons import normalize_method
 
+img_size = (1024, 1536)
+#scale_size = (512, 768) # Quarter
+scale_size = (1024, 1536) # Half
+
 class MiddleburyDataset(Dataset):
 
-    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, scale_size=(1024, 1536), normalize=normalize_method):
+    def __init__(self, txt_file, root_dir, phase='train', load_disp=True, load_norm=False, to_angle=False, normalize=normalize_method):
         """
         Args:
             txt_file [string]: Path to the image list
@@ -29,7 +33,7 @@ class MiddleburyDataset(Dataset):
         self.load_norm = load_norm
         self.to_angle = to_angle
         self.scale_size = scale_size
-        self.img_size = (1024, 1536)
+        self.img_size = img_size
 
         self.normalize = normalize
 
@@ -121,7 +125,7 @@ class MiddleburyDataset(Dataset):
             rgb_transform = inception_color_preproccess()
 
         h, w, _ = left.shape
-        th, tw = 384, 576
+        th, tw = 384, 512
 
         if self.normalize == 'imagenet':
             img_left = rgb_transform(left)
@@ -150,8 +154,8 @@ class MiddleburyDataset(Dataset):
             gt_norm = torch.from_numpy(gt_norm.copy()).float()
         
         #print(h, w, np.mean(gt_disp), np.min(gt_disp), np.max(gt_disp))
-        bottom_pad = 1024-h
-        right_pad = 1536-w
+        bottom_pad = self.scale_size[0]-h
+        right_pad = self.scale_size[1]-w
         img_left = np.lib.pad(img_left,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
         img_right = np.lib.pad(img_right,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
         gt_disp = np.lib.pad(gt_disp, ((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)

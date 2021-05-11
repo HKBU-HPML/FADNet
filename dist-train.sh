@@ -34,6 +34,6 @@ $MPIPATH/bin/mpirun --oversubscribe --prefix $MPIPATH -np $nworkers -hostfile cl
                --startRound $startR --startEpoch $startE \
                --model $model \
                --maxdisp $maxdisp \
-	       --manualSeed 1024 \
-	       --nwpernode 4 \
+               --manualSeed 1024 \
+               --nwpernode 4 \
 

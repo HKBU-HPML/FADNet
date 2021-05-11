@@ -62,11 +62,11 @@ def main(opt):
     start_epoch = opt.startEpoch
 
     is_sparse = False
-    if ('kitti' in opt.dataset):# or ('middlebury' in opt.dataset):
+    if ('kitti' in opt.dataset) or ('middlebury' in opt.dataset):
         is_sparse = True
     for r in range(opt.startRound, train_round):
 
-        criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=is_sparse)
+        criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', maxdisp=opt.maxdisp, sparse=is_sparse)
         trainer.set_criterion(criterion)
         end_epoch = epoches[r]
         #end_epoch = min(epoches[r], opt.endEpoch)

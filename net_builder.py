@@ -13,7 +13,8 @@ from utils.common import logger
 
 SUPPORT_NETS = {
         'fadnet': FADNet,
-        #'mobilefadnet': MobileFADNet,
+        'mobilefadnet': FADNet,
+        'slightfadnet': FADNet,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,
         'dispnetcs': DispNetCS,

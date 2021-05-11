@@ -219,6 +219,7 @@ def load_data_imn(leftname, rightname):
 def test_md(leftname, rightname, savename):
 
     print(savename)
+    epe = 0
     input1, input2, height, width = load_data_imn(leftname, rightname)
 
     input1 = Variable(input1, requires_grad = False)
@@ -243,24 +244,27 @@ def test_md(leftname, rightname, savename):
     temp = temp.detach().numpy()
     temp = temp[0, :height, :width]
 
-    ## print epe
-    #gt_disp, _, _ = readPFM(leftname.replace('im0.png', 'disp0GT.pfm'))
-    #gt_disp[np.isinf(gt_disp)] = 0
-    #mask = (gt_disp > 0) & (gt_disp < 400)
-    #error = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
-    #print(savename, error, np.min(gt_disp), np.max(gt_disp))
+    # print epe
+    if 'training' in leftname:
+        gt_disp, _, _ = readPFM(leftname.replace('im0.png', 'disp0GT.pfm'))
+        gt_disp[np.isinf(gt_disp)] = 0
+        mask = (gt_disp > 0) & (gt_disp < 400)
+        epe = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
+        print(savename, epe, np.min(gt_disp), np.max(gt_disp))
 
     savepfm_path = savename.replace('.png','') 
     temp = np.flipud(temp)
 
     disppath = Path(savepfm_path)
     disppath.makedirs_p()
-    save_pfm(savepfm_path+'/disp0FADNet.pfm', temp, scale=1)
+    save_pfm(savepfm_path+'/disp0NoneNet.pfm', temp, scale=1)
     ##########write time txt########
-    fp = open(savepfm_path+'/timeFADNet.txt', 'w')
+    fp = open(savepfm_path+'/timeNoneNet.txt', 'w')
     runtime = "%.4f" % (end_time - start_time)  
     fp.write(runtime)   
     fp.close()
+
+    return epe
 
 def test_kitti(leftname, rightname, savename):
     input1, input2, height, width = test_transform(load_data(leftname, rightname), opt.crop_height, opt.crop_width)
@@ -320,6 +324,8 @@ if __name__ == "__main__":
     file_list = opt.list
     f = open(file_list, 'r')
     filelist = f.readlines()
+
+    error = 0
     for index in range(len(filelist)):
         current_file = filelist[index].split()
         if opt.kitti2015:
@@ -353,5 +359,6 @@ if __name__ == "__main__":
             #img_path = Path(temppath)
             #img_path.makedirs_p()
             savename = opt.savepath + "/".join(leftname.split("/")[-4:-1]) + ".png"
-            test_md(leftname, rightname, savename)
+            error += test_md(leftname, rightname, savename)
+    print("EPE:", error / len(filelist))
 
