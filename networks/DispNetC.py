@@ -9,6 +9,8 @@ from torch.nn.init import kaiming_normal
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
 from networks.submodules import *
 
+MAX_RANGE=400
+
 class DispNetC(nn.Module):
 
     def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
@@ -43,7 +45,7 @@ class DispNetC(nn.Module):
         self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
 
         if resBlock:
-            self.conv3_1 = ResBlock(self.disp_width+self.basicE, self.basicE*4)
+            self.conv3_1 = DyRes(MAX_RANGE//8+16+self.basicE, self.basicE*4)
             self.conv4   = ResBlock(self.basicE*4, self.basicE*8, stride=2)
             self.conv4_1 = ResBlock(self.basicE*8, self.basicE*8)
             self.conv5   = ResBlock(self.basicE*8, self.basicE*16, stride=2)
