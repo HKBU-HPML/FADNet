@@ -110,15 +110,14 @@ class DisparityTrainer(object):
         # build net according to the net name
         if self.net_name in ["psmnet", "ganet", "gwcnet"]:
             self.net = build_net(self.net_name)(self.maxdisp)
-        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet']:
-            eratio = 4
-            dratio = 4
+        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
+            eratio = 4; dratio = 4
             if self.net_name == 'mobilefadnet':
-                eratio = 2
-                dratio = 2
-            if self.net_name == 'slightfadnet':
-                eratio = 1
-                dratio = 1
+                eratio = 2; dratio = 2
+            elif self.net_name == 'slightfadnet':
+                eratio = 1; dratio = 1
+            elif self.net_name == 'xfadnet':
+                eratio = 8; dratio = 8
             self.net = build_net(self.net_name)(maxdisp=self.maxdisp, encoder_ratio=eratio, decoder_ratio=dratio)
 
         self.is_pretrain = False
@@ -230,7 +229,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
             self.optimizer.zero_grad()
 
-            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet']:
+            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet', 'xfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
                 loss_net2 = self.criterion(output_net2, target_disp)
@@ -333,7 +332,7 @@ class DisparityTrainer(object):
             target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
-            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet']:
+            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
