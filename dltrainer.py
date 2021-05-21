@@ -14,7 +14,7 @@ from dataloader.MiddleburyLoader import MiddleburyDataset
 from dataloader import KITTILoader as DA
 from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter, HVDMetric
-from utils.common import logger, MultiEpochsDataLoader
+from utils.common import logger, MultiEpochsDataLoader, count_parameters
 from losses.multiscaleloss import EPE, d1_metric
 from utils.preprocess import scale_disp
 from lamb import Lamb
@@ -142,6 +142,8 @@ class DisparityTrainer(object):
                 self.is_pretrain = True
             else:
                 logger.warning('Can not find the specific model %s, initial a new model...', self.pretrain)
+        if self.rank == 0:
+            logger.info('# of parameters: %d in model %s', count_parameters(self.net), self.net_name)
 
 
     def _build_optimizer(self):
@@ -263,6 +265,7 @@ class DisparityTrainer(object):
 
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_disp[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_disp[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_disp[mask], size_average=True)
                 flow2_EPE = self.epe(output3, target_disp)
+                d1m = d1_metric(output3, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "gwcnet":
                 mask = target_disp < self.maxdisp
                 mask.detach_()
