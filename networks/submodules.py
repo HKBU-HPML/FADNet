@@ -27,12 +27,16 @@ class DynamicConv2d(nn.Module):
 
         self.active_out_channel = self.max_out_channels
 
-    def get_active_filter(self, out_channel, in_channel):
-        return self.conv.weight[:out_channel, :in_channel, :, :]
+    def get_active_filter(self, in_channel, out_channel=None):
+        if out_channel:
+            return self.conv.weight[:out_channel, :in_channel, :, :]
+        else:
+            return self.conv.weight[:, :in_channel, :, :]
+
 
     def forward(self, x):
         in_channel = x.size(1)
-        filters = self.get_active_filter(out_channel, in_channel).contiguous()
+        filters = self.get_active_filter(in_channel).contiguous()
 
         def get_same_padding(kernel_size):
             if isinstance(kernel_size, tuple):
@@ -45,9 +49,39 @@ class DynamicConv2d(nn.Module):
             return kernel_size // 2
 
         padding = get_same_padding(self.kernel_size)
-        filters = self.conv.weight_standardization(filters) if isinstance(self.conv, MyConv2d) else filters
+        #filters = self.conv.weight_standardization(filters) if isinstance(self.conv, MyConv2d) else filters
         y = F.conv2d(x, filters, None, self.stride, padding, self.dilation, 1)
         return y
+
+class DyRes(nn.Module):
+    def __init__(self, max_in=98, max_out=128, stride = 1):
+        super(DyRes, self).__init__()
+        self.conv1 = DynamicConv2d(max_in, max_out, kernel_size = 3, stride = stride)
+        self.bn1 = nn.BatchNorm2d(max_out)
+        self.relu = nn.ReLU(inplace = True)
+        self.conv2 = nn.Conv2d(max_out, max_out, kernel_size = 3, padding = 1)
+        self.bn2 = nn.BatchNorm2d(max_out)
+
+        if stride != 1 or max_out != max_in:
+            self.shortcut = nn.Sequential(
+                DynamicConv2d(max_in, max_out, kernel_size = 1, stride = stride),
+                nn.BatchNorm2d(max_out))
+        else:
+            self.shortcut = None
+
+    def forward(self, x):
+        residual = x
+        if self.shortcut is not None:
+            residual = self.shortcut(x)
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        
+        out += residual
+        out = self.relu(out)
+        return out
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
