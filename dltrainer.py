@@ -14,7 +14,7 @@ from dataloader.MiddleburyLoader import MiddleburyDataset
 from dataloader import KITTILoader as DA
 from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter, HVDMetric
-from utils.common import logger, MultiEpochsDataLoader
+from utils.common import logger, MultiEpochsDataLoader, count_parameters
 from losses.multiscaleloss import EPE, d1_metric
 from utils.preprocess import scale_disp
 from lamb import Lamb
@@ -110,15 +110,14 @@ class DisparityTrainer(object):
         # build net according to the net name
         if self.net_name in ["psmnet", "ganet", "gwcnet"]:
             self.net = build_net(self.net_name)(self.maxdisp)
-        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet']:
-            eratio = 4
-            dratio = 4
+        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
+            eratio = 4; dratio = 4
             if self.net_name == 'mobilefadnet':
-                eratio = 2
-                dratio = 2
-            if self.net_name == 'slightfadnet':
-                eratio = 1
-                dratio = 1
+                eratio = 2; dratio = 2
+            elif self.net_name == 'slightfadnet':
+                eratio = 1; dratio = 1
+            elif self.net_name == 'xfadnet':
+                eratio = 8; dratio = 8
             self.net = build_net(self.net_name)(maxdisp=self.maxdisp, encoder_ratio=eratio, decoder_ratio=dratio)
 
         self.is_pretrain = False
@@ -143,6 +142,8 @@ class DisparityTrainer(object):
                 self.is_pretrain = True
             else:
                 logger.warning('Can not find the specific model %s, initial a new model...', self.pretrain)
+        if self.rank == 0:
+            logger.info('# of parameters: %d in model %s', count_parameters(self.net), self.net_name)
 
 
     def _build_optimizer(self):
@@ -230,7 +231,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
             self.optimizer.zero_grad()
 
-            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet']:
+            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet', 'xfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
                 loss_net2 = self.criterion(output_net2, target_disp)
@@ -264,6 +265,7 @@ class DisparityTrainer(object):
 
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_disp[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_disp[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_disp[mask], size_average=True)
                 flow2_EPE = self.epe(output3, target_disp)
+                d1m = d1_metric(output3, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "gwcnet":
                 mask = target_disp < self.maxdisp
                 mask.detach_()
@@ -333,7 +335,7 @@ class DisparityTrainer(object):
             target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
-            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet']:
+            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
