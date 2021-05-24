@@ -165,7 +165,7 @@ def build_corr(img_left, img_right, max_disp=40, zero_volume=None):
     else:
         volume = img_left.new_zeros([B, max_disp, H, W])
     for i in range(max_disp):
-        if i > 0:
+        if (i > 0) & (i < W):
             volume[:, i, :, i:] = (img_left[:, :, :, i:] * img_right[:, :, :, :W-i]).mean(dim=1)
         else:
             volume[:, i, :, :] = (img_left[:, :, :, :] * img_right[:, :, :, :]).mean(dim=1)

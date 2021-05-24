@@ -11,10 +11,10 @@ from networks.submodules import *
 
 MAX_RANGE=400
 
-class DispNetC(nn.Module):
+class ExtractNet(nn.Module):
 
     def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
-        super(DispNetC, self).__init__()
+        super(ExtractNet, self).__init__()
         
         self.input_channel = input_channel
         self.maxdisp = maxdisp
@@ -32,19 +32,66 @@ class DispNetC(nn.Module):
         if resBlock:
             self.conv2   = ResBlock(self.basicE, self.basicE*2, stride=2)
             self.conv3   = ResBlock(self.basicE*2, self.basicE*4, stride=2)
-            self.conv_redir = ResBlock(self.basicE*4, self.basicE, stride=1)
         else:
             self.conv2   = conv(self.basicE, self.basicE*2, stride=2)
             self.conv3   = conv(self.basicE*2, self.basicE*4, stride=2)
-            self.conv_redir = conv(self.basicE*4, self.basicE, stride=1)
 
-        # start corr from conv3, output channel is 32 + (max_disp * 2 / 2 + 1) 
-        #self.conv_redir = ResBlock(256, 32, stride=1)
-        #self.corr = Correlation1d(pad_size=20, kernel_size=1, max_displacement=20, stride1=1, stride2=2, corr_multiply=1)
-        #self.corr = Correlation1d(pad_size=20, kernel_size=3, max_displacement=20, stride1=1, stride2=1, corr_multiply=1)
+        # weight initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # m.weight.data.normal_(0, 0.02 / n)
+                # m.weight.data.normal_(0, 0.02)
+                kaiming_normal(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
+    def forward(self, inputs):
+
+        # split left image and right image
+        imgs = torch.chunk(inputs, 2, dim = 1)
+        img_left = imgs[0]
+        img_right = imgs[1]
+
+        conv1_l = self.conv1(img_left) 
+        conv2_l = self.conv2(conv1_l) 
+        conv3a_l = self.conv3(conv2_l) 
+
+        conv1_r = self.conv1(img_right)
+        conv2_r = self.conv2(conv1_r)
+        conv3a_r = self.conv3(conv2_r)
+
+        return conv1_l, conv2_l, conv3a_l, conv3a_r
+
+    def weight_parameters(self):
+        return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+        return [param for name, param in self.named_parameters() if 'bias' in name]
+
+
+class CUNet(nn.Module):
+
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
+        super(CUNet, self).__init__()
+        
+        self.input_channel = input_channel
+        self.maxdisp = maxdisp
+        self.relu = nn.ReLU(inplace=False)
+        self.basicC = 8
+        self.eratio = encoder_ratio
+        self.dratio = decoder_ratio
+        self.basicE = self.basicC*self.eratio
+        self.basicD = self.basicC*self.dratio
+
+        self.disp_width = maxdisp // 8 + 16
+
         self.corr_activation = nn.LeakyReLU(0.1, inplace=True)
-
         if resBlock:
+            self.conv_redir = ResBlock(self.basicE*4, self.basicE, stride=1)
             self.conv3_1 = DyRes(MAX_RANGE//8+16+self.basicE, self.basicE*4)
             self.conv4   = ResBlock(self.basicE*4, self.basicE*8, stride=2)
             self.conv4_1 = ResBlock(self.basicE*8, self.basicE*8)
@@ -53,6 +100,7 @@ class DispNetC(nn.Module):
             self.conv6   = ResBlock(self.basicE*16, self.basicE*32, stride=2)
             self.conv6_1 = ResBlock(self.basicE*32, self.basicE*32)
         else:
+            self.conv_redir = conv(self.basicE*4, self.basicE, stride=1)
             self.conv3_1 = conv(self.disp_width+32, 256)
             self.conv4   = conv(256, 512, stride=2)
             self.conv4_1 = conv(512, 512)
@@ -123,25 +171,17 @@ class DispNetC(nn.Module):
 
         #self.freeze()
         
-    def forward(self, input, get_features=False):
+    def forward(self, inputs, conv1_l, conv2_l, conv3a_l, corr_volume):
 
         # split left image and right image
         imgs = torch.chunk(input, 2, dim = 1)
         img_left = imgs[0]
         img_right = imgs[1]
 
-        conv1_l = self.conv1(img_left)
-        conv2_l = self.conv2(conv1_l)
-        conv3a_l = self.conv3(conv2_l)
-
-        conv1_r = self.conv1(img_right)
-        conv2_r = self.conv2(conv1_r)
-        conv3a_r = self.conv3(conv2_r)
-
         # Correlate corr3a_l and corr3a_r
         #out_corr = self.corr(conv3a_l, conv3a_r)
-        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.disp_width)
-        out_corr = self.corr_activation(out_corr)
+        #out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.disp_width)
+        out_corr = self.corr_activation(corr_volume)
         out_conv3a_redir = self.conv_redir(conv3a_l)
         in_conv3b = torch.cat((out_conv3a_redir, out_corr), 1)
 

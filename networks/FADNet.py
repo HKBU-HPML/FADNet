@@ -6,7 +6,7 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-from networks.DispNetC import DispNetC
+from networks.DispNetC import ExtractNet, CUNet
 from networks.DispNetRes import DispNetRes
 from networks.submodules import *
 
@@ -20,14 +20,51 @@ class FADNet(nn.Module):
         self.eratio = encoder_ratio
         self.dratio = decoder_ratio
 
-        # First Block (DispNetC)
-        self.dispnetc = DispNetC(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
+        # First Block (Extract)
+        self.extract_network = ExtractNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
-        # Second Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
+        # Second Block (CUNet)
+        self.cunet = CUNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
+
+        # Third Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
         in_planes = 3 * 3 + 1 + 1
         self.dispnetres = DispNetRes(in_planes, resBlock=resBlock, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
         self.relu = nn.ReLU(inplace=False)
+
+    def trt_transform(self):
+        net = copy.deepcopy(self)
+        x = torch.rand((1, 6, 576, 960)).cuda()
+        net.extract_network = torch2trt(net.extract_network, [x])
+    
+        # extract features
+        conv1_l, conv2_l, conv3a_l, conv3a_r = net.extract_network(x)
+    
+        # build corr
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.maxdisp//8+16)
+    
+        # generate first-stage flows
+        net.dispcunet = torch2trt(net.cunet, [x, conv1_l, conv2_l, conv3a_l, out_corr])
+        dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
+        dispnetc_final_flow = dispnetc_flows[0]
+    
+        diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+        norm_diff_img0 = channel_length(diff_img0)
+    
+        # concat img0, img1, img1->img0, flow, diff-mag
+        inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+    
+        net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
+
+        return net
+
+
+    def get_tensorrt_model(self):
+
+        if self.model_trt == None:
+            self.model_trt = self.trt_transform()
+        return self.model_trt
+
 
     def forward(self, inputs):
 
@@ -36,8 +73,13 @@ class FADNet(nn.Module):
         img_left = imgs[0]
         img_right = imgs[1]
 
-        # dispnetc
-        dispnetc_flows = self.dispnetc(inputs)
+        # extract features
+        conv1_l, conv2_l, conv3a_l, conv3a_r = self.extract_network(inputs)
+
+        # build corr
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.maxdisp//8+16)
+        # generate first-stage flows
+        dispnetc_flows = self.cunet(inputs, conv1_l, conv2_l, conv3a_l, out_corr)
         dispnetc_final_flow = dispnetc_flows[0]
 
         # warp img1 to img0; magnitude of diff between img0 and warped_img1,
