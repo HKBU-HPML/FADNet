@@ -44,13 +44,21 @@ def detect(opt):
     # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
         net = build_net(net_name)(192)
-    elif net_name in ["fadnet", "dispnetc"]:
-        net = build_net(net_name)(batchNorm=False, lastRelu=True)
-    elif net_name == "mobilefadnet":
-        #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
-        shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
-        warp_size = (opt.batchSize, 3, 576, 960)
-        net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
+    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
+        eratio = 4; dratio = 4
+        if net_name == 'mobilefadnet':
+            eratio = 2; dratio = 2
+        elif net_name == 'slightfadnet':
+            eratio = 1; dratio = 1
+        elif net_name == 'xfadnet':
+            eratio = 8; dratio = 8
+        net = build_net(net_name)(maxdisp=192, encoder_ratio=eratio, decoder_ratio=dratio)
+
+    #elif net_name == "mobilefadnet":
+    #    #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
+    #    shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
+    #    warp_size = (opt.batchSize, 3, 576, 960)
+    #    net = build_net(net_name)(batchNorm=False, lastRelu=True, input_img_shape=shape, warp_size=warp_size)
 
     if ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=devices)

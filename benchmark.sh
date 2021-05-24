@@ -1,7 +1,11 @@
-net=ganet
+#net=ganet
+#net=fadnet
+#net=mobilefadnet
+net=slightfadnet
 dataset=sceneflow
 
-model=models/${net}-sceneflow-v3/model_best.pth
+#model=models/${net}-sceneflow-v3/model_best.pth
+model=models/fadnet-sceneflow-1e-3-dw40-rerun/model_best.pth
 outf=detect_results/${net}-${dataset}-trt/
 #outf=detect_results/${net}-${dataset}/
 
