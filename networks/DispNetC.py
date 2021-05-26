@@ -11,6 +11,52 @@ from networks.submodules import *
 
 MAX_RANGE=400
 
+class DispNetC(nn.Module):
+
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
+        super(ExtractNet, self).__init__()
+        
+        self.input_channel = input_channel
+        self.maxdisp = maxdisp
+        self.relu = nn.ReLU(inplace=False)
+        self.basicC = 8
+        self.eratio = encoder_ratio
+        self.dratio = decoder_ratio
+        self.basicE = self.basicC*self.eratio
+        self.basicD = self.basicC*self.dratio
+
+        self.disp_width = maxdisp // 8 + 16
+
+        # First Block (Extract)
+        self.extract_network = ExtractNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
+
+        # Second Block (CUNet)
+        self.cunet = CUNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
+
+    def forward(self, inputs):
+
+        # split left image and right image
+        imgs = torch.chunk(inputs, 2, dim = 1)
+        img_left = imgs[0]
+        img_right = imgs[1]
+
+        # extract features
+        conv1_l, conv2_l, conv3a_l, conv3a_r = self.extract_network(inputs)
+
+        # build corr
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.maxdisp//8+16)
+        # generate first-stage flows
+        dispnetc_flows = self.cunet(inputs, conv1_l, conv2_l, conv3a_l, out_corr)
+
+        return dispnetc_flows
+
+    def weight_parameters(self):
+    	return [param for name, param in self.named_parameters() if 'weight' in name]
+
+    def bias_parameters(self):
+    	return [param for name, param in self.named_parameters() if 'bias' in name]
+
+
 class ExtractNet(nn.Module):
 
     def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
@@ -171,10 +217,10 @@ class CUNet(nn.Module):
 
         #self.freeze()
         
-    def forward(self, inputs, conv1_l, conv2_l, conv3a_l, corr_volume):
+    def forward(self, inputs, conv1_l, conv2_l, conv3a_l, corr_volume, get_features=False):
 
         # split left image and right image
-        imgs = torch.chunk(input, 2, dim = 1)
+        imgs = torch.chunk(inputs, 2, dim = 1)
         img_left = imgs[0]
         img_right = imgs[1]
 

@@ -1,18 +1,4 @@
-#net=ganet
-#net=fadnet
-#net=mobilefadnet
-net=slightfadnet
-dataset=sceneflow
+net=fadnet
 
-#model=models/${net}-sceneflow-v3/model_best.pth
-model=models/fadnet-sceneflow-1e-3-dw40-rerun/model_best.pth
-outf=detect_results/${net}-${dataset}-trt/
-#outf=detect_results/${net}-${dataset}/
-
-filelist=lists/nano_test.list
-#filelist=lists/FlyingThings3D_release_TEST.list
-filelist=lists/nano_fake.list
-#filepath=/datasets
-filepath=./data
-
-CUDA_VISIBLE_DEVICES=0 python benchmark.py --model $model --rp $outf --filelist $filelist --filepath $filepath --devices 0 --net ${net} 
+PY=/home/esetstore/fadnet/bin/python
+CUDA_VISIBLE_DEVICES=0 $PY benchmark.py --devices 0 --net ${net} 

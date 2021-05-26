@@ -9,6 +9,8 @@ from torch.nn.init import kaiming_normal
 from networks.DispNetC import ExtractNet, CUNet
 from networks.DispNetRes import DispNetRes
 from networks.submodules import *
+import copy
+from torch2trt import torch2trt
 
 class FADNet(nn.Module):
 
@@ -32,6 +34,8 @@ class FADNet(nn.Module):
 
         self.relu = nn.ReLU(inplace=False)
 
+        self.model_trt = None
+
     def trt_transform(self):
         net = copy.deepcopy(self)
         x = torch.rand((1, 6, 576, 960)).cuda()
@@ -48,7 +52,9 @@ class FADNet(nn.Module):
         dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
         dispnetc_final_flow = dispnetc_flows[0]
     
-        diff_img0 = x[:, :3, :, :] - x[:, 3:, :, :]
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        resampled_img1 = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow)
+        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
         norm_diff_img0 = channel_length(diff_img0)
     
         # concat img0, img1, img1->img0, flow, diff-mag
