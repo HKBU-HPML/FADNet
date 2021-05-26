@@ -30,6 +30,7 @@ def check_tensorrt(y, y_trt):
 def detect(opt):
 
     net_name = opt.net
+    enabled_tensorrt = True
 
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
@@ -62,7 +63,8 @@ def detect(opt):
     net.eval()
     net = net.cuda()
     get_net_info(net, input_shape=(3, 576, 960))
-    #net = net.get_tensorrt_model()
+    if enabled_tensorrt:
+        net = net.get_tensorrt_model()
     #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
 
     # fake input data
@@ -75,12 +77,12 @@ def detect(opt):
     #GPU-WARM-UP
     with torch.no_grad():
         for _ in range(10):
-            _ = net(dummy_input)
+            _ = net(dummy_input, enabled_tensorrt)
             # MEASURE PERFORMANCE
     with torch.no_grad():
         for rep in range(repetitions):
             starter.record()
-            _ = net(dummy_input)
+            _ = net(dummy_input, enabled_tensorrt)
             ender.record()
             # WAIT FOR GPU SYNC
             torch.cuda.synchronize()

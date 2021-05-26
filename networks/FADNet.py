@@ -48,17 +48,20 @@ class FADNet(nn.Module):
         out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.maxdisp//8+16)
     
         # generate first-stage flows
+        in_channels = out_corr.size(1) + conv3a_l.size(1)//4
+        net.cunet.conv3_1.fix_dynamic(in_channels)
         net.dispcunet = torch2trt(net.cunet, [x, conv1_l, conv2_l, conv3a_l, out_corr])
         dispnetc_flows = net.dispcunet(x, conv1_l, conv2_l, conv3a_l, out_corr)
         dispnetc_final_flow = dispnetc_flows[0]
     
         # warp img1 to img0; magnitude of diff between img0 and warped_img1,
-        resampled_img1 = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow)
-        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
+        resampled_img1 = warp_right_to_left(x[:, 3:, :, :], -dispnetc_final_flow)
+        diff_img0 = x[:, :3, :, :] - resampled_img1
         norm_diff_img0 = channel_length(diff_img0)
     
         # concat img0, img1, img1->img0, flow, diff-mag
-        inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
+        inputs_net2 = torch.cat((x, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
+        #inputs_net2 = torch.cat((x, x[:, 3:, :, :], dispnetc_final_flow, norm_diff_img0), dim = 1)
     
         net.dispnetres = torch2trt(net.dispnetres, [inputs_net2, dispnetc_final_flow])
 
@@ -72,7 +75,7 @@ class FADNet(nn.Module):
         return self.model_trt
 
 
-    def forward(self, inputs):
+    def forward(self, inputs, enabled_tensorrt = False):
 
         # split left image and right image
         imgs = torch.chunk(inputs, 2, dim = 1)
@@ -97,7 +100,12 @@ class FADNet(nn.Module):
         inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
 
         # dispnetres
-        dispnetres_flows = self.dispnetres([inputs_net2, dispnetc_flows])
+        #dispnetres_flows = self.dispnetres(inputs_net2, dispnetc_flows)
+        if enabled_tensorrt:
+            dispnetres_flows = self.dispnetres(inputs_net2, dispnetc_final_flow)
+        else:
+            dispnetres_flows = self.dispnetres(inputs_net2, dispnetc_flows)
+
         index = 0
         dispnetres_final_flow = dispnetres_flows[index]
         

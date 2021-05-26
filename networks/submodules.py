@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
 #from layers_package.channelnorm_package.channelnorm import ChannelNorm
 #from layers_package.resample2d_package.resample2d import Resample2d
+import copy
 
 class DynamicConv2d(nn.Module):
 
@@ -61,6 +62,8 @@ class DyRes(nn.Module):
         self.relu = nn.ReLU(inplace = True)
         self.conv2 = nn.Conv2d(max_out, max_out, kernel_size = 3, padding = 1)
         self.bn2 = nn.BatchNorm2d(max_out)
+        self.stride = stride
+        self.max_out = max_out
 
         if stride != 1 or max_out != max_in:
             self.shortcut = nn.Sequential(
@@ -68,6 +71,20 @@ class DyRes(nn.Module):
                 nn.BatchNorm2d(max_out))
         else:
             self.shortcut = None
+
+    def fix_dynamic(self, in_channels=72):
+
+        tmp_dy = copy.deepcopy(self.conv1)
+        tmp_fix = nn.Conv2d(in_channels, self.max_out, kernel_size = 3, padding = 1)
+        tmp_fix.weight.data = tmp_dy.get_active_filter(in_channels)
+        tmp_fix.cuda()
+        self.conv1 = copy.deepcopy(tmp_fix)
+        if self.shortcut is not None:
+            tmp_fix = nn.Conv2d(in_channels, self.max_out, kernel_size = 1, stride = self.stride)
+            tmp_dy = copy.deepcopy(self.shortcut[0])
+            tmp_fix.weight.data = tmp_dy.get_active_filter(in_channels)
+            tmp_fix.cuda()
+            self.shortcut[0] = tmp_fix
 
     def forward(self, x):
         residual = x

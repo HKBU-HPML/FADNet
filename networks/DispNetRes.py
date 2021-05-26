@@ -104,12 +104,15 @@ class DispNetRes(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
         
-    def forward(self, inputs, get_features=False):
+    def forward(self, inputs, flows, get_features=False):
 
-        input = inputs[0]
-        base_flow = inputs[1]
+        input_features = inputs
+        if type(flows) == tuple:
+            base_flow = flows
+        else:
+            base_flow = [F.interpolate(flows, scale_factor=2**(-i)) for i in range(7)]
 
-        conv1 = self.conv1(input)
+        conv1 = self.conv1(input_features)
         conv2 = self.conv2(conv1)
         conv3a = self.conv3(conv2)
         conv3b = self.conv3_1(conv3a)
@@ -165,7 +168,7 @@ class DispNetRes(nn.Module):
 
         upconv0 = self.upconv0(iconv1)
         upflow1 = self.upflow1to0(pr1)
-        concat0 = torch.cat((upconv0, upflow1, input[:, :self.input_channel, :, :]), 1)
+        concat0 = torch.cat((upconv0, upflow1, input_features[:, :self.input_channel, :, :]), 1)
         iconv0 = self.iconv0(concat0)
 
         # predict flow residual
