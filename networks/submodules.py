@@ -430,8 +430,10 @@ def warp_right_to_left(x, disp, warp_grid=None):
         xx = xx0 + disp
         xx = 2.0*xx / max(W-1,1)-1.0
     else:
-        xx = torch.arange(0, W, device=disp.device).float()
-        yy = torch.arange(0, H, device=disp.device).float()
+        #xx = torch.arange(0, W, device=disp.device).float()
+        #yy = torch.arange(0, H, device=disp.device).float()
+        xx = torch.arange(0, W, device=disp.device, dtype=x.dtype)
+        yy = torch.arange(0, H, device=disp.device, dtype=x.dtype)
         #if x.is_cuda:
         #    xx = xx.cuda()
         #    yy = yy.cuda()
