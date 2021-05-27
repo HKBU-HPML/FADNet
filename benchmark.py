@@ -30,7 +30,7 @@ def check_tensorrt(y, y_trt):
 def detect(opt):
 
     net_name = opt.net
-    enabled_tensorrt = True
+    enabled_tensorrt = opt.trt
 
     devices = [int(item) for item in opt.devices.split(',')]
     ngpu = len(devices)
@@ -98,9 +98,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', type=str, help='indicate the name of net', default='fadnet', choices=SUPPORT_NETS)
     parser.add_argument('--devices', type=str, help='devices', default='0')
-    parser.add_argument('--display', type=int, help='Num of samples to print', default=10)
-    parser.add_argument('--flowDiv', type=float, help='flow division', default='1.0')
     parser.add_argument('--batchSize', type=int, help='mini batch size', default=1)
+    parser.add_argument('--trt', action='store_true', help='enables tensorrt')
 
     opt = parser.parse_args()
     detect(opt)
