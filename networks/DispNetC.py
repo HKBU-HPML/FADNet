@@ -167,15 +167,15 @@ class CUNet(nn.Module):
         # self.iconv0 = ResBlock(20, 16, 1)
 
         # iconv with deconv
-        self.iconv5 = nn.ConvTranspose2d(self.basicD*32+1, self.basicD*16, 3, 1, 1)
-        self.iconv4 = nn.ConvTranspose2d(self.basicD*16+1, self.basicD*8, 3, 1, 1)
-        self.iconv3 = nn.ConvTranspose2d(self.basicD*8+1, self.basicD*4, 3, 1, 1)
-        self.iconv2 = nn.ConvTranspose2d(self.basicD*4+1, self.basicD*2, 3, 1, 1)
-        self.iconv1 = nn.ConvTranspose2d(self.basicD*2+1, self.basicD, 3, 1, 1)
+        self.iconv5 = nn.ConvTranspose2d((self.basicD+self.basicE)*16+1, self.basicD*16, 3, 1, 1)
+        self.iconv4 = nn.ConvTranspose2d((self.basicD+self.basicE)*8+1, self.basicD*8, 3, 1, 1)
+        self.iconv3 = nn.ConvTranspose2d((self.basicD+self.basicE)*4+1, self.basicD*4, 3, 1, 1)
+        self.iconv2 = nn.ConvTranspose2d((self.basicD+self.basicE)*2+1, self.basicD*2, 3, 1, 1)
+        self.iconv1 = nn.ConvTranspose2d((self.basicD+self.basicE)*1+1, self.basicD, 3, 1, 1)
         self.iconv0 = nn.ConvTranspose2d(self.basicD+self.input_channel+1, self.basicD, 3, 1, 1)
 
         # expand and produce disparity
-        self.upconv5 = deconv(self.basicD*32, self.basicD*16)
+        self.upconv5 = deconv(self.basicE*32, self.basicD*16)
         self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_flow5 = predict_flow(self.basicD*16)
 
