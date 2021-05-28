@@ -14,11 +14,11 @@ from networks.submodules import *
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, in_planes, resBlock=True, input_channel=3, encoder_ratio=8, decoder_ratio=8):
+    def __init__(self, in_planes, resBlock=True, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(DispNetRes, self).__init__()
         
         self.input_channel = input_channel
-        self.basicC = 4
+        self.basicC = 2
         self.eratio = encoder_ratio
         self.dratio = decoder_ratio
         self.basicE = self.basicC*self.eratio

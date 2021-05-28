@@ -16,6 +16,7 @@ SUPPORT_NETS = {
         'mobilefadnet': FADNet,
         'slightfadnet': FADNet,
         'tinyfadnet': FADNet,
+        'microfadnet': FADNet,
         'xfadnet': FADNet,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,

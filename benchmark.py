@@ -46,16 +46,18 @@ def detect(opt):
     # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
         net = build_net(net_name)(192)
-    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'xfadnet']:
-        eratio = 8; dratio = 8
+    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
+        eratio = 16; dratio = 16
         if net_name == 'mobilefadnet':
-            eratio = 4; dratio = 4
+            eratio = 8; dratio = 8
         elif net_name == 'slightfadnet':
-            eratio = 2; dratio = 2
+            eratio = 4; dratio = 4
         elif net_name == 'tinyfadnet':
+            eratio = 2; dratio = 2
+        elif net_name == 'microfadnet':
             eratio = 1; dratio = 1
         elif net_name == 'xfadnet':
-            eratio = 16; dratio = 16
+            eratio = 32; dratio = 32
         net = build_net(net_name)(maxdisp=192, encoder_ratio=eratio, decoder_ratio=dratio)
 
     #elif net_name == "mobilefadnet":
@@ -74,12 +76,15 @@ def detect(opt):
         net = apex.amp.initialize(net, None, opt_level='O2') 
     net.eval()
     net = net.cuda()
-    get_net_info(net, input_shape=(3, 576, 960))
+
+    width = 960
+    height = 576
+    get_net_info(net, input_shape=(3, height, width))
     if enabled_tensorrt:
-        net = net.get_tensorrt_model()
+        net = net.get_tensorrt_model((1, 6, height, width))
     #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
     # fake input data
-    dummy_input = torch.randn(1, 6, 576, 960, dtype=torch.float).cuda()
+    dummy_input = torch.randn(1, 6, height, width, dtype=torch.float).cuda()
 
     # INIT LOGGERS
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)

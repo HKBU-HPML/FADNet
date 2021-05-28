@@ -36,9 +36,9 @@ class FADNet(nn.Module):
 
         self.model_trt = None
 
-    def trt_transform(self):
+    def trt_transform(self, input_size = (1, 6, 576, 960)):
         net = copy.deepcopy(self)
-        x = torch.rand((1, 6, 576, 960)).cuda()
+        x = torch.rand(input_size).cuda()
         net.extract_network = torch2trt(net.extract_network, [x])
     
         # extract features

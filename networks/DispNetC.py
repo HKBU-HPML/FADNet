@@ -14,13 +14,13 @@ MAX_RANGE=400
 
 class DispNetC(nn.Module):
 
-    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=8, decoder_ratio=8):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(ExtractNet, self).__init__()
         
         self.input_channel = input_channel
         self.maxdisp = maxdisp
         self.relu = nn.ReLU(inplace=False)
-        self.basicC = 4
+        self.basicC = 2
         self.eratio = encoder_ratio
         self.dratio = decoder_ratio
         self.basicE = self.basicC*self.eratio
@@ -60,13 +60,13 @@ class DispNetC(nn.Module):
 
 class ExtractNet(nn.Module):
 
-    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=8, decoder_ratio=8):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(ExtractNet, self).__init__()
         
         self.input_channel = input_channel
         self.maxdisp = maxdisp
         self.relu = nn.ReLU(inplace=False)
-        self.basicC = 4
+        self.basicC = 2
         self.eratio = encoder_ratio
         self.dratio = decoder_ratio
         self.basicE = self.basicC*self.eratio
@@ -122,13 +122,13 @@ class ExtractNet(nn.Module):
 
 class CUNet(nn.Module):
 
-    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=8, decoder_ratio=8):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(CUNet, self).__init__()
         
         self.input_channel = input_channel
         self.maxdisp = maxdisp
         self.relu = nn.ReLU(inplace=False)
-        self.basicC = 4
+        self.basicC = 2
         self.eratio = encoder_ratio
         self.dratio = decoder_ratio
         self.basicE = self.basicC*self.eratio
