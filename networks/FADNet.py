@@ -14,7 +14,7 @@ from torch2trt import torch2trt
 
 class FADNet(nn.Module):
 
-    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=4, decoder_ratio=4):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=8, decoder_ratio=8):
         super(FADNet, self).__init__()
         self.input_channel = input_channel
         self.maxdisp = maxdisp
