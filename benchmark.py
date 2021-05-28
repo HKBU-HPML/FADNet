@@ -46,14 +46,16 @@ def detect(opt):
     # build net according to the net name
     if net_name == "psmnet" or net_name == "ganet":
         net = build_net(net_name)(192)
-    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
-        eratio = 4; dratio = 4
+    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'xfadnet']:
+        eratio = 8; dratio = 8
         if net_name == 'mobilefadnet':
-            eratio = 2; dratio = 2
+            eratio = 4; dratio = 4
         elif net_name == 'slightfadnet':
+            eratio = 2; dratio = 2
+        elif net_name == 'tinyfadnet':
             eratio = 1; dratio = 1
         elif net_name == 'xfadnet':
-            eratio = 8; dratio = 8
+            eratio = 16; dratio = 16
         net = build_net(net_name)(maxdisp=192, encoder_ratio=eratio, decoder_ratio=dratio)
 
     #elif net_name == "mobilefadnet":

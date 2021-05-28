@@ -110,7 +110,7 @@ class DisparityTrainer(object):
         # build net according to the net name
         if self.net_name in ["psmnet", "ganet", "gwcnet"]:
             self.net = build_net(self.net_name)(self.maxdisp)
-        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
+        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'xfadnet']:
             eratio = 8; dratio = 8
             if self.net_name == 'mobilefadnet':
                 eratio = 4; dratio = 4
