@@ -70,15 +70,14 @@ def detect(opt):
     num_of_parameters = count_parameters(net)
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
+    if FP16:
+        net = apex.amp.initialize(net, None, opt_level='O2') 
+    net.eval()
     net = net.cuda()
     get_net_info(net, input_shape=(3, 576, 960))
     if enabled_tensorrt:
         net = net.get_tensorrt_model()
     #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
-    if FP16:
-        net = apex.amp.initialize(net, None, opt_level='O2') 
-    net.eval()
-
     # fake input data
     dummy_input = torch.randn(1, 6, 576, 960, dtype=torch.float).cuda()
 
