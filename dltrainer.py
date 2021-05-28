@@ -117,7 +117,7 @@ class DisparityTrainer(object):
             elif self.net_name == 'slightfadnet':
                 eratio = 4; dratio = 4
             elif self.net_name == 'tinyfadnet':
-                eratio = 2; dratio = 2
+                eratio = 2; dratio = 1
             elif self.net_name == 'microfadnet':
                 eratio = 1; dratio = 1
             elif self.net_name == 'xfadnet':
