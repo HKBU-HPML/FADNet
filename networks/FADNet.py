@@ -68,10 +68,10 @@ class FADNet(nn.Module):
         return net
 
 
-    def get_tensorrt_model(self):
+    def get_tensorrt_model(self, input_size=(1, 6, 576, 960)):
 
         if self.model_trt == None:
-            self.model_trt = self.trt_transform()
+            self.model_trt = self.trt_transform(input_size)
         return self.model_trt
 
 
