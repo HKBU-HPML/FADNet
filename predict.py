@@ -35,6 +35,7 @@ parser.add_argument('--sceneflow', type=int, default=0, help='sceneflow dataset?
 parser.add_argument('--kitti2012', type=int, default=0, help='kitti 2012? Default=False')
 parser.add_argument('--kitti2015', type=int, default=0, help='kitti 2015? Default=False')
 parser.add_argument('--middlebury', type=int, default=0, help='Middlebury? Default=False')
+parser.add_argument('--eth3d', type=int, default=0, help='ETH3D? Default=False')
 parser.add_argument('--datapath', default='/media/jiaren/ImageNet/data_scene_flow_2015/testing/',
                     help='data path')
 parser.add_argument('--list', default='lists/middeval_test.list',
@@ -69,7 +70,7 @@ if opt.cuda:
 if opt.model == 'psmnet':
     model = PSMNet(opt.maxdisp)
 elif opt.model == 'fadnet':
-    model = FADNet(False, True)
+    model = FADNet(maxdisp=opt.maxdisp)
 else:
     print('no model')
     sys.exit(-1)
@@ -266,6 +267,55 @@ def test_md(leftname, rightname, savename):
 
     return epe
 
+def test_eth3d(leftname, rightname, savename):
+
+    print(savename)
+    epe = 0
+    input1, input2, height, width = load_data_imn(leftname, rightname)
+
+    input1 = Variable(input1, requires_grad = False)
+    input2 = Variable(input2, requires_grad = False)
+
+    model.eval()
+    if opt.cuda:
+        input1 = input1.cuda()
+        input2 = input2.cuda()
+        input_var = torch.cat((input1, input2), 0)
+        input_var = input_var.unsqueeze(0)
+    torch.cuda.synchronize()
+    start_time = time()
+    with torch.no_grad():
+        prediction = model(input_var)[1]
+        prediction = prediction.squeeze(0)
+    torch.cuda.synchronize()
+    end_time = time()
+    
+    print("Processing time: {:.4f}".format(end_time - start_time))
+    temp = prediction.cpu()
+    temp = temp.detach().numpy()
+    temp = temp[0, :height, :width]
+
+    # print epe
+    if 'training' in leftname:
+        gt_disp, _, _ = readPFM(leftname.replace('im0.png', 'disp0GT.pfm').replace('training/', 'training_gt/'))
+        gt_disp[np.isinf(gt_disp)] = 0
+        mask = (gt_disp > 0) & (gt_disp < 192)
+        epe = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
+        print(savename, epe, np.min(gt_disp), np.max(gt_disp))
+
+    temp = np.flipud(temp)
+
+    disppath = Path('/'.join(savename.split('/')[:-1]))
+    disppath.makedirs_p()
+    save_pfm(savename, temp, scale=1)
+    ##########write time txt########
+    fp = open(savename.replace("pfm", "txt"), 'w')
+    runtime = "runtime %.4f" % (end_time - start_time)  
+    fp.write(runtime)   
+    fp.close()
+
+    return epe
+
 def test_kitti(leftname, rightname, savename):
     input1, input2, height, width = test_transform(load_data(leftname, rightname), opt.crop_height, opt.crop_width)
  
@@ -360,5 +410,10 @@ if __name__ == "__main__":
             #img_path.makedirs_p()
             savename = opt.savepath + "/".join(leftname.split("/")[-4:-1]) + ".png"
             error += test_md(leftname, rightname, savename)
+        if opt.eth3d:
+            leftname = file_path + current_file[0]
+            rightname = file_path + current_file[1]
+            savename = opt.savepath + "low_res_two_view/" + leftname.split("/")[-2] + ".pfm"
+            error += test_eth3d(leftname, rightname, savename)
     print("EPE:", error / len(filelist))
 
