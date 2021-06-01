@@ -69,13 +69,13 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 TestImgLoader = torch.utils.data.DataLoader(
          DA.myImageFolder(test_left_img,test_right_img,test_left_disp, False), 
-         batch_size= 8, shuffle= False, num_workers= 4, drop_last=False)
+         batch_size= 1, shuffle= False, num_workers= 4, drop_last=False)
 
 devices = [int(item) for item in args.devices.split(',')]
 ngpus = len(devices)
 
 if args.model == 'fadnet':
-    model = FADNet(False, True)
+    model = FADNet(maxdisp=args.maxdisp)
 elif args.model == 'psmnet':
     model = PSMNet(maxdisp=args.maxdisp)
 elif args.model == 'gwcnet':
@@ -88,11 +88,6 @@ else:
 #    model = nn.DataParallel(model, device_ids=devices)
 #    model.cuda()
 
-if args.cuda:
-    if len(devices) > 1:
-        model = nn.DataParallel(model, device_ids=devices)
-    model.cuda()
-
 if args.loadmodel is not None:
     state_dict = torch.load(args.loadmodel)
     #if 'model' in state_dict.keys():
@@ -100,6 +95,11 @@ if args.loadmodel is not None:
     #if 'state_dict' in state_dict.keys():
     #state_dict = state_dict["state_dict"]
     model.load_state_dict(state_dict['state_dict'])
+
+if args.cuda:
+    if len(devices) > 1:
+        model = nn.DataParallel(model, device_ids=devices)
+    model.cuda()
 
 
 #if args.loadmodel is not None:
@@ -226,7 +226,7 @@ def main():
     start_round = 0
     start_epoch = 1
     for r in range(start_round, train_round):
-        criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', mask=True)
+        criterion = multiscaleloss(loss_scale, 1, loss_weights[r], loss='L1', sparse=True)
         print(loss_weights[r])
 
         for epoch in range(start_epoch, epoches[r]+1):

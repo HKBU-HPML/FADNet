@@ -211,8 +211,8 @@ def load_data_imn(leftname, rightname):
             img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
             img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
-    bottom_pad = 1024-h
-    right_pad = 1536-w
+    bottom_pad = opt.crop_height-h
+    right_pad = opt.crop_width-w
     img_left = np.lib.pad(img_left,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
     img_right = np.lib.pad(img_right,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
     return torch.from_numpy(img_left).float(), torch.from_numpy(img_right).float(), h, w
@@ -258,9 +258,9 @@ def test_md(leftname, rightname, savename):
 
     disppath = Path(savepfm_path)
     disppath.makedirs_p()
-    save_pfm(savepfm_path+'/disp0NoneNet.pfm', temp, scale=1)
+    save_pfm(savepfm_path+'/disp0FADNet.pfm', temp, scale=1)
     ##########write time txt########
-    fp = open(savepfm_path+'/timeNoneNet.txt', 'w')
+    fp = open(savepfm_path+'/timeFADNet.txt', 'w')
     runtime = "%.4f" % (end_time - start_time)  
     fp.write(runtime)   
     fp.close()
@@ -317,25 +317,38 @@ def test_eth3d(leftname, rightname, savename):
     return epe
 
 def test_kitti(leftname, rightname, savename):
-    input1, input2, height, width = test_transform(load_data(leftname, rightname), opt.crop_height, opt.crop_width)
- 
+    print(savename)
+    epe = 0
+    input1, input2, height, width = load_data_imn(leftname, rightname)
+
     input1 = Variable(input1, requires_grad = False)
     input2 = Variable(input2, requires_grad = False)
 
     model.eval()
-    if cuda:
+    if opt.cuda:
         input1 = input1.cuda()
         input2 = input2.cuda()
+        input_var = torch.cat((input1, input2), 0)
+        input_var = input_var.unsqueeze(0)
     with torch.no_grad():        
-        prediction = model(input1, input2)
+        prediction = model(input_var)[1]
+        prediction = prediction.squeeze(0)
         
     temp = prediction.cpu()
     temp = temp.detach().numpy()
-    if height <= opt.crop_height and width <= opt.crop_width:
-        temp = temp[0, opt.crop_height - height: opt.crop_height, opt.crop_width - width: opt.crop_width]
-    else:
-        temp = temp[0, :, :]
+    temp = temp[0, :height, :width]
+
+    # print epe
+    if 'training' in leftname:
+        gt_disp = Image.open(leftname.replace('colored_0', 'disp_occ').replace('image_2', 'disp_occ_0'))
+        gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
+        mask = (gt_disp > 0) & (gt_disp < 192)
+        epe = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
+        print(savename, epe, np.min(gt_disp), np.max(gt_disp))
+
     skimage.io.imsave(savename, (temp * 256).astype('uint16'))
+
+    return epe
 
 
 def test(leftname, rightname, savename):  
@@ -378,17 +391,11 @@ if __name__ == "__main__":
     error = 0
     for index in range(len(filelist)):
         current_file = filelist[index].split()
-        if opt.kitti2015:
-            leftname = file_path + 'image_2/' + current_file[0: len(current_file) - 1]
-            rightname = file_path + 'image_3/' + current_file[0: len(current_file) - 1]
-            savename = opt.savepath + current_file[0: len(current_file) - 1]
-            test_kitti(leftname, rightname, savename)
-
-        if opt.kitti2012:
-            leftname = file_path + 'colored_0/' + current_file[0: len(current_file) - 1]
-            rightname = file_path + 'colored_1/' + current_file[0: len(current_file) - 1]
-            savename = opt.savepath + current_file[0: len(current_file) - 1]
-            test_kitti(leftname, rightname, savename)
+        if opt.kitti2015 or opt.kitti2012:
+            leftname = os.path.join(file_path, current_file[0])
+            rightname = os.path.join(file_path, current_file[1])
+            savename = os.path.join(opt.savepath, current_file[0].split("/")[-1])
+            error += test_kitti(leftname, rightname, savename)
 
         if opt.sceneflow:
             leftname = file_path + 'frames_finalpass/' + current_file[0: len(current_file) - 1]

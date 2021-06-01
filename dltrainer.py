@@ -12,6 +12,7 @@ from dataloader.SceneFlowLoader import SceneFlowDataset
 from dataloader.SintelLoader import SintelDataset
 from dataloader.MiddleburyLoader import MiddleburyDataset
 from dataloader.ETH3DLoader import ETH3DDataset
+from dataloader.RVCLoader import RVCDataset
 from dataloader import KITTILoader as DA
 from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter, HVDMetric
@@ -57,6 +58,9 @@ class DisparityTrainer(object):
         if self.dataset == 'eth3d':
             train_dataset = ETH3DDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = ETH3DDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
+        if self.dataset == 'rvc':
+            train_dataset = RVCDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
+            test_dataset = RVCDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         if self.dataset == 'sintel':
             train_dataset = SintelDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = SintelDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
