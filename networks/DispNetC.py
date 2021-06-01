@@ -15,7 +15,7 @@ MAX_RANGE=400
 class DispNetC(nn.Module):
 
     def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=16, decoder_ratio=16):
-        super(ExtractNet, self).__init__()
+        super(DispNetC, self).__init__()
         
         self.input_channel = input_channel
         self.maxdisp = maxdisp
@@ -34,7 +34,7 @@ class DispNetC(nn.Module):
         # Second Block (CUNet)
         self.cunet = CUNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
-    def forward(self, inputs):
+    def forward(self, inputs, enabled_tensorrt=False):
 
         # split left image and right image
         imgs = torch.chunk(inputs, 2, dim = 1)
@@ -148,13 +148,13 @@ class CUNet(nn.Module):
             self.conv6_1 = ResBlock(self.basicE*32, self.basicE*32)
         else:
             self.conv_redir = conv(self.basicE*4, self.basicE, stride=1)
-            self.conv3_1 = conv(self.disp_width+32, 256)
-            self.conv4   = conv(256, 512, stride=2)
-            self.conv4_1 = conv(512, 512)
-            self.conv5   = conv(512, 512, stride=2)
-            self.conv5_1 = conv(512, 512)
-            self.conv6   = conv(512, 1024, stride=2)
-            self.conv6_1 = conv(1024, 1024)
+            self.conv3_1 = conv(self.disp_width+self.basicE, self.basicE*4)
+            self.conv4   = conv(self.basicE*4, self.basicE*8, stride=2)
+            self.conv4_1 = conv(self.basicE*8, self.basicE*8)
+            self.conv5   = conv(self.basicE*8, self.basicE*16, stride=2)
+            self.conv5_1 = conv(self.basicE*16, self.basicE*16)
+            self.conv6   = conv(self.basicE*16, self.basicE*32, stride=2)
+            self.conv6_1 = conv(self.basicE*32, self.basicE*32)
 
         self.pred_flow6 = predict_flow(self.basicE*32)
 

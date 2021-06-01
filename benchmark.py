@@ -59,7 +59,10 @@ def detect(opt):
         elif net_name == 'xfadnet':
             eratio = 32; dratio = 32
         net = build_net(net_name)(maxdisp=192, encoder_ratio=eratio, decoder_ratio=dratio)
-
+    elif net_name == "dispnetc":
+        net = build_net(net_name)(resBlock=False, maxdisp=192)
+    elif net_name == "crl":
+        net = build_net('fadnet')(resBlock=False, maxdisp=192)
     #elif net_name == "mobilefadnet":
     #    #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
     #    shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
