@@ -18,6 +18,7 @@ SUPPORT_NETS = {
         'tinyfadnet': FADNet,
         'microfadnet': FADNet,
         'xfadnet': FADNet,
+        'crl': FADNet,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,
         'dispnetcs': DispNetCS,
