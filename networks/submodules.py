@@ -7,8 +7,98 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torchvision.utils import save_image
 #from correlation_package.modules.corr import Correlation1d # from PWC-Net
-from layers_package.channelnorm_package.channelnorm import ChannelNorm
-from layers_package.resample2d_package.resample2d import Resample2d
+#from layers_package.channelnorm_package.channelnorm import ChannelNorm
+#from layers_package.resample2d_package.resample2d import Resample2d
+import copy
+
+class DynamicConv2d(nn.Module):
+
+    def __init__(self, max_in_channels, max_out_channels, kernel_size=1, stride=1, dilation=1):
+        super(DynamicConv2d, self).__init__()
+
+        self.max_in_channels = max_in_channels
+        self.max_out_channels = max_out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.dilation = dilation
+
+        self.conv = nn.Conv2d(
+            self.max_in_channels, self.max_out_channels, self.kernel_size, stride=self.stride, bias=False,
+        )
+
+        self.active_out_channel = self.max_out_channels
+
+    def get_active_filter(self, in_channel, out_channel=None):
+        if out_channel:
+            return self.conv.weight[:out_channel, :in_channel, :, :]
+        else:
+            return self.conv.weight[:, :in_channel, :, :]
+
+
+    def forward(self, x):
+        in_channel = x.size(1)
+        filters = self.get_active_filter(in_channel).contiguous()
+
+        def get_same_padding(kernel_size):
+            if isinstance(kernel_size, tuple):
+                assert len(kernel_size) == 2, 'invalid kernel size: %s' % kernel_size
+                p1 = get_same_padding(kernel_size[0])
+                p2 = get_same_padding(kernel_size[1])
+                return p1, p2
+            assert isinstance(kernel_size, int), 'kernel size should be either `int` or `tuple`'
+            assert kernel_size % 2 > 0, 'kernel size should be odd number'
+            return kernel_size // 2
+
+        padding = get_same_padding(self.kernel_size)
+        #filters = self.conv.weight_standardization(filters) if isinstance(self.conv, MyConv2d) else filters
+        y = F.conv2d(x, filters, None, self.stride, padding, self.dilation, 1)
+        return y
+
+class DyRes(nn.Module):
+    def __init__(self, max_in=98, max_out=128, stride = 1):
+        super(DyRes, self).__init__()
+        self.conv1 = DynamicConv2d(max_in, max_out, kernel_size = 3, stride = stride)
+        self.bn1 = nn.BatchNorm2d(max_out)
+        self.relu = nn.ReLU(inplace = True)
+        self.conv2 = nn.Conv2d(max_out, max_out, kernel_size = 3, padding = 1)
+        self.bn2 = nn.BatchNorm2d(max_out)
+        self.stride = stride
+        self.max_out = max_out
+
+        if stride != 1 or max_out != max_in:
+            self.shortcut = nn.Sequential(
+                DynamicConv2d(max_in, max_out, kernel_size = 1, stride = stride),
+                nn.BatchNorm2d(max_out))
+        else:
+            self.shortcut = None
+
+    def fix_dynamic(self, in_channels=72):
+
+        tmp_dy = copy.deepcopy(self.conv1)
+        tmp_fix = nn.Conv2d(in_channels, self.max_out, kernel_size = 3, padding = 1)
+        tmp_fix.weight.data = tmp_dy.get_active_filter(in_channels)
+        tmp_fix.cuda()
+        self.conv1 = copy.deepcopy(tmp_fix)
+        if self.shortcut is not None:
+            tmp_fix = nn.Conv2d(in_channels, self.max_out, kernel_size = 1, stride = self.stride)
+            tmp_dy = copy.deepcopy(self.shortcut[0])
+            tmp_fix.weight.data = tmp_dy.get_active_filter(in_channels)
+            tmp_fix.cuda()
+            self.shortcut[0] = tmp_fix
+
+    def forward(self, x):
+        residual = x
+        if self.shortcut is not None:
+            residual = self.shortcut(x)
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        
+        out += residual
+        out = self.relu(out)
+        return out
 
 class ResBlock(nn.Module):
     def __init__(self, n_in, n_out, stride = 1):
@@ -92,11 +182,45 @@ def build_corr(img_left, img_right, max_disp=40, zero_volume=None):
     else:
         volume = img_left.new_zeros([B, max_disp, H, W])
     for i in range(max_disp):
-        if i > 0:
+        if (i > 0) & (i < W):
             volume[:, i, :, i:] = (img_left[:, :, :, i:] * img_right[:, :, :, :W-i]).mean(dim=1)
         else:
             volume[:, i, :, :] = (img_left[:, :, :, :] * img_right[:, :, :, :]).mean(dim=1)
 
+    volume = volume.contiguous()
+    return volume
+
+def build_concat_volume(refimg_fea, targetimg_fea, maxdisp):
+    B, C, H, W = refimg_fea.shape
+    volume = refimg_fea.new_zeros([B, 2 * C, maxdisp, H, W])
+    for i in range(maxdisp):
+        if i > 0:
+            volume[:, :C, i, :, i:] = refimg_fea[:, :, :, i:]
+            volume[:, C:, i, :, i:] = targetimg_fea[:, :, :, :-i]
+        else:
+            volume[:, :C, i, :, :] = refimg_fea
+            volume[:, C:, i, :, :] = targetimg_fea
+    volume = volume.contiguous()
+    return volume
+
+def groupwise_correlation(fea1, fea2, num_groups):
+    B, C, H, W = fea1.shape
+    assert C % num_groups == 0
+    channels_per_group = C // num_groups
+    cost = (fea1 * fea2).view([B, num_groups, channels_per_group, H, W]).mean(dim=2)
+    assert cost.shape == (B, num_groups, H, W)
+    return cost
+
+
+def build_gwc_volume(refimg_fea, targetimg_fea, maxdisp, num_groups):
+    B, C, H, W = refimg_fea.shape
+    volume = refimg_fea.new_zeros([B, num_groups, maxdisp, H, W])
+    for i in range(maxdisp):
+        if i > 0:
+            volume[:, :, i, :, i:] = groupwise_correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i],
+                                                           num_groups)
+        else:
+            volume[:, :, i, :, :] = groupwise_correlation(refimg_fea, targetimg_fea, num_groups)
     volume = volume.contiguous()
     return volume
 
@@ -294,7 +418,7 @@ def channel_normalize(x):
     return x / (torch.norm(x, 2, dim=1, keepdim=True) + 1e-8)
 
 def channel_length(x):
-    return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True))
+    return torch.sqrt(torch.sum(torch.pow(x, 2), dim=1, keepdim=True) + 1e-8)
 
 def warp_right_to_left(x, disp, warp_grid=None):
     #print('size: ', x.size())
@@ -306,8 +430,10 @@ def warp_right_to_left(x, disp, warp_grid=None):
         xx = xx0 + disp
         xx = 2.0*xx / max(W-1,1)-1.0
     else:
-        xx = torch.arange(0, W, device=disp.device).float()
-        yy = torch.arange(0, H, device=disp.device).float()
+        #xx = torch.arange(0, W, device=disp.device).float()
+        #yy = torch.arange(0, H, device=disp.device).float()
+        xx = torch.arange(0, W, device=disp.device, dtype=x.dtype)
+        yy = torch.arange(0, H, device=disp.device, dtype=x.dtype)
         #if x.is_cuda:
         #    xx = xx.cuda()
         #    yy = yy.cuda()
@@ -362,9 +488,9 @@ if __name__ == '__main__':
     #print(torch.norm(cn_fn - output_cn, 2, 1).mean())
 
     warpped_left = warp_right_to_left(x, -disp)
-    warp_layer = Resample2d()
-    output_warpped = warp_layer(x, -torch.cat((disp, dummy_y), dim = 1))
-    print(torch.norm(warpped_left - output_warpped, 2, 1).mean())
+    #warp_layer = Resample2d()
+    #output_warpped = warp_layer(x, -torch.cat((disp, dummy_y), dim = 1))
+    #print(torch.norm(warpped_left - output_warpped, 2, 1).mean())
     save_image(x[0], 'img0.png')
     save_image(warpped_left[0], 'img1.png')
-    save_image(output_warpped[0], 'img2.png')
+    #save_image(output_warpped[0], 'img2.png')

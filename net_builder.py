@@ -5,21 +5,27 @@ from networks.DispNetS import DispNetS
 from networks.DispNetCS import DispNetCS
 from networks.DispNetCSS import DispNetCSS
 from networks.FADNet import FADNet
-from networks.MobileFADNet3 import MobileFADNet
+#from networks.MobileFADNet3 import MobileFADNet
 from networks.stackhourglass import PSMNet
-#from networks.GANet_deep import GANet
-
+from networks.GANet_deep import GANet
+from networks.gwcnet import GwcNet
 from utils.common import logger
 
 SUPPORT_NETS = {
         'fadnet': FADNet,
-        'mobilefadnet': MobileFADNet,
+        'mobilefadnet': FADNet,
+        'slightfadnet': FADNet,
+        'tinyfadnet': FADNet,
+        'microfadnet': FADNet,
+        'xfadnet': FADNet,
+        'crl': FADNet,
         'dispnetc': DispNetC,
         'dispnets': DispNetS,
         'dispnetcs': DispNetCS,
         'dispnetcss': DispNetCSS,
         'psmnet': PSMNet,
-        #'ganet':GANet,
+        'ganet':GANet,
+        'gwcnet':GwcNet,
         }
 
 def build_net(net_name):
