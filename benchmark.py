@@ -44,7 +44,7 @@ def detect(opt):
     ngpu = len(devices)
 
     # build net according to the net name
-    if net_name == "psmnet" or net_name == "ganet":
+    if net_name in ["gwcnet", "ganet", "psmnet"]:
         net = build_net(net_name)(192)
     elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
         eratio = 16; dratio = 16
