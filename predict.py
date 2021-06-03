@@ -211,6 +211,7 @@ def load_data_imn(leftname, rightname):
             img_left[c, :, :] = (left[:, :, c] - np.mean(left[:, :, c])) / np.std(left[:, :, c])
             img_right[c, :, :] = (right[:, :, c] - np.mean(right[:, :, c])) / np.std(right[:, :, c])
 
+    print(h, w)
     bottom_pad = opt.crop_height-h
     right_pad = opt.crop_width-w
     img_left = np.lib.pad(img_left,((0,0),(0,bottom_pad),(0,right_pad)),mode='constant',constant_values=0)
@@ -258,9 +259,9 @@ def test_md(leftname, rightname, savename):
 
     disppath = Path(savepfm_path)
     disppath.makedirs_p()
-    save_pfm(savepfm_path+'/disp0FADNet.pfm', temp, scale=1)
+    save_pfm(savepfm_path+'/disp0FADNet_RVC.pfm', temp, scale=1)
     ##########write time txt########
-    fp = open(savepfm_path+'/timeFADNet.txt', 'w')
+    fp = open(savepfm_path+'/timeFADNet_RVC.txt', 'w')
     runtime = "%.4f" % (end_time - start_time)  
     fp.write(runtime)   
     fp.close()

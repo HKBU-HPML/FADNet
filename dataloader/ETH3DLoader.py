@@ -12,8 +12,8 @@ import time
 from dataloader.EXRloader import load_exr
 from dataloader.commons import normalize_method
 
-img_size = (512, 960)
-scale_size = (512, 960) 
+img_size = (576, 960)
+scale_size = (576, 960) 
 
 class ETH3DDataset(Dataset):
 
