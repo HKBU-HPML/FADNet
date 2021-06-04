@@ -14,11 +14,11 @@ from networks.submodules import *
 
 class DispNetRes(nn.Module):
 
-    def __init__(self, in_planes, resBlock=True, input_channel=3, encoder_ratio=8, decoder_ratio=8):
+    def __init__(self, in_planes, resBlock=True, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(DispNetRes, self).__init__()
         
         self.input_channel = input_channel
-        self.basicC = 4
+        self.basicC = 2
         self.eratio = encoder_ratio
         self.dratio = decoder_ratio
         self.basicE = self.basicC*self.eratio
@@ -39,28 +39,28 @@ class DispNetRes(nn.Module):
             self.conv6   = ResBlock(self.basicE*16, self.basicE*32, stride=2)
             self.conv6_1 = ResBlock(self.basicE*32, self.basicE*32)
         else:
-            self.conv2   = conv(self.batchNorm, 64, 128, 5, 2)
-            self.conv3   = conv(self.batchNorm, 128, 256, 5, 2)
-            self.conv3_1 = conv(self.batchNorm, 256, 256)
-            self.conv4   = conv(self.batchNorm, 256, 512, stride=2)
-            self.conv4_1 = conv(self.batchNorm, 512, 512)
-            self.conv5   = conv(self.batchNorm, 512, 512, stride=2)
-            self.conv5_1 = conv(self.batchNorm, 512, 512)
-            self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
-            self.conv6_1 = conv(self.batchNorm, 1024, 1024)
+            self.conv2   = conv(self.basicE, self.basicE*2, stride=2)
+            self.conv3   = conv(self.basicE*2, self.basicE*4, stride=2)
+            self.conv3_1 = conv(self.basicE*4, self.basicE*4)
+            self.conv4   = conv(self.basicE*4, self.basicE*8, stride=2)
+            self.conv4_1 = conv(self.basicE*8, self.basicE*8)
+            self.conv5   = conv(self.basicE*8, self.basicE*16, stride=2)
+            self.conv5_1 = conv(self.basicE*16, self.basicE*16)
+            self.conv6   = conv(self.basicE*16, self.basicE*32, stride=2)
+            self.conv6_1 = conv(self.basicE*32, self.basicE*32)
 
         self.pred_res6 = predict_flow(self.basicE*32)
 
         # iconv with deconv layers
-        self.iconv5 = nn.ConvTranspose2d(self.basicD*32+1, self.basicD*16, 3, 1, 1)
-        self.iconv4 = nn.ConvTranspose2d(self.basicD*16+1, self.basicD*8, 3, 1, 1)
-        self.iconv3 = nn.ConvTranspose2d(self.basicD*8+1, self.basicD*4, 3, 1, 1)
-        self.iconv2 = nn.ConvTranspose2d(self.basicD*4+1, self.basicD*2, 3, 1, 1)
-        self.iconv1 = nn.ConvTranspose2d(self.basicD*2+1, self.basicD, 3, 1, 1)
+        self.iconv5 = nn.ConvTranspose2d((self.basicD+self.basicE)*16+1, self.basicD*16, 3, 1, 1)
+        self.iconv4 = nn.ConvTranspose2d((self.basicD+self.basicE)*8+1, self.basicD*8, 3, 1, 1)
+        self.iconv3 = nn.ConvTranspose2d((self.basicD+self.basicE)*4+1, self.basicD*4, 3, 1, 1)
+        self.iconv2 = nn.ConvTranspose2d((self.basicD+self.basicE)*2+1, self.basicD*2, 3, 1, 1)
+        self.iconv1 = nn.ConvTranspose2d((self.basicD+self.basicE)*1+1, self.basicD, 3, 1, 1)
         self.iconv0 = nn.ConvTranspose2d(self.basicD+self.input_channel+1, self.basicD, 3, 1, 1)
 
         # expand and produce disparity
-        self.upconv5 = deconv(self.basicD*32, self.basicD*16)
+        self.upconv5 = deconv(self.basicE*32, self.basicD*16)
         self.upflow6to5 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
         self.pred_res5 = predict_flow(self.basicD*16)
 

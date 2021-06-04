@@ -11,6 +11,8 @@ from net_builder import build_net
 from dataloader.SceneFlowLoader import SceneFlowDataset
 from dataloader.SintelLoader import SintelDataset
 from dataloader.MiddleburyLoader import MiddleburyDataset
+from dataloader.ETH3DLoader import ETH3DDataset
+from dataloader.RVCLoader import RVCDataset
 from dataloader import KITTILoader as DA
 from dataloader.GANet.data import get_training_set, get_test_set
 from utils.AverageMeter import AverageMeter, HVDMetric
@@ -53,6 +55,12 @@ class DisparityTrainer(object):
         if self.dataset == 'middlebury':
             train_dataset = MiddleburyDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = MiddleburyDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
+        if self.dataset == 'eth3d':
+            train_dataset = ETH3DDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
+            test_dataset = ETH3DDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
+        if self.dataset == 'rvc':
+            train_dataset = RVCDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
+            test_dataset = RVCDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
         if self.dataset == 'sintel':
             train_dataset = SintelDataset(txt_file = self.trainlist, root_dir = self.datapath, phase='train')
             test_dataset = SintelDataset(txt_file = self.vallist, root_dir = self.datapath, phase='test')
@@ -110,16 +118,18 @@ class DisparityTrainer(object):
         # build net according to the net name
         if self.net_name in ["psmnet", "ganet", "gwcnet"]:
             self.net = build_net(self.net_name)(self.maxdisp)
-        elif self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'xfadnet']:
-            eratio = 8; dratio = 8
+        elif self.net_name in ['fadnet', 'dispnetcss', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
+            eratio = 16; dratio = 16
             if self.net_name == 'mobilefadnet':
-                eratio = 4; dratio = 4
+                eratio = 8; dratio = 8
             elif self.net_name == 'slightfadnet':
-                eratio = 2; dratio = 2
+                eratio = 4; dratio = 4
             elif self.net_name == 'tinyfadnet':
+                eratio = 2; dratio = 1
+            elif self.net_name == 'microfadnet':
                 eratio = 1; dratio = 1
             elif self.net_name == 'xfadnet':
-                eratio = 16; dratio = 16
+                eratio = 32; dratio = 32
             self.net = build_net(self.net_name)(maxdisp=self.maxdisp, encoder_ratio=eratio, decoder_ratio=dratio)
 
         self.is_pretrain = False
@@ -233,7 +243,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
             self.optimizer.zero_grad()
 
-            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet', 'xfadnet', 'tinyfadnet']:
+            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
                 loss_net2 = self.criterion(output_net2, target_disp)
@@ -337,7 +347,7 @@ class DisparityTrainer(object):
             target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
-            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet', 'tinyfadnet']:
+            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))

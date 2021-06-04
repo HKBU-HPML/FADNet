@@ -6,92 +6,79 @@ import numpy as np
 from torch.autograd import Function
 from torch.nn import init
 from torch.nn.init import kaiming_normal
-#from layers_package.resample2d_package.resample2d import Resample2d
-#from layers_package.channelnorm_package.channelnorm import ChannelNorm
-from networks.DispNetC import DispNetC
+from networks.DispNetC import ExtractNet, CUNet
 from networks.DispNetS import DispNetS
 from networks.submodules import *
 
 class DispNetCSS(nn.Module):
 
-    def __init__(self, batchNorm=False, lastRelu=True, resBlock=True, maxdisp=-1, input_channel=3):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(DispNetCSS, self).__init__()
         self.input_channel = input_channel
-        self.batchNorm = batchNorm
-        self.resBlock = resBlock
-        self.lastRelu = lastRelu
         self.maxdisp = maxdisp
+        self.resBlock = resBlock
+        self.eratio = encoder_ratio
+        self.dratio = decoder_ratio
 
-        # First Block (DispNetC)
-        self.dispnetc = DispNetC(batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=input_channel)
-        # Second and third Block (DispNetS), input is 6+3+1+1=11
-        self.dispnets1 = DispNetS(11, batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=3)
-        self.dispnets2 = DispNetS(11, batchNorm=self.batchNorm, resBlock=self.resBlock, maxdisp=self.maxdisp, input_channel=3)
+        # First Block (Extract)
+        self.extract_network = ExtractNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
-        ## warp layer and channelnorm layer
-        #self.channelnorm = ChannelNorm()
-        #self.resample1 = Resample2d()
+        # Second Block (CUNet)
+        self.cunet = CUNet(resBlock=resBlock, maxdisp=self.maxdisp, input_channel=input_channel, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
+
+        # Third Block (DispNetRes), input is 11 channels(img0, img1, img1->img0, flow, diff-mag)
+        in_planes = 3 * 3 + 1 + 1
+        self.dispnets1 = DispNetS(in_planes, resBlock=self.resBlock, input_channel=3, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
+        self.dispnets2 = DispNetS(in_planes, resBlock=self.resBlock, input_channel=3, encoder_ratio=encoder_ratio, decoder_ratio=decoder_ratio)
 
         self.relu = nn.ReLU(inplace=False)
 
-        # # parameter initialization
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d):
-        #         if m.bias is not None:
-        #             init.uniform(m.bias)
-        #         init.xavier_uniform(m.weight)
+        self.model_trt = None
 
-        #     if isinstance(m, nn.ConvTranspose2d):
-        #         if m.bias is not None:
-        #             init.uniform(m.bias)
-        #         init.xavier_uniform(m.weight)
-
-    def forward(self, inputs):
+    def forward(self, inputs, enabled_tensorrt=False):
 
         # split left image and right image
-        # inputs = inputs_target[0]
-        # target = inputs_target[1]
         imgs = torch.chunk(inputs, 2, dim = 1)
         img_left = imgs[0]
         img_right = imgs[1]
 
-        # dispnetc
-        dispnetc_flows = self.dispnetc(inputs)
-        dispnetc_flow = dispnetc_flows[0]
+        # extract features
+        conv1_l, conv2_l, conv3a_l, conv3a_r = self.extract_network(inputs)
+
+        # build corr
+        out_corr = build_corr(conv3a_l, conv3a_r, max_disp=self.maxdisp//8+16)
+        # generate first-stage flows
+        dispnetc_flows = self.cunet(inputs, conv1_l, conv2_l, conv3a_l, out_corr)
+        dispnetc_final_flow = dispnetc_flows[0]
+
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        resampled_img1 = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnetc_final_flow)
+        diff_img0 = inputs[:, :self.input_channel, :, :] - resampled_img1
+        norm_diff_img0 = channel_length(diff_img0)
+
+        # concat img0, img1, img1->img0, flow, diff-img
+        inputs_net2 = torch.cat((inputs, resampled_img1, dispnetc_final_flow, norm_diff_img0), dim = 1)
 
         # dispnets1
-        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
-        dummy_flow_1 = torch.autograd.Variable(torch.zeros(dispnetc_flow.data.shape).cuda())
-        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
-        dispnetc_flow_2d = torch.cat((dispnetc_flow, dummy_flow_1), dim = 1)
-        resampled_img1_1 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnetc_flow_2d)
-        diff_img0_1 = inputs[:, :self.input_channel, :, :] - resampled_img1_1
-        norm_diff_img0_1 = self.channelnorm(diff_img0_1)
-
-        # concat img0, img1, img1->img0, flow, diff-mag
-        inputs_net2 = torch.cat((inputs, resampled_img1_1, dispnetc_flow, norm_diff_img0_1), dim = 1)
         dispnets1_flows = self.dispnets1(inputs_net2)
-        dispnets1_flow = dispnets1_flows[0]
-        
-        # dispnets2
-        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
-        dummy_flow_2 = torch.autograd.Variable(torch.zeros(dispnets1_flow.data.shape).cuda())
-        # dispnetc_final_flow_2d = torch.cat((target, dummy_flow), dim = 1)
-        dispnets1_flow_2d = torch.cat((dispnets1_flow, dummy_flow_2), dim = 1)
-        resampled_img1_2 = self.resample1(inputs[:, self.input_channel:, :, :], -dispnets1_flow_2d)
-        diff_img0_2 = inputs[:, :self.input_channel, :, :] - resampled_img1_2
-        norm_diff_img0_2 = self.channelnorm(diff_img0_2)
+        dispnets1_final_flow = dispnets1_flows[0]
 
-        # concat img0, img1, img1->img0, flow, diff-mag
-        inputs_net3 = torch.cat((inputs, resampled_img1_2, dispnets1_flow, norm_diff_img0_2), dim = 1)
+        # warp img1 to img0; magnitude of diff between img0 and warped_img1,
+        resampled_img1s = warp_right_to_left(inputs[:, self.input_channel:, :, :], -dispnets1_final_flow)
+        diff_img0s = inputs[:, :self.input_channel, :, :] - resampled_img1s
+        norm_diff_img0s = channel_length(diff_img0s)
+
+        # concat img0, img1, img1->img0, flow, diff-img
+        inputs_net3 = torch.cat((inputs, resampled_img1s, dispnets1_final_flow, norm_diff_img0s), dim = 1)
+
+        # dispnets2
         dispnets2_flows = self.dispnets2(inputs_net3)
-        dispnets2_flow = dispnets2_flows[0]
-        
+        dispnets2_final_flow = dispnets2_flows[0]
 
         if self.training:
             return dispnetc_flows, dispnets1_flows, dispnets2_flows
         else:
-            return dispnetc_flow, dispnets1_flow, dispnets2_flow# , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
+            return dispnetc_final_flow, dispnets1_final_flow, dispnets2_final_flow # , inputs[:, :3, :, :], inputs[:, 3:, :, :], resampled_img1
 
 
     def weight_parameters(self):

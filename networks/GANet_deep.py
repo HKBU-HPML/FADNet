@@ -387,7 +387,7 @@ class GANet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, input):
+    def forward(self, input, enabled_tensorrt=False):
 
         imgs = torch.chunk(input, 2, dim = 1)
         x = imgs[0]

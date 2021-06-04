@@ -62,7 +62,7 @@ def main(opt):
     start_epoch = opt.startEpoch
 
     is_sparse = False
-    if ('kitti' in opt.dataset) or ('middlebury' in opt.dataset):
+    if ('kitti' in opt.dataset) or ('middlebury' in opt.dataset) or ('eth3d' in opt.dataset):
         is_sparse = True
     for r in range(opt.startRound, train_round):
 

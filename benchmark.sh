@@ -1,4 +1,4 @@
-net=slightfadnet
+net=microfadnet
 
 #PY=/home/esetstore/fadnet/bin/python
 PY=python

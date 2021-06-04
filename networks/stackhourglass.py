@@ -100,7 +100,7 @@ class PSMNet(nn.Module):
                 m.bias.data.zero_()
 
 
-    def forward(self, input):
+    def forward(self, input, enabled_tensorrt=False):
 
         imgs = torch.chunk(input, 2, dim = 1)
         left = imgs[0]

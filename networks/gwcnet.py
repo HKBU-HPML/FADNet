@@ -167,7 +167,7 @@ class GwcNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
-    def forward(self, inputs):
+    def forward(self, inputs, enabled_tensorrt=False):
 
         imgs = torch.chunk(inputs, 2, dim = 1)
         left = imgs[0]

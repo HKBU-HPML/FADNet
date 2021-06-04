@@ -14,7 +14,7 @@ from torch2trt import torch2trt
 
 class FADNet(nn.Module):
 
-    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=8, decoder_ratio=8):
+    def __init__(self, resBlock=True, maxdisp=192, input_channel=3, encoder_ratio=16, decoder_ratio=16):
         super(FADNet, self).__init__()
         self.input_channel = input_channel
         self.maxdisp = maxdisp
@@ -36,9 +36,9 @@ class FADNet(nn.Module):
 
         self.model_trt = None
 
-    def trt_transform(self):
+    def trt_transform(self, input_size = (1, 6, 576, 960)):
         net = copy.deepcopy(self)
-        x = torch.rand((1, 6, 576, 960)).cuda()
+        x = torch.rand(input_size).cuda()
         net.extract_network = torch2trt(net.extract_network, [x])
     
         # extract features
@@ -68,10 +68,10 @@ class FADNet(nn.Module):
         return net
 
 
-    def get_tensorrt_model(self):
+    def get_tensorrt_model(self, input_size=(1, 6, 576, 960)):
 
         if self.model_trt == None:
-            self.model_trt = self.trt_transform()
+            self.model_trt = self.trt_transform(input_size)
         return self.model_trt
 
 

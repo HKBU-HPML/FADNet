@@ -44,20 +44,25 @@ def detect(opt):
     ngpu = len(devices)
 
     # build net according to the net name
-    if net_name == "psmnet" or net_name == "ganet":
+    if net_name in ["gwcnet", "ganet", "psmnet"]:
         net = build_net(net_name)(192)
-    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'xfadnet']:
-        eratio = 8; dratio = 8
+    elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
+        eratio = 16; dratio = 16
         if net_name == 'mobilefadnet':
-            eratio = 4; dratio = 4
+            eratio = 8; dratio = 8
         elif net_name == 'slightfadnet':
-            eratio = 2; dratio = 2
+            eratio = 4; dratio = 4
         elif net_name == 'tinyfadnet':
+            eratio = 2; dratio = 1
+        elif net_name == 'microfadnet':
             eratio = 1; dratio = 1
         elif net_name == 'xfadnet':
-            eratio = 16; dratio = 16
+            eratio = 32; dratio = 32
         net = build_net(net_name)(maxdisp=192, encoder_ratio=eratio, decoder_ratio=dratio)
-
+    elif net_name in ["dispnetc", "dispnetcss"]:
+        net = build_net(net_name)(resBlock=False, maxdisp=192)
+    elif net_name == "crl":
+        net = build_net('fadnet')(resBlock=False, maxdisp=192)
     #elif net_name == "mobilefadnet":
     #    #B, max_disp, H, W = (wopt.batchSize, 40, 72, 120)
     #    shape = (opt.batchSize, 40, 72, 120) #TODO: Should consider how to dynamically use
@@ -70,17 +75,19 @@ def detect(opt):
     num_of_parameters = count_parameters(net)
     print('Model: %s, # of parameters: %d' % (net_name, num_of_parameters))
 
-    net = net.cuda()
-    get_net_info(net, input_shape=(3, 576, 960))
-    if enabled_tensorrt:
-        net = net.get_tensorrt_model()
-    #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
     if FP16:
         net = apex.amp.initialize(net, None, opt_level='O2') 
     net.eval()
+    net = net.cuda()
 
+    width = 960
+    height = 576
+    get_net_info(net, input_shape=(3, height, width))
+    if enabled_tensorrt:
+        net = net.get_tensorrt_model((1, 6, height, width))
+    #torch.save(net.state_dict(), 'models/mobilefadnet_trt.pth')
     # fake input data
-    dummy_input = torch.randn(1, 6, 576, 960, dtype=torch.float).cuda()
+    dummy_input = torch.randn(1, 6, height, width, dtype=torch.float).cuda()
 
     # INIT LOGGERS
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
