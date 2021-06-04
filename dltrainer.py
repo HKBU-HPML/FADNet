@@ -233,7 +233,7 @@ class DisparityTrainer(object):
             data_time.update(time.time() - end)
             self.optimizer.zero_grad()
 
-            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet', 'xfadnet']:
+            if self.net_name in ["fadnet", "mobilefadnet", 'slightfadnet', 'xfadnet', 'tinyfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 loss_net1 = self.criterion(output_net1, target_disp)
                 loss_net2 = self.criterion(output_net2, target_disp)
@@ -337,7 +337,7 @@ class DisparityTrainer(object):
             target_disp = target_disp.cuda()
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
-            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet']:
+            if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'xfadnet', 'tinyfadnet']:
                 output_net1, output_net2 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
                 output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
