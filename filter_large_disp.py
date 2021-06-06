@@ -17,6 +17,7 @@ def load_disp(filename):
         gt_disp = Image.open(filename)
         gt_disp = np.ascontiguousarray(gt_disp,dtype=np.float32)/256
 
+    gt_disp[np.isinf(gt_disp)] = 0
     return gt_disp
 
 filelist = "lists/all_files.list"
