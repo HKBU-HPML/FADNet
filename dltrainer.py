@@ -265,7 +265,8 @@ class DisparityTrainer(object):
                 loss_net3 = self.criterion(output_net3, target_disp)
                 loss = loss_net1 + loss_net2 + loss_net3
                 output_net3_final = output_net3[0]
-                flow2_EPE = self.epe(output_net3_final, target_disp)
+                flow2_EPE = self.epe(output_net3_final, target_disp, maxdisp=self.maxdisp)
+                d1m = d1_metric(output_net3_final, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "psmnet" or self.net_name == "ganet":
                 mask = target_disp < self.maxdisp
                 mask.detach_()
@@ -368,15 +369,16 @@ class DisparityTrainer(object):
                 flow2_EPE = loss
             elif self.net_name == 'dispnetcss':
                 output_net1, output_net2, output_net3 = self.net(input_var)
-                output_net1 = scale_disp(output_net1, (output_net1.size()[0], 540, 960))
-                output_net2 = scale_disp(output_net2, (output_net2.size()[0], 540, 960))
-                output_net3 = scale_disp(output_net3, (output_net3.size()[0], 540, 960))
+                output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
+                output_net2 = scale_disp(output_net2, (output_net2.size()[0], self.img_height, self.img_width))
+                output_net3 = scale_disp(output_net3, (output_net3.size()[0], self.img_height, self.img_width))
 
-                loss_net1 = self.epe(output_net1, target_disp)
-                loss_net2 = self.epe(output_net2, target_disp)
-                loss_net3 = self.epe(output_net3, target_disp)
+                loss_net1 = self.epe(output_net1, target_disp, maxdisp=self.maxdisp)
+                loss_net2 = self.epe(output_net2, target_disp, maxdisp=self.maxdisp)
+                loss_net3 = self.epe(output_net3, target_disp, maxdisp=self.maxdisp)
                 loss = loss_net1 + loss_net2 + loss_net3
-                flow2_EPE = self.epe(output_net3, target_disp)
+                flow2_EPE = self.epe(output_net3, target_disp, maxdisp=self.maxdisp)
+                d1m = d1_metric(output_net3, target_disp, maxdisp=self.maxdisp)
             else:
                 output = self.net(input_var)
                 output_net1 = output[0]
