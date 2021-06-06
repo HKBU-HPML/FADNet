@@ -195,7 +195,7 @@ class DisparityTrainer(object):
                 #cur_lr = self.lr
             elif self.dataset.find('sceneflow') >= 0:
                 cur_lr = self.lr / (2**(epoch// 10))
-            elif self.dataset.find('middlebury') >= 0:
+            elif self.dataset.find('middlebury') >= 0 or self.dataset.find('rvc') >= 0:
                 if epoch <= 1400:
                     cur_lr = self.lr 
                 elif epoch <= 1800:
