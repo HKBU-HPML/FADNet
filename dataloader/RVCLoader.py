@@ -125,7 +125,7 @@ class RVCDataset(Dataset):
             rgb_transform = inception_color_preproccess()
 
         h, w, _ = left.shape
-        th, tw = 256, 512
+        th, tw = 256, 320
 
         if self.normalize == 'imagenet':
             img_left = rgb_transform(left)

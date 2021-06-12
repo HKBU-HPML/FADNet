@@ -247,10 +247,13 @@ def test_md(leftname, rightname, savename):
     temp = temp[0, :height, :width]
 
     # print epe
+    thres = 400
+    if 'trainingQ' in leftname:
+        thres = 192
     if 'training' in leftname:
         gt_disp, _, _ = readPFM(leftname.replace('im0.png', 'disp0GT.pfm'))
         gt_disp[np.isinf(gt_disp)] = 0
-        mask = (gt_disp > 0) & (gt_disp < 400)
+        mask = (gt_disp > 0) & (gt_disp < thres)
         epe = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
         print(savename, epe, np.min(gt_disp), np.max(gt_disp))
 
@@ -259,9 +262,9 @@ def test_md(leftname, rightname, savename):
 
     disppath = Path(savepfm_path)
     disppath.makedirs_p()
-    save_pfm(savepfm_path+'/disp0FADNet_RVC.pfm', temp, scale=1)
+    save_pfm(savepfm_path+'/disp0FADNet++.pfm', temp, scale=1)
     ##########write time txt########
-    fp = open(savepfm_path+'/timeFADNet_RVC.txt', 'w')
+    fp = open(savepfm_path+'/timeFADNet++.txt', 'w')
     runtime = "%.4f" % (end_time - start_time)  
     fp.write(runtime)   
     fp.close()
@@ -352,35 +355,46 @@ def test_kitti(leftname, rightname, savename):
     return epe
 
 
-def test(leftname, rightname, savename):  
-    input1, input2, height, width = test_transform(load_data(leftname, rightname), opt.crop_height, opt.crop_width)
+def test(leftname, rightname, savename, gt_disp):  
+    input1, input2, height, width = load_data_imn(leftname, rightname)
 
     input1 = Variable(input1, requires_grad = False)
     input2 = Variable(input2, requires_grad = False)
 
     model.eval()
-    if cuda:
+    start_time = time()
+
+    if opt.cuda:
         input1 = input1.cuda()
         input2 = input2.cuda()
+        input_var = torch.cat((input1, input2), 0)
+        input_var = input_var.unsqueeze(0)
+    with torch.no_grad():        
+        prediction = model(input_var)[1]
+        prediction = prediction.squeeze(0)
 
-    start_time = time()
-    with torch.no_grad():
-        prediction = model(input1, input2)
     end_time = time()
-    
     print("Processing time: {:.4f}".format(end_time - start_time))
+
     temp = prediction.cpu()
     temp = temp.detach().numpy()
-    if height <= opt.crop_height or width <= opt.crop_width:
-        temp = temp[0, opt.crop_height - height: opt.crop_height, opt.crop_width - width: opt.crop_width]
-    else:
-        temp = temp[0, :, :]
-    plot_disparity(savename, temp, 192)
+    temp = temp[0, :height, :width]
+
+    plot_disparity(savename, temp, 192, cmap='rainbow')
+
+    mask = (gt_disp > 0) & (gt_disp < 192)
+    epe = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
+    err_map = np.abs(temp - gt_disp)
+    err_name = savename.replace('disp', 'err')
+    plot_disparity(err_name, err_map, 30, cmap='turbo')
+
     savename_pfm = savename.replace('png','pfm') 
     temp = np.flipud(temp)
 
-def plot_disparity(savename, data, max_disp):
-    plt.imsave(savename, data, vmin=0, vmax=max_disp, cmap='turbo')
+    return epe
+
+def plot_disparity(savename, data, max_disp, cmap='turbo'):
+    plt.imsave(savename, data, vmin=0, vmax=max_disp, cmap=cmap)
 
    
 if __name__ == "__main__":
@@ -399,15 +413,17 @@ if __name__ == "__main__":
             error += test_kitti(leftname, rightname, savename)
 
         if opt.sceneflow:
-            leftname = file_path + 'frames_finalpass/' + current_file[0: len(current_file) - 1]
-            rightname = file_path + 'frames_finalpass/' + current_file[0: len(current_file) - 14] + 'right/' + current_file[len(current_file) - 9:len(current_file) - 1]
-            leftgtname = file_path + 'disparity/' + current_file[0: len(current_file) - 4] + 'pfm'
+            leftname = file_path + current_file[0]
+            rightname = file_path + current_file[1] 
+            leftgtname = file_path + current_file[2]
             disp_left_gt, height, width = readPFM(leftgtname)
-            savenamegt = opt.savepath + "{:d}_gt.png".format(index)
+            savenamegt = opt.savepath + "gt_" + "_".join(current_file[2].split("/")[-4:]).replace('pfm', 'png').replace('left', 'disp')
             plot_disparity(savenamegt, disp_left_gt, 192)
 
-            savename = opt.savepath + "{:d}.png".format(index)
-            test(leftname, rightname, savename)
+            savename = opt.savepath + "%s_" % opt.model + "_".join(current_file[2].split("/")[-4:]).replace('pfm', 'png').replace('left', 'disp')
+            epe = test(leftname, rightname, savename, disp_left_gt)
+            error += epe
+            print(leftname, rightname, savename, epe)
 
         if opt.middlebury:
             leftname = file_path + current_file[0]
@@ -423,5 +439,8 @@ if __name__ == "__main__":
             rightname = file_path + current_file[1]
             savename = opt.savepath + "low_res_two_view/" + leftname.split("/")[-2] + ".pfm"
             error += test_eth3d(leftname, rightname, savename)
+
+        if index > 200:
+            break
     print("EPE:", error / len(filelist))
 
