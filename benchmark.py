@@ -44,6 +44,7 @@ def detect(opt):
     ngpu = len(devices)
 
     # build net according to the net name
+    print('network_name: ', net_name)
     if net_name in ["gwcnet", "ganet", "psmnet"]:
         net = build_net(net_name)(192)
     elif net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
@@ -77,7 +78,6 @@ def detect(opt):
 
     if FP16:
         net = apex.amp.initialize(net, None, opt_level='O2') 
-    net.eval()
     net = net.cuda()
 
     width = 960
@@ -91,13 +91,16 @@ def detect(opt):
 
     # INIT LOGGERS
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
-    repetitions = 30
+    repetitions = 500
     timings=np.zeros((repetitions,1))
+    net.eval()
     #GPU-WARM-UP
     with torch.no_grad():
         for _ in range(10):
             _ = net(dummy_input, enabled_tensorrt)
             # MEASURE PERFORMANCE
+    torch.cuda.empty_cache()
+    time.sleep(1)
     with torch.no_grad():
         for rep in range(repetitions):
             starter.record()
@@ -111,7 +114,7 @@ def detect(opt):
     
     mean_syn = np.sum(timings) / repetitions
     std_syn = np.std(timings)
-    print(mean_syn)
+    print(net_name, mean_syn)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
