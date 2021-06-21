@@ -15,6 +15,7 @@ from utils.common import count_parameters
 import psutil
 from pytorch_utils import get_net_info
 #from torch2trt import torch2trt
+from pytorch_memlab import MemReporter
 
 process = psutil.Process(os.getpid())
 cudnn.benchmark = True
@@ -79,6 +80,7 @@ def detect(opt):
         net = apex.amp.initialize(net, None, opt_level='O2') 
     net.eval()
     net = net.cuda()
+    reporter = MemReporter(net)
 
     width = 960
     height = 576
@@ -92,6 +94,7 @@ def detect(opt):
     # INIT LOGGERS
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
     repetitions = 30
+    mbytes = 2**20
     timings=np.zeros((repetitions,1))
     #GPU-WARM-UP
     with torch.no_grad():
@@ -105,6 +108,7 @@ def detect(opt):
             ender.record()
             # WAIT FOR GPU SYNC
             torch.cuda.synchronize()
+            reporter.report()
             curr_time = starter.elapsed_time(ender)
             timings[rep] = curr_time
             print(rep, curr_time)
