@@ -10,7 +10,7 @@ from networks.DispNetC import ExtractNet, CUNet
 from networks.DispNetRes import DispNetRes
 from networks.submodules import *
 import copy
-from torch2trt import torch2trt
+#from torch2trt import torch2trt
 
 class FADNet(nn.Module):
 

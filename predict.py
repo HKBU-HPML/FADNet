@@ -27,6 +27,9 @@ from path import Path
 
 from utils.preprocess import scale_disp, default_transform
 from networks.FADNet import FADNet
+from networks.DispNetC import DispNetC
+from networks.GANet_deep import GANet
+from networks.stackhourglass import PSMNet
 
 parser = argparse.ArgumentParser(description='FADNet')
 parser.add_argument('--crop_height', type=int, required=True, help="crop height")
@@ -69,18 +72,24 @@ if opt.cuda:
 
 if opt.model == 'psmnet':
     model = PSMNet(opt.maxdisp)
+elif opt.model == 'ganet':
+    model = GANet(opt.maxdisp)
 elif opt.model == 'fadnet':
     model = FADNet(maxdisp=opt.maxdisp)
+elif opt.model == 'dispnetc':
+    model = DispNetC(resBlock=False, maxdisp=opt.maxdisp)
+elif opt.model == 'crl':
+    model = FADNet(resBlock=False, maxdisp=opt.maxdisp)
 else:
     print('no model')
     sys.exit(-1)
 
+model = nn.DataParallel(model, device_ids=[0])
+model.cuda()
+
 if opt.loadmodel is not None:
     state_dict = torch.load(opt.loadmodel)
     model.load_state_dict(state_dict['state_dict'])
-
-model = nn.DataParallel(model, device_ids=[0])
-model.cuda()
 
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
@@ -369,9 +378,16 @@ def test(leftname, rightname, savename, gt_disp):
         input2 = input2.cuda()
         input_var = torch.cat((input1, input2), 0)
         input_var = input_var.unsqueeze(0)
-    with torch.no_grad():        
-        prediction = model(input_var)[1]
-        prediction = prediction.squeeze(0)
+    with torch.no_grad():
+        predictions = model(input_var)
+        if len(predictions) > 2:
+            prediction = predictions[0]
+        elif len(predictions) == 2:
+            prediction = predictions[1]
+        else:
+            prediction = predictions
+        if prediction.dim() == 4:
+            prediction = prediction.squeeze(0)
 
     end_time = time()
     print("Processing time: {:.4f}".format(end_time - start_time))
@@ -380,7 +396,7 @@ def test(leftname, rightname, savename, gt_disp):
     temp = temp.detach().numpy()
     temp = temp[0, :height, :width]
 
-    plot_disparity(savename, temp, 192, cmap='rainbow')
+    plot_disparity(savename, temp, np.max(gt_disp)+5, cmap='rainbow')
 
     mask = (gt_disp > 0) & (gt_disp < 192)
     epe = np.mean(np.abs(gt_disp[mask] - temp[mask])) 
@@ -418,7 +434,7 @@ if __name__ == "__main__":
             leftgtname = file_path + current_file[2]
             disp_left_gt, height, width = readPFM(leftgtname)
             savenamegt = opt.savepath + "gt_" + "_".join(current_file[2].split("/")[-4:]).replace('pfm', 'png').replace('left', 'disp')
-            plot_disparity(savenamegt, disp_left_gt, 192)
+            plot_disparity(savenamegt, disp_left_gt, np.max(disp_left_gt)+5, cmap='rainbow')
 
             savename = opt.savepath + "%s_" % opt.model + "_".join(current_file[2].split("/")[-4:]).replace('pfm', 'png').replace('left', 'disp')
             epe = test(leftname, rightname, savename, disp_left_gt)

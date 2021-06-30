@@ -116,7 +116,7 @@ class DisparityTrainer(object):
     def _build_net(self):
 
         # build net according to the net name
-        if self.net_name in ["psmnet", "ganet", "gwcnet"]:
+        if self.net_name in ["psmnet", "ganet", "gwcnet", "aanet"]:
             self.net = build_net(self.net_name)(self.maxdisp)
         elif self.net_name in ['fadnet', 'dispnetcss', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
             eratio = 16; dratio = 16
@@ -148,9 +148,9 @@ class DisparityTrainer(object):
                 if 'model' in model_data.keys():
                     model_data = model_data['model']
                 if 'state_dict' in model_data.keys():
-                    self.net.load_state_dict(model_data['state_dict'])
-                else:
-                    self.net.load_state_dict(model_data)
+                    model_data = model_data['state_dict']
+                model_data = {key.replace("module.", ""): value for key, value in model_data.items()}
+                self.net.load_state_dict(model_data)
                 self.is_pretrain = True
             else:
                 logger.warning('Can not find the specific model %s, initial a new model...', self.pretrain)
@@ -277,7 +277,7 @@ class DisparityTrainer(object):
                 output3 = torch.unsqueeze(output3,1)
 
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_disp[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_disp[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_disp[mask], size_average=True)
-                flow2_EPE = self.epe(output3, target_disp)
+                flow2_EPE = self.epe(output3, target_disp, maxdisp=self.maxdisp)
                 d1m = d1_metric(output3, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "gwcnet":
                 mask = target_disp < self.maxdisp
@@ -298,9 +298,9 @@ class DisparityTrainer(object):
                     flow2_EPE = self.epe(output, target_disp)
 
             # record loss and EPE
-            losses.update(loss.data.item(), input_var.size(0))
-            flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
-            d1_metrics.update(d1m.data.item(), input_var.size(0))
+            losses.update(loss, input_var.size(0))
+            flow2_EPEs.update(flow2_EPE, input_var.size(0))
+            d1_metrics.update(d1m, input_var.size(0))
 
             # compute gradient and do SGD step
             loss.backward()
@@ -311,6 +311,7 @@ class DisparityTrainer(object):
             end = time.time()
             self.train_iter += 1
 
+            print(losses.val, flow2_EPEs.val, d1_metrics.val)
             if self.rank == 0 and i_batch % 10 == 0:
                 logger.info('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -358,15 +359,18 @@ class DisparityTrainer(object):
                 loss = loss_net1 + loss_net2
                 flow2_EPE = self.epe(output_net2, target_disp, maxdisp=self.maxdisp)
                 d1m = d1_metric(output_net2, target_disp, maxdisp=self.maxdisp)
-            elif self.net_name in ['psmnet', 'ganet', 'gwcnet']: 
+            elif self.net_name in ['psmnet', 'ganet', 'gwcnet', 'aanet']: 
                 with torch.no_grad():
                     output_net3 = self.net(input_var)
-                if output_net3.dim == 3:
+                if self.net_name == 'aanet':
+                    output_net3 = output_net3[-1]
+                if output_net3.dim() == 3:
                     output_net3 = output_net3.unsqueeze(1)
                 output_net3 = scale_disp(output_net3, (output_net3.size()[0], 540, 960))
                 #output_net3 = scale_disp(output_net3, (output_net3.size()[0], 436, 1024))
-                loss = self.epe(output_net3, target_disp)
+                loss = self.epe(output_net3, target_disp, maxdisp=self.maxdisp)
                 flow2_EPE = loss
+                d1m = d1_metric(output_net3, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == 'dispnetcss':
                 output_net1, output_net2, output_net3 = self.net(input_var)
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
@@ -397,18 +401,21 @@ class DisparityTrainer(object):
                 #    flow2_EPE = self.epe(output, target_disp)
 
             # record loss and EPE
-            if loss.data.item() == loss.data.item():
-                losses.update(loss.data.item(), input_var.size(0))
-            if flow2_EPE.data.item() == flow2_EPE.data.item():
-                if self.hvd:
-                    flow2_EPEs.update(flow2_EPE, input_var.size(0))
-                else:
-                    flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
-            if d1m.data.item() == d1m.data.item():
-                if self.hvd:
-                    d1_metrics.update(d1m.data, input_var.size(0))
-                else:
-                    d1_metrics.update(d1m.data.item(), input_var.size(0))
+            losses.update(loss, input_var.size(0))
+            flow2_EPEs.update(flow2_EPE, input_var.size(0))
+            d1_metrics.update(d1m, input_var.size(0))
+            #if loss.data.item() == loss.data.item():
+            #    losses.update(loss.data.item(), input_var.size(0))
+            #if flow2_EPE.data.item() == flow2_EPE.data.item():
+            #    if self.hvd:
+            #        flow2_EPEs.update(flow2_EPE, input_var.size(0))
+            #    else:
+            #        flow2_EPEs.update(flow2_EPE.data.item(), input_var.size(0))
+            #if d1m.data.item() == d1m.data.item():
+            #    if self.hvd:
+            #        d1_metrics.update(d1m.data, input_var.size(0))
+            #    else:
+            #        d1_metrics.update(d1m.data.item(), input_var.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
