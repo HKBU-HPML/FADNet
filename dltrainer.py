@@ -135,9 +135,9 @@ class DisparityTrainer(object):
         self.is_pretrain = False
 
         if self.ngpu > 1 and not self.hvd:
-            self.net = torch.nn.DataParallel(self.net, device_ids=self.devices).cuda()
+            self.net = torch.nn.DataParallel(self.net.to('cuda'), device_ids=self.devices)
         else:
-            self.net.cuda()
+            self.net.to('cuda')
 
         if self.pretrain == '':
             logger.info('Initial a new model...')
@@ -232,13 +232,13 @@ class DisparityTrainer(object):
 
         for i_batch, sample_batched in enumerate(self.train_loader):
 
-            left_input = sample_batched['img_left'].cuda()
-            right_input = sample_batched['img_right'].cuda()
-            target_disp = sample_batched['gt_disp'].cuda()
+            left_input = sample_batched['img_left'].to('cuda')
+            right_input = sample_batched['img_right'].to('cuda')
+            target_disp = sample_batched['gt_disp'].to('cuda')
             
             input_var = torch.cat((left_input, right_input), 1)
-            input_var = torch.autograd.Variable(input_var, requires_grad=False)
-            target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
+            #input_var = torch.autograd.Variable(input_var, requires_grad=False)
+            #target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             data_time.update(time.time() - end)
             self.optimizer.zero_grad()
@@ -279,6 +279,20 @@ class DisparityTrainer(object):
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_disp[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_disp[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_disp[mask], size_average=True)
                 flow2_EPE = self.epe(output3, target_disp, maxdisp=self.maxdisp)
                 d1m = d1_metric(output3, target_disp, maxdisp=self.maxdisp)
+            elif self.net_name == "aanet":
+                loss_weights = [1/3, 2/3, 1.0, 1.0, 1.0]
+                mask = target_disp < self.maxdisp
+                mask.detach_()
+
+                outputs = self.net(input_var)
+                loss = 0.0
+                for oid in range(len(outputs)):
+                    output = torch.unsqueeze(outputs[oid], 1)
+                    output = F.interpolate(output, size=(target_disp.size(-2), target_disp.size(-1)), mode='bilinear', align_corners=False) * (target_disp.size(-1) / output.size(-1))
+                    loss += loss_weights[oid] * F.smooth_l1_loss(output[mask], target_disp[mask], size_average=True)
+                pred_disp = torch.unsqueeze(outputs[-1].detach(), 1)
+                flow2_EPE = self.epe(pred_disp, target_disp, maxdisp=self.maxdisp)
+                d1m = d1_metric(pred_disp, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "gwcnet":
                 mask = target_disp < self.maxdisp
                 mask.detach_()
@@ -287,6 +301,7 @@ class DisparityTrainer(object):
 
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_disp[mask], size_average=True) + 0.5*F.smooth_l1_loss(output2[mask], target_disp[mask], size_average=True) + 0.7*F.smooth_l1_loss(output3[mask], target_disp[mask], size_average=True) + F.smooth_l1_loss(output4[mask], target_disp[mask], size_average=True)
                 flow2_EPE = self.epe(output3, target_disp)
+                d1m = d1_metric(output3, target_disp, maxdisp=self.maxdisp)
             else:
                 output = self.net(input_var)
                 loss = self.criterion(output, target_disp)
@@ -311,7 +326,6 @@ class DisparityTrainer(object):
             end = time.time()
             self.train_iter += 1
 
-            print(losses.val, flow2_EPEs.val, d1_metrics.val)
             if self.rank == 0 and i_batch % 10 == 0:
                 logger.info('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -339,14 +353,14 @@ class DisparityTrainer(object):
         end = time.time()
         for i, sample_batched in enumerate(self.test_loader):
 
-            left_input = sample_batched['img_left'].cuda()
-            right_input = sample_batched['img_right'].cuda()
+            left_input = sample_batched['img_left'].to('cuda')
+            right_input = sample_batched['img_right'].to('cuda')
             left_input = F.interpolate(left_input, self.scale_size, mode='bilinear')
             right_input = F.interpolate(right_input, self.scale_size, mode='bilinear')
             input_var = torch.cat((left_input, right_input), 1)
 
             target_disp = sample_batched['gt_disp']
-            target_disp = target_disp.cuda()
+            target_disp = target_disp.to('cuda')
             target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             if self.net_name in ['fadnet', 'mobilefadnet', 'slightfadnet', 'tinyfadnet', 'microfadnet', 'xfadnet']:
@@ -389,7 +403,6 @@ class DisparityTrainer(object):
                 #output_net1 = output_net1.squeeze(1)
                 #print(output_net1.size())
                 output_net1 = scale_disp(output_net1, (output_net1.size()[0], self.img_height, self.img_width))
-                #output_net1 = torch.from_numpy(output_net1).unsqueeze(1).cuda()
                 loss = self.epe(output_net1, target_disp)
                 flow2_EPE = self.epe(output_net1, target_disp)
 
