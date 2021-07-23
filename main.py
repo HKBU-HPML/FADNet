@@ -67,7 +67,7 @@ def main(opt):
                 'arch': 'dispnet',
                 'state_dict': trainer.get_model(),
                 'best_EPE': best_EPE,    
-            }, is_best, '%s_%d_%d.pth' % (opt.net, r, i))
+            }, is_best, '%s_%d_%d_%.3f.pth' % (opt.net, r, i, avg_EPE))
         
             logger.info('Validation [round:%d,epoch:%d]: '%(r,i)+'\t'.join([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(avg_loss), str(avg_EPE), str(val_EPE), str(trainer.current_lr)]))
         start_epoch = 0

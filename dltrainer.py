@@ -16,6 +16,8 @@ from losses.multiscaleloss import EPE
 from utils.preprocess import scale_disp
 import skimage
 
+from tensorboardX import SummaryWriter
+
 class DisparityTrainer(object):
     def __init__(self, net_name, lr, devices, dataset, trainlist, vallist, datapath, batch_size, maxdisp, pretrain=None):
         super(DisparityTrainer, self).__init__()
