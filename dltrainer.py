@@ -249,7 +249,7 @@ class DisparityTrainer(object):
                 loss_net2 = self.criterion(output_net2, target_disp)
                 loss = loss_net1 + loss_net2
                 output_net2_final = output_net2[0]
-                flow2_EPE = self.epe(output_net2_final, target_disp, maxdisp=self.maxdisp)
+                flow2_EPE = self.epe(output_net2_final.detach(), target_disp, maxdisp=self.maxdisp)
                 d1m = d1_metric(output_net2_final, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "dispnetcs":
                 output_net1, output_net2 = self.net(input_var)
