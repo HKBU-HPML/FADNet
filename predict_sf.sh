@@ -6,8 +6,8 @@ CUDA_VISIBLE_DEVICES=1 $PY predict.py \
                 --datapath='./data/' \
                 --list='./lists/paper.list' \
                 --savepath='./predict/sf/' \
-                --model=ganet \
-                --loadmodel './models/ganet-sceneflow.pth' 
+                --model=aanet \
+                --loadmodel './models/aanet-sceneflow.pth' 
                 #--loadmodel './models/crl-sf-1.32.pth' 
                 #--loadmodel './models/fadnet-sceneflow.pth' 
                 #--loadmodel '/home/esetstore/repos/FADNet/models/fadnet-ft-rvc-4e-4-largemd/model_best.pth' 

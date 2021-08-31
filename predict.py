@@ -30,6 +30,7 @@ from networks.FADNet import FADNet
 from networks.DispNetC import DispNetC
 from networks.GANet_deep import GANet
 from networks.stackhourglass import PSMNet
+from networks.aanet import AANet
 
 parser = argparse.ArgumentParser(description='FADNet')
 parser.add_argument('--crop_height', type=int, required=True, help="crop height")
@@ -74,6 +75,8 @@ if opt.model == 'psmnet':
     model = PSMNet(opt.maxdisp)
 elif opt.model == 'ganet':
     model = GANet(opt.maxdisp)
+elif opt.model == 'aanet':
+    model = AANet(opt.maxdisp)
 elif opt.model == 'fadnet':
     model = FADNet(maxdisp=opt.maxdisp)
 elif opt.model == 'dispnetc':
@@ -380,9 +383,11 @@ def test(leftname, rightname, savename, gt_disp):
         input_var = input_var.unsqueeze(0)
     with torch.no_grad():
         predictions = model(input_var)
-        if len(predictions) > 2:
+        if len(predictions) == 5: # aanet
+            prediction = predictions[-1]
+        elif len(predictions) > 2: # ganet, psmnet
             prediction = predictions[0]
-        elif len(predictions) == 2:
+        elif len(predictions) == 2: # two-stage nets
             prediction = predictions[1]
         else:
             prediction = predictions

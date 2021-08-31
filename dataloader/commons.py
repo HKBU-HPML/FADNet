@@ -1,1 +1,1 @@
-normalize_method = 'instnorm' # 'imagenet' or 'instnorm'
+normalize_method = 'imagenet' # 'imagenet' or 'instnorm'
