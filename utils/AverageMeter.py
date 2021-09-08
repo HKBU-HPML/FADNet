@@ -31,7 +31,10 @@ class HVDMetric(object):
         self.val = 0.
 
     def update(self, val, n=1):
-        self.val = val.data.cpu().item()
+        if type(val) == float:
+            self.val = val
+        else:
+            self.val = val.data.cpu().item()
         self.sum += float(hvd.allreduce(val * n, name=self.name, average=False).item())
         self.n += n * hvd.size()
 

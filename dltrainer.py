@@ -238,10 +238,8 @@ class DisparityTrainer(object):
             left_input = sample_batched['img_left'].to('cuda')
             right_input = sample_batched['img_right'].to('cuda')
             target_disp = sample_batched['gt_disp'].to('cuda')
-            
+
             input_var = torch.cat((left_input, right_input), 1)
-            #input_var = torch.autograd.Variable(input_var, requires_grad=False)
-            #target_disp = torch.autograd.Variable(target_disp, requires_grad=False)
 
             data_time.update(time.time() - end)
             self.optimizer.zero_grad()
@@ -280,8 +278,9 @@ class DisparityTrainer(object):
                 output3 = torch.unsqueeze(output3,1)
 
                 loss = 0.5*F.smooth_l1_loss(output1[mask], target_disp[mask], size_average=True) + 0.7*F.smooth_l1_loss(output2[mask], target_disp[mask], size_average=True) + F.smooth_l1_loss(output3[mask], target_disp[mask], size_average=True)
-                flow2_EPE = self.epe(output3, target_disp, maxdisp=self.maxdisp)
-                d1m = d1_metric(output3, target_disp, maxdisp=self.maxdisp)
+                pred_disp = output3.detach()
+                flow2_EPE = self.epe(pred_disp, target_disp, maxdisp=self.maxdisp)
+                d1m = d1_metric(pred_disp, target_disp, maxdisp=self.maxdisp)
             elif self.net_name == "aanet":
                 loss_weights = [1/3, 2/3, 1.0, 1.0, 1.0]
                 mask = target_disp < self.maxdisp
@@ -315,14 +314,17 @@ class DisparityTrainer(object):
                 else:
                     flow2_EPE = self.epe(output, target_disp)
 
-            # record loss and EPE
-            losses.update(loss, input_var.size(0))
-            flow2_EPEs.update(flow2_EPE, input_var.size(0))
-            d1_metrics.update(d1m, input_var.size(0))
-
             # compute gradient and do SGD step
             loss.backward()
             self.optimizer.step()
+
+            # record loss and EPE
+            losses.update(loss.detach(), input_var.size(0))
+            flow2_EPEs.update(flow2_EPE, input_var.size(0))
+            d1_metrics.update(d1m, input_var.size(0))
+            #losses.update(4.0, input_var.size(0))
+            #flow2_EPEs.update(4, input_var.size(0))
+            #d1_metrics.update(4, input_var.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
