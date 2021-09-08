@@ -32,10 +32,10 @@ class HVDMetric(object):
 
     def update(self, val, n=1):
         if type(val) == float:
-            self.val = torch.Tensor([val])
+            self.val = torch.tensor(val)
         else:
             self.val = val.data.cpu()
-        self.sum += float(hvd.allreduce(val * n, name=self.name, average=False).item())
+        self.sum += float(hvd.allreduce(self.val * n, name=self.name, average=False).item())
         self.n += n * hvd.size()
 
     @property
