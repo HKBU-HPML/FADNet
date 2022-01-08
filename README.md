@@ -1,6 +1,6 @@
-# FADNet++: A Fast and Accurate Network for Disparity Estimation
+# FADNet++: Real-Time and Accurate Disparity Estimation with Configurable Networks
 
-This repository contains the code (in PyTorch) for "[FADNet](https://github.com/HKBU-HPML/FADNet/blob/master/pdf/FADNet.pdf)" paper, which has been accepted by IEEE International Conference on Robotics and Automation 2020 (ICRA 2020).
+This repository contains the code (in PyTorch) for the "[FADNet++](https://arxiv.org/abs/2110.02582)" paper.
 
 ## Contents
 
