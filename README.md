@@ -1,6 +1,6 @@
 # FADNet++: Real-Time and Accurate Disparity Estimation with Configurable Networks
 
-This repository contains the code (in PyTorch) for the "[FADNet++](https://arxiv.org/abs/2110.02582)" paper.
+This repository contains the code (in PyTorch) for the "[FADNet++](https://arxiv.org/abs/2110.02582)" paper, which is under review by IoTJ.
 
 ## Contents
 
@@ -158,12 +158,11 @@ Update: 2020/2/6 We released the pre-trained Scene Flow model.
 ## Citation
 If you find the code and paper is useful in your work, please cite our conference paper
 ```
-@inproceedings{wang2020fadnet,
-  title={{FADNet}: A Fast and Accurate Network for Disparity Estimation},
+@article{wang2021fadnet++,
+  title={FADNet++: Real-Time and Accurate Disparity Estimation with Configurable Networks},
   author={Wang, Qiang and Shi, Shaohuai and Zheng, Shizhen and Zhao, Kaiyong and Chu, Xiaowen},
-  booktitle={2020 {IEEE} International Conference on Robotics and Automation ({ICRA} 2020)},
-  pages={101--107},
-  year={2020}
+  journal={arXiv preprint arXiv:2110.02582},
+  year={2021}
 }
 ```
 ## Acknowledgement
