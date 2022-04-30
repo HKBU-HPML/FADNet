@@ -21,9 +21,9 @@ We propose an efficient and accurate deep network for disparity estimation named
 
 ### Dependencies
 
-- [Python2.7](https://www.python.org/downloads/)
-- [PyTorch(1.2.0+)](http://pytorch.org)
-- torchvision 0.2.0 (higher version may cause issues)
+- [Python3.6+](https://www.python.org/downloads/)
+- [PyTorch(1.6.0+)](http://pytorch.org)
+- torchvision 0.5.0+
 - [KITTI Stereo](http://www.cvlibs.net/datasets/kitti/eval_stereo.php)
 - [Scene Flow](https://lmb.informatik.uni-freiburg.de/resources/datasets/SceneFlowDatasets.en.html)
 
