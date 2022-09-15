@@ -1,7 +1,7 @@
 
 # FADNet: A Fast and Accurate Network for Disparity Estimation
 
-**# This repository will be not actively updated since we have develop an evolutional version "[FADNet++](https://github.com/HKBU-HPML/FADNet-PP)". Please refer to the newer project. However, one can also use the "main" branch of this project to reproduce the experimental results.**
+# ** This repository will be not actively updated since we have develop an evolutional version "[FADNet++](https://github.com/HKBU-HPML/FADNet-PP)". Please refer to the newer project. However, one can also use the "main" branch of this project to reproduce the experimental results.**
 
 This repository contains the code (in PyTorch) for "[FADNet](https://arxiv.org/abs/2003.10758)" paper, which has been accepted by IEEE International Conference on Robotics and Automation 2020 (ICRA 2020).
 
